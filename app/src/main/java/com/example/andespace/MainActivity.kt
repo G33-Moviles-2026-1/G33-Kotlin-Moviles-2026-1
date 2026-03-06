@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.andespace.model.AppDestinations
+import com.example.andespace.ui.screen.HomePageScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 import com.example.andespace.ui.viewmodel.MainViewModel
 import coil.compose.rememberAsyncImagePainter
@@ -43,6 +44,7 @@ import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import coil.ImageLoader
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.Box
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,10 +108,17 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
             },
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
-            Greeting(
-                name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label,
-                modifier = Modifier.padding(innerPadding)
-            )
+            when (uiState.currentDestination) {
+                AppDestinations.CLASSROOMS -> HomePageScreen(
+                    modifier = Modifier.padding(innerPadding)
+                )
+
+                else -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+            }
         }
     }
 }
@@ -133,8 +142,8 @@ fun AndeSpaceTopBar(
         ) {
             IconButton(onClick = onHistoryClick) {
                 AssetIcon(
-                    assetPath = "icons/history.svg",
-                    contentDescription = "History",
+                    assetPath = "icons/clock.svg",
+                    contentDescription = "Clock",
                     modifier = Modifier.scale(1.5f)
                 )
             }
