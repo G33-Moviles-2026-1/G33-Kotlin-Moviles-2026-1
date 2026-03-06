@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +26,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -40,6 +38,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.ui.theme.AndeSpaceTheme
 import com.example.andespace.ui.viewmodel.MainViewModel
+import coil.compose.rememberAsyncImagePainter
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+import coil.ImageLoader
+import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,8 +83,8 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                             targetValue = if (isSelected) 1.5f else 1.1f,
                             label = "iconScale"
                         )
-                        Icon(
-                            destination.icon,
+                        AssetIcon(
+                            assetPath = destination.assetIconPath,
                             contentDescription = destination.label,
                             modifier = Modifier.scale(iconScale)
                         )
@@ -129,10 +132,9 @@ fun AndeSpaceTopBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(onClick = onHistoryClick) {
-                Icon(
-                    Icons.Default.History,
+                AssetIcon(
+                    assetPath = "icons/history.svg",
                     contentDescription = "History",
-                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.scale(1.5f)
                 )
             }
@@ -142,15 +144,43 @@ fun AndeSpaceTopBar(
                 color = MaterialTheme.colorScheme.onSurface
             )
             IconButton(onClick = onAccountClick) {
-                Icon(
-                    Icons.Default.Person,
+                AssetIcon(
+                    assetPath = "icons/user.svg",
                     contentDescription = "Account",
-                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.scale(1.5f)
                 )
             }
         }
     }
+}
+
+@Composable
+fun AssetIcon(
+    assetPath: String,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val imageLoader = remember {
+        ImageLoader.Builder(context)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+    }
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context)
+            .data("file:///android_asset/$assetPath")
+            .build(),
+        imageLoader = imageLoader
+    )
+
+    Icon(
+        painter = painter,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        tint = MaterialTheme.colorScheme.onSurface
+    )
 }
 
 @Composable
