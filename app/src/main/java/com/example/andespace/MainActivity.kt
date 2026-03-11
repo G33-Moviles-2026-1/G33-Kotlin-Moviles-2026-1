@@ -115,7 +115,10 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                 AppDestinations.CLASSROOMS -> when (uiState.contentScreen) {
                     ContentScreen.HOME -> HomePageScreen(
                         modifier = Modifier.padding(innerPadding),
-                        onSearchClick = { viewModel.onSearchClick() }
+                        isSearching = uiState.isSearching,
+                        searchError = uiState.searchError,
+                        onSearchClick = { params -> viewModel.onSearchClick(params) },
+                        onFiltersOpened = { viewModel.onFiltersOpened() }
                     )
                     ContentScreen.RESULTS -> ResultsScreen(
                         modifier = Modifier.padding(innerPadding)

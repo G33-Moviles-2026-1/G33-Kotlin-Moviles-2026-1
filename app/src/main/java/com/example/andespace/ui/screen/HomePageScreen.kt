@@ -54,6 +54,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import com.example.andespace.AssetIcon
+import com.example.andespace.data.model.HomeSearchParams
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -71,13 +72,18 @@ private val UTILITIES_OPTIONS = listOf(
 @Composable
 fun HomePageScreen(
     modifier: Modifier = Modifier,
-    onFilterClick: () -> Unit = {},
-    onSearchClick: () -> Unit = {},
+    isSearching: Boolean = false,
+    searchError: String? = null,
+    onSearchClick: (HomeSearchParams) -> Unit = {},
+    onFiltersOpened: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
+    var selectedUtilities by remember { mutableStateOf(UTILITIES_OPTIONS.toSet()) }
 
     if (showFilterSheet) {
         UtilitiesFilterSheet(
+            selectedOptions = selectedUtilities,
+            onSelectedOptionsChange = { selectedUtilities = it },
             onDismiss = { showFilterSheet = false }
         )
     }
@@ -104,7 +110,13 @@ fun HomePageScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             SearchCard(
-                onFilterClick = { showFilterSheet = true },
+                selectedUtilities = selectedUtilities,
+                isSearching = isSearching,
+                searchError = searchError,
+                onFilterClick = {
+                    onFiltersOpened()
+                    showFilterSheet = true
+                },
                 onSearchClick = onSearchClick
             )
         }
@@ -121,8 +133,11 @@ private fun formatDateMillis(millis: Long): String =
 
 @Composable
 private fun SearchCard(
+    selectedUtilities: Set<String>,
+    isSearching: Boolean = false,
+    searchError: String? = null,
     onFilterClick: () -> Unit,
-    onSearchClick: () -> Unit,
+    onSearchClick: (HomeSearchParams) -> Unit,
 ) {
     var classroomInput by remember { mutableStateOf("") }
     val initialDateMillis = remember { System.currentTimeMillis() }
@@ -323,11 +338,30 @@ private fun SearchCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            if (searchError != null) {
+                Text(
+                    text = searchError,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Button(
-                onClick = onSearchClick,
+                onClick = {
+                    val params = HomeSearchParams(
+                        classroom = classroomInput,
+                        date = formatDateMillis(selectedDateMillis),
+                        since = formatTime(sinceHour, sinceMinute),
+                        until = formatTime(untilHour, untilMinute),
+                        closeToMe = closeToMe,
+                        utilities = selectedUtilities.toList()
+                    )
+                    onSearchClick(params)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
+                enabled = !isSearching,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryYellow,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -335,7 +369,7 @@ private fun SearchCard(
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text(
-                    text = "Search",
+                    text = if (isSearching) "Buscando..." else "Search",
                     style = MaterialTheme.typography.labelLarge
                 )
             }
@@ -430,10 +464,12 @@ private fun TimePickerDialog(
 }
 
 @Composable
-private fun UtilitiesFilterSheet(onDismiss: () -> Unit) {
-    var selectedOptions by remember {
-        mutableStateOf(UTILITIES_OPTIONS.toSet())
-    }
+private fun UtilitiesFilterSheet(
+    selectedOptions: Set<String>,
+    onSelectedOptionsChange: (Set<String>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var localSelected by remember(selectedOptions) { mutableStateOf(selectedOptions) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
@@ -478,10 +514,11 @@ private fun UtilitiesFilterSheet(onDismiss: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
-                            checked = option in selectedOptions,
+                            checked = option in localSelected,
                             onCheckedChange = {
-                                selectedOptions = if (it) selectedOptions + option
-                                else selectedOptions - option
+                                localSelected = if (it) localSelected + option
+                                else localSelected - option
+                                onSelectedOptionsChange(localSelected)
                             }
                         )
                         Spacer(modifier = Modifier.width(8.dp))

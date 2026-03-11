@@ -2,6 +2,7 @@ package com.example.andespace.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.model.HomeSearchParams
 import com.example.andespace.data.repository.AppRepository
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.ui.state.ContentScreen
@@ -12,10 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * El ViewModel actúa como intermediario.
- * Llama al repositorio para obtener datos y actualiza el State para la UI.
- */
+
 class MainViewModel(
     private val repository: AppRepository = AppRepository()
 ) : ViewModel() {
@@ -52,8 +50,32 @@ class MainViewModel(
         _uiState.update { it.copy(contentScreen = ContentScreen.HISTORY) }
     }
 
-    fun onSearchClick() {
-        _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS) }
+    fun onSearchClick(params: HomeSearchParams) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSearching = true, searchError = null) }
+            repository.trackHomeEvent("home_search_submitted")
+            repository.searchRooms(params)
+                .fold(
+                    onSuccess = { response ->
+                        _uiState.update {
+                            it.copy(
+                                isSearching = false,
+                                contentScreen = ContentScreen.RESULTS,
+                                searchResults = response.rooms,
+                                searchError = null
+                            )
+                        }
+                    },
+                    onFailure = { e ->
+                        _uiState.update {
+                            it.copy(
+                                isSearching = false,
+                                searchError = e.message ?: "Error de búsqueda"
+                            )
+                        }
+                    }
+                )
+        }
     }
 
     fun navigateBackToHome() {
@@ -62,5 +84,9 @@ class MainViewModel(
 
     fun onAccountClick() {
         println("Cuenta de: ${uiState.value.userName} clickeada")
+    }
+
+    fun onFiltersOpened() {
+        viewModelScope.launch { repository.trackHomeEvent("home_filters_opened") }
     }
 }

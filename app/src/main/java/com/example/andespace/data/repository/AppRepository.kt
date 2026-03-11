@@ -1,20 +1,45 @@
 package com.example.andespace.data.repository
 
+import com.example.andespace.data.api.RetrofitClient
+import com.example.andespace.data.api.dto.AnalyticsEventRequest
+import com.example.andespace.data.api.dto.RoomSearchRequest
+import com.example.andespace.data.api.dto.RoomSearchResponse
+import com.example.andespace.data.model.HomeSearchParams
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-/**
- * Capa de DATOS (Repository).
- * Aquí es donde se decide si los datos vienen de una API, base de datos local o mock.
- * El ViewModel NO sabe de dónde vienen los datos, solo llama al repositorio.
- */
 class AppRepository {
-    
-    // Simula una carga de datos desde internet o DB
+
+    private val api = RetrofitClient.apiService
+
     suspend fun getUserName(): String {
-        delay(1000) // Simular latencia
+        delay(1000)
         return "Estudiante Uniandes"
     }
 
-    // Ejemplo de obtención de datos para una funcionalidad futura
     fun getHistory() = listOf("ML 001", "W 101", "SD 202")
+
+    suspend fun searchRooms(params: HomeSearchParams): Result<RoomSearchResponse> =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = RoomSearchRequest(
+                    date = params.date
+                )
+                val response = api.searchRooms(request)
+                if (response.isSuccessful) {
+                    Result.success(response.body() ?: RoomSearchResponse())
+                } else {
+                    Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    suspend fun trackHomeEvent(eventType: String) = withContext(Dispatchers.IO) {
+        try {
+            api.trackAnalyticsEvent(AnalyticsEventRequest(screen = "home", eventType = eventType))
+        } catch (_: Exception) { }
+    }
 }
