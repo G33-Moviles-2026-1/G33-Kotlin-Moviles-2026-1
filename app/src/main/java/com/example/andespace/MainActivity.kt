@@ -36,7 +36,10 @@ import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.andespace.model.AppDestinations
+import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.screen.HomePageScreen
+import com.example.andespace.ui.screen.ResultsScreen
+import com.example.andespace.ui.state.ContentScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 import com.example.andespace.ui.viewmodel.MainViewModel
 import coil.compose.rememberAsyncImagePainter
@@ -109,10 +112,18 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
             when (uiState.currentDestination) {
-                AppDestinations.CLASSROOMS -> HomePageScreen(
-                    modifier = Modifier.padding(innerPadding)
-                )
-
+                AppDestinations.CLASSROOMS -> when (uiState.contentScreen) {
+                    ContentScreen.HOME -> HomePageScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onSearchClick = { viewModel.onSearchClick() }
+                    )
+                    ContentScreen.RESULTS -> ResultsScreen(
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                    ContentScreen.HISTORY -> HistoryScreen(
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
                 else -> Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -143,7 +154,7 @@ fun AndeSpaceTopBar(
             IconButton(onClick = onHistoryClick) {
                 AssetIcon(
                     assetPath = "icons/clock.svg",
-                    contentDescription = "Clock",
+                    contentDescription = "History",
                     modifier = Modifier.scale(1.5f)
                 )
             }

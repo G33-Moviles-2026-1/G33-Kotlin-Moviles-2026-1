@@ -28,8 +28,12 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,8 +46,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import com.example.andespace.AssetIcon
 import com.example.andespace.ui.theme.PrimaryYellow
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+
+private val UTILITIES_OPTIONS = listOf(
+    "Blackout",
+    "Power Outlet",
+    "Television",
+    "Interactive Classroom",
+    "Mobile WhiteBoards",
+    "Computer Classroom"
+)
 
 @Composable
 fun HomePageScreen(
@@ -51,6 +74,14 @@ fun HomePageScreen(
     onFilterClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
 ) {
+    var showFilterSheet by remember { mutableStateOf(false) }
+
+    if (showFilterSheet) {
+        UtilitiesFilterSheet(
+            onDismiss = { showFilterSheet = false }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -73,7 +104,7 @@ fun HomePageScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             SearchCard(
-                onFilterClick = onFilterClick,
+                onFilterClick = { showFilterSheet = true },
                 onSearchClick = onSearchClick
             )
         }
@@ -83,12 +114,20 @@ fun HomePageScreen(
 private fun formatTime(hour: Int, minute: Int): String =
     "%02d:%02d".format(hour, minute)
 
+private val dateDisplayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+private fun formatDateMillis(millis: Long): String =
+    dateDisplayFormat.format(millis)
+
 @Composable
 private fun SearchCard(
     onFilterClick: () -> Unit,
     onSearchClick: () -> Unit,
 ) {
     var classroomInput by remember { mutableStateOf("") }
+    val initialDateMillis = remember { System.currentTimeMillis() }
+    var selectedDateMillis by remember { mutableStateOf(initialDateMillis) }
+    var showDatePicker by remember { mutableStateOf(false) }
     var closeToMe by remember { mutableStateOf(true) }
     var sinceHour by remember { mutableStateOf(8) }
     var sinceMinute by remember { mutableStateOf(0) }
@@ -120,6 +159,35 @@ private fun SearchCard(
                 showUntilPicker = false
             }
         )
+    }
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDateMillis
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { selectedDateMillis = it }
+                        showDatePicker = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryYellow,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 
     Card(
@@ -176,6 +244,37 @@ private fun SearchCard(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
+                    .background(Color.White)
+                    .height(40.dp)
+                    .padding(horizontal = 12.dp)
+                    .clickable(onClick = { showDatePicker = true }),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Date",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = formatDateMillis(selectedDateMillis),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                AssetIcon(
+                    assetPath = "icons/schedule.svg",
+                    contentDescription = "Calendar",
+                    modifier = Modifier.size(18.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -323,6 +422,74 @@ private fun TimePickerDialog(
                         )
                     ) {
                         Text("OK")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UtilitiesFilterSheet(onDismiss: () -> Unit) {
+    var selectedOptions by remember {
+        mutableStateOf(UTILITIES_OPTIONS.toSet())
+    }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Close"
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Utilities",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                UTILITIES_OPTIONS.forEach { option ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = option in selectedOptions,
+                            onCheckedChange = {
+                                selectedOptions = if (it) selectedOptions + option
+                                else selectedOptions - option
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = option,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
