@@ -22,7 +22,6 @@ class MainViewModel(
     // Estado único de la UI
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
-
     init {
         loadUserData()
     }
@@ -32,7 +31,7 @@ class MainViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val name = repository.getUserName()
             _uiState.update { 
-                it.copy(userName = name, isLoading = false) 
+                it.copy(user = name, isLoading = false)
             }
         }
     }
@@ -47,7 +46,33 @@ class MainViewModel(
     }
 
     fun onAccountClick() {
-        // Lógica para cuenta
-        println("Cuenta de: ${uiState.value.userName} clickeada")
+        _uiState.update { currentState ->
+            currentState.copy(isUserMenuExpanded = !currentState.isUserMenuExpanded) }
     }
+
+    fun onDismissMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = false) }
+    }
+
+    fun onUserChange(newUser: String) {
+        _uiState.update { it.copy(user = newUser) }
+    }
+
+    fun onPasswordChange(newPassword: String) {
+        _uiState.update { it.copy(password = newPassword) }
+    }
+
+    fun onLoginExecute() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            // Simulate API call
+            val success = repository.login(_uiState.value.user, _uiState.value.password)
+            if (success) {
+                _uiState.update { it.copy(isLoading = false, currentDestination = AppDestinations.HOME) }
+            } else {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Login Failed") }
+            }
+        }
+    }
+
 }
