@@ -24,7 +24,12 @@ class AppRepository {
         withContext(Dispatchers.IO) {
             try {
                 val request = RoomSearchRequest(
-                    date = params.date
+                    classroom = params.classroom,
+                    date = params.date,
+                    since = params.since,
+                    until = params.until,
+                    closeToMe = params.closeToMe,
+                    utilities = params.utilities
                 )
                 val response = api.searchRooms(request)
                 if (response.isSuccessful) {
