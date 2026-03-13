@@ -2,10 +2,12 @@ package com.example.andespace
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,7 +31,9 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -35,13 +42,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.andespace.model.AppDestinations
-import com.example.andespace.ui.theme.AndeSpaceTheme
-import com.example.andespace.ui.viewmodel.MainViewModel
+import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
-import coil.ImageLoader
+import com.example.andespace.model.AppDestinations
+import com.example.andespace.ui.theme.AndeSpaceTheme
+import com.example.andespace.ui.viewmodel.MainViewModel
 import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
@@ -60,6 +67,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    var userMenuExpanded by remember { mutableStateOf(false) }
+
+    if (!uiState.isLoggedIn) {
+        LoginScreen(onBackToApp = viewModel::onLogin)
+        return
+    }
 
     val myItemColors = NavigationSuiteDefaults.itemColors(
         navigationBarItemColors = NavigationBarItemDefaults.colors(
@@ -101,23 +114,46 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
             topBar = {
                 AndeSpaceTopBar(
                     onHistoryClick = { viewModel.onHistoryClick() },
-                    onAccountClick = { viewModel.onAccountClick() }
+                    userMenuExpanded = userMenuExpanded,
+                    onUserMenuExpand = { userMenuExpanded = true },
+                    onUserMenuDismiss = { userMenuExpanded = false },
+                    onLogOut = {
+                        viewModel.onLogOut()
+                        userMenuExpanded = false
+                    }
                 )
             },
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
-            Greeting(
-                name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label,
-                modifier = Modifier.padding(innerPadding)
-            )
+            val contentModifier = Modifier.padding(innerPadding)
+            if (uiState.currentDestination == AppDestinations.HISTORY) {
+                HistoryScreen(modifier = contentModifier)
+            } else {
+                Greeting(
+                    name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label,
+                    modifier = contentModifier
+                )
+            }
         }
     }
 }
 
 @Composable
+fun LoginScreen(onBackToApp: () -> Unit) {
+    BackHandler { onBackToApp() }
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {}
+}
+
+@Composable
 fun AndeSpaceTopBar(
     onHistoryClick: () -> Unit,
-    onAccountClick: () -> Unit
+    userMenuExpanded: Boolean,
+    onUserMenuExpand: () -> Unit,
+    onUserMenuDismiss: () -> Unit,
+    onLogOut: () -> Unit
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -143,15 +179,42 @@ fun AndeSpaceTopBar(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            IconButton(onClick = onAccountClick) {
-                AssetIcon(
-                    assetPath = "icons/user.svg",
-                    contentDescription = "Account",
-                    modifier = Modifier.scale(1.5f)
-                )
+            Box {
+                IconButton(onClick = onUserMenuExpand) {
+                    AssetIcon(
+                        assetPath = "icons/user.svg",
+                        contentDescription = "Account",
+                        modifier = Modifier.scale(1.5f)
+                    )
+                }
+                DropdownMenu(
+                    expanded = userMenuExpanded,
+                    onDismissRequest = onUserMenuDismiss
+                ) {
+                    Button(
+                        onClick = {
+                            onLogOut()
+                            onUserMenuDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Red,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Log out")
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+fun HistoryScreen(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {}
 }
 
 @Composable

@@ -7,5 +7,6 @@ enum class AppDestinations(
     CLASSROOMS("Classrooms", "icons/rooms.svg"),
     FAVORITES("Favorites", "icons/favorites.svg"),
     BOOKINGS("Bookings", "icons/bookings.svg"),
-    SCHEDULE("My Schedule", "icons/schedule.svg")
+    SCHEDULE("My Schedule", "icons/schedule.svg"),
+    HISTORY("History", "icons/history.svg")
 }

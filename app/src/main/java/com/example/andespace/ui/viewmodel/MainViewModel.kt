@@ -11,15 +11,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * El ViewModel actúa como intermediario.
- * Llama al repositorio para obtener datos y actualiza el State para la UI.
- */
 class MainViewModel(
     private val repository: AppRepository = AppRepository()
 ) : ViewModel() {
 
-    // Estado único de la UI
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
@@ -31,8 +26,8 @@ class MainViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val name = repository.getUserName()
-            _uiState.update { 
-                it.copy(userName = name, isLoading = false) 
+            _uiState.update {
+                it.copy(userName = name, isLoading = false)
             }
         }
     }
@@ -42,12 +37,14 @@ class MainViewModel(
     }
 
     fun onHistoryClick() {
-        // Lógica para historial
-        println("Historial clickeado")
+        _uiState.update { it.copy(currentDestination = AppDestinations.HISTORY) }
     }
 
-    fun onAccountClick() {
-        // Lógica para cuenta
-        println("Cuenta de: ${uiState.value.userName} clickeada")
+    fun onLogOut() {
+        _uiState.update { it.copy(isLoggedIn = false) }
+    }
+
+    fun onLogin() {
+        _uiState.update { it.copy(isLoggedIn = true) }
     }
 }
