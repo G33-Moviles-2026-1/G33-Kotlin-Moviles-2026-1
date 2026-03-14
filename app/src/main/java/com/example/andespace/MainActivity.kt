@@ -1,5 +1,4 @@
 package com.example.andespace
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -19,6 +18,10 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +50,8 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.andespace.model.AppDestinations
+import com.example.andespace.ui.login.LoginScreen
+import com.example.andespace.ui.login.RegisterScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 import com.example.andespace.ui.viewmodel.MainViewModel
 import androidx.compose.ui.platform.LocalContext
@@ -106,11 +111,28 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                     onClick = { viewModel.onDestinationChanged(destination) },
                     colors = myItemColors
                 )
+                if(destination.label == "Classrooms" || destination.label == "Favorites" || destination.label == "Bookings" || destination.label == "Schedule"){
+                    item(
+                        icon = {
+                            val iconScale by animateFloatAsState(
+                                targetValue = if (isSelected) 1.5f else 1.1f,
+                                label = "iconScale"
+                            )
+                            Icon(
+                                destination.icon,
+                                contentDescription = destination.label,
+                                modifier = Modifier.scale(iconScale)
+                            )
+                        },
+                        selected = isSelected,
+                        onClick = { viewModel.onDestinationChanged(destination) },
+                        colors = myItemColors
+                    )
+                }
             }
         }
     ) {
         Scaffold(
-            modifier = Modifier.fillMaxSize(),
             topBar = {
                 AndeSpaceTopBar(
                     onHistoryClick = { viewModel.onHistoryClick() },
@@ -121,9 +143,20 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                         viewModel.onLogOut()
                         userMenuExpanded = false
                     }
+                    isMenuExpanded = uiState.isUserMenuExpanded,
+                    onAccountClick = { viewModel.onAccountClick() },
+                    onDismissMenu = { viewModel.onDismissMenu() },
+                    onLoginClick = {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                        viewModel.onDismissMenu()
+                    },
+                    onRegisterClick = {
+                        viewModel.onDestinationChanged(AppDestinations.REGISTER)
+                        viewModel.onDismissMenu()
+                    },
+                    onHistoryClick = { viewModel.onHistoryClick() }
                 )
-            },
-            containerColor = MaterialTheme.colorScheme.background
+            }
         ) { innerPadding ->
             val contentModifier = Modifier.padding(innerPadding)
             if (uiState.currentDestination == AppDestinations.HISTORY) {
@@ -158,14 +191,43 @@ fun AndeSpaceTopBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
+            Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+                when (uiState.currentDestination) {
+                    AppDestinations.LOGIN -> {
+                        LoginScreen(
+                            uiState = uiState,
+                            onUserChange = { viewModel.onUserChange(it) },
+                            onPasswordChange = { viewModel.onPasswordChange(it) },
+                            onLoginClick = { viewModel.onLoginExecute() }
+                        )
+                    }
+                    AppDestinations.REGISTER -> {
+                        RegisterScreen(
+                            uiState = uiState,
+                            onEmailChange = { viewModel.onUserChange(it) },
+                            onPasswordChange = { viewModel.onPasswordChange(it) },
+                            onLoginClick = { viewModel.onLoginExecute() }
+                        )
+                    }
+
+                    else -> Greeting(name = uiState.currentDestination.label)
+                }
+            }
+        }
+    }
+}
+    @Composable
+    fun AndeSpaceTopBar(
+        isMenuExpanded: Boolean,
+        onAccountClick: () -> Unit,
+        onDismissMenu: () -> Unit,
+        onLoginClick: () -> Unit,
+        onRegisterClick: () -> Unit,
+        onHistoryClick: () -> Unit,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
         ) {
             IconButton(onClick = onHistoryClick) {
                 AssetIcon(
@@ -202,12 +264,55 @@ fun AndeSpaceTopBar(
                         )
                     ) {
                         Text("Log out")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = onHistoryClick) {
+                    Icon(
+                        Icons.Default.History,
+                        contentDescription = "History",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.scale(1.5f)
+                    )
+                }
+                Text(
+                    text = "AndeSpace",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Box {
+                    IconButton(onClick = onAccountClick) {
+                        Icon(Icons.Default.Person, contentDescription = "Account")
+                    }
+
+                    DropdownMenu(
+                        expanded = isMenuExpanded,
+                        onDismissRequest = onDismissMenu
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Log In") },
+                            onClick = {
+                                onDismissMenu()
+                                onLoginClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Register") },
+                            onClick = {
+                                onDismissMenu()
+                                onRegisterClick()
+                            }
+                        )
                     }
                 }
             }
         }
     }
-}
 
 @Composable
 fun HistoryScreen(modifier: Modifier = Modifier) {
@@ -253,11 +358,18 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         modifier = modifier
     )
 }
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AndeSpaceTheme {
-        Greeting("Android")
+    @Composable
+    fun Greeting(name: String, modifier: Modifier = Modifier) {
+        Text(
+            text = "Section: $name",
+            modifier = modifier
+        )
     }
-}
+
+    @Preview(showBackground = true)
+    @Composable
+    fun GreetingPreview() {
+        AndeSpaceTheme {
+            Greeting("Android")
+        }
+    }
