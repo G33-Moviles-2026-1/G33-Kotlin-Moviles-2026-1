@@ -43,8 +43,6 @@ import com.example.andespace.ui.screen.HomePageScreen
 import com.example.andespace.ui.screen.ResultsScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 import com.example.andespace.ui.screen.RoomDetailScreen
-import com.example.andespace.ui.cookie.CookieScreen
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,18 +63,21 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
-                isMenuExpanded = uiState.isUserMenuExpanded,
-                onAccountClick = { viewModel.expandUserMenu() },
-                onDismissMenu = { viewModel.closeUserMenu() },
+                isMenuExpanded = displayMenu,
+                onAccountClick = { displayMenu = true },
+                onDismissMenu = { displayMenu = false },
                 onLoginClick = {
                     viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    displayMenu = false
                 },
                 onRegisterClick = {
                     viewModel.onDestinationChanged(AppDestinations.REGISTER)
+                    displayMenu = false
                 },
                 onHistoryClick = { viewModel.onHistoryClick() },
                 onLogOut = {
                     viewModel.onLogOut()
+                    displayMenu = false
                 }
             )
         },
@@ -111,19 +112,8 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                     ContentScreen.HISTORY -> HistoryScreen()
                 }
                 AppDestinations.HISTORY -> HistoryScreen()
-                AppDestinations.LOGIN -> LoginScreen(
-                    onLoginSuccess = {
-                        viewModel.onLogin()
-                        viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
-                    }
-                )
-                AppDestinations.REGISTER -> RegisterScreen(
-                    onRegisterSuccess = {
-                        viewModel.onLogin()
-                        viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
-                    }
-                )
-                AppDestinations.FAVORITES -> CookieScreen()
+                AppDestinations.LOGIN -> LoginScreen()
+                AppDestinations.REGISTER -> RegisterScreen()
                 else -> Greeting(
                     name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
                 )
