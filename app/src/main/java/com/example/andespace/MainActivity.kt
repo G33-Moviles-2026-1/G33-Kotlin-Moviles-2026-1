@@ -33,12 +33,14 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.andespace.model.AppDestinations
-import com.example.andespace.ui.components.AndeSpaceBottomBar
-import com.example.andespace.ui.components.AndeSpaceTopBar
-import com.example.andespace.ui.theme.AndeSpaceTheme
 import com.example.andespace.ui.MainViewModel
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
+import com.example.andespace.ui.bookings.EditBookingScreen
+import com.example.andespace.ui.bookings.MyBookingsScreen
+import com.example.andespace.ui.components.AndeSpaceBottomBar
+import com.example.andespace.ui.components.AndeSpaceTopBar
+import com.example.andespace.ui.theme.AndeSpaceTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,6 +94,20 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                 AppDestinations.HISTORY -> HistoryScreen()
                 AppDestinations.LOGIN -> LoginScreen()
                 AppDestinations.REGISTER -> RegisterScreen()
+                AppDestinations.BOOKINGS -> MyBookingsScreen(
+                    bookings = uiState.bookings,
+                    onDeleteBooking = { viewModel.onDeleteBooking(it) },
+                    onEditBooking = { viewModel.onEditBooking(it) }
+                )
+                AppDestinations.EDIT_BOOKING -> {
+                    uiState.selectedBooking?.let { booking ->
+                        EditBookingScreen(
+                            booking = booking,
+                            onSave = { viewModel.onSaveBooking(it) },
+                            onCancel = { viewModel.onCancelEdit() }
+                        )
+                    }
+                }
                 else -> Greeting(
                     name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
                 )
