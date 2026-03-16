@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val repository: AppRepository = AppRepository()
-) : ViewModel() {
+): ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -26,7 +26,7 @@ class MainViewModel(
     }
 
     fun onDestinationChanged(destination: AppDestinations) {
-        _uiState.update { it.copy(currentDestination = destination) }
+        _uiState.update { it.copy(currentDestination = destination, isUserMenuExpanded = false) }
     }
 
     fun onHistoryClick() {
@@ -34,11 +34,30 @@ class MainViewModel(
     }
 
     fun onLogOut() {
-        _uiState.update { it.copy(isLoggedIn = false) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            repository.logout()
+            _uiState.update {
+                it.copy(
+                    isLoggedIn = false,
+                    isUserMenuExpanded = false,
+                    isLoading = false,
+                    currentDestination = AppDestinations.CLASSROOMS
+                )
+            }
+        }
     }
 
     fun onLogin() {
         _uiState.update { it.copy(isLoggedIn = true) }
+    }
+
+    fun expandUserMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = true) }
+    }
+
+    fun closeUserMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = false) }
     }
 
 
