@@ -55,18 +55,20 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import com.example.andespace.AssetIcon
 import com.example.andespace.data.model.HomeSearchParams
+import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-private val UTILITIES_OPTIONS = listOf(
-    "Blackout",
-    "Power Outlet",
-    "Television",
-    "Interactive Classroom",
-    "Mobile WhiteBoards",
-    "Computer Classroom"
+private val UTILITIES_OPTIONS = mapOf(
+    "Blackout" to "blackout",
+    "Power Outlet" to "power_outlet",
+    "Television" to "television",
+    "Interactive Classroom" to "interactive_classroom",
+    "Mobile WhiteBoards" to "mobile_whiteboards",
+    "Computer" to "computer",
+    "Videobeam" to "videobeam"
 )
 
 @Composable
@@ -78,7 +80,7 @@ fun HomePageScreen(
     onFiltersOpened: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
-    var selectedUtilities by remember { mutableStateOf(UTILITIES_OPTIONS.toSet()) }
+    var selectedUtilities by remember { mutableStateOf(UTILITIES_OPTIONS.keys.toSet()) }
 
     if (showFilterSheet) {
         UtilitiesFilterSheet(
@@ -346,33 +348,22 @@ private fun SearchCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            Button(
+            CustomYellowButton(
+                text = if (isSearching) "Buscando..." else "Search",
                 onClick = {
-                    val params = HomeSearchParams(
-                        classroom = classroomInput,
-                        date = formatDateMillis(selectedDateMillis),
-                        since = formatTime(sinceHour, sinceMinute),
-                        until = formatTime(untilHour, untilMinute),
-                        closeToMe = closeToMe,
-                        utilities = selectedUtilities.toList()
-                    )
-                    onSearchClick(params)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                enabled = !isSearching,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryYellow,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text(
-                    text = if (isSearching) "Buscando..." else "Search",
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
+                    if (!isSearching) {
+                        val params = HomeSearchParams(
+                            classroom = classroomInput,
+                            date = formatDateMillis(selectedDateMillis),
+                            since = formatTime(sinceHour, sinceMinute),
+                            until = formatTime(untilHour, untilMinute),
+                            closeToMe = closeToMe,
+                            utilities = selectedUtilities.mapNotNull { UTILITIES_OPTIONS[it] }
+                        )
+                        onSearchClick(params)
+                    }
+                }
+            )
         }
     }
 }
@@ -506,7 +497,7 @@ private fun UtilitiesFilterSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                UTILITIES_OPTIONS.forEach { option ->
+                UTILITIES_OPTIONS.keys.forEach { option ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

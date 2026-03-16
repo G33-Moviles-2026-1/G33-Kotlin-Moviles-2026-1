@@ -60,7 +60,6 @@ class MainActivity : ComponentActivity() {
 fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     var displayMenu by rememberSaveable { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             AndeSpaceTopBar(

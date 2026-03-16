@@ -8,10 +8,12 @@ import com.example.andespace.data.model.HomeSearchParams
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class AppRepository {
 
     private val api = RetrofitClient.apiService
+    private val sessionId = UUID.randomUUID().toString()
 
     suspend fun getUserName(): String {
         delay(1000)
@@ -29,27 +31,34 @@ class AppRepository {
         withContext(Dispatchers.IO) {
             try {
                 val request = RoomSearchRequest(
-                    classroom = params.classroom,
+                    roomPrefix = params.classroom.ifBlank { null },
                     date = params.date,
-                    since = params.since,
-                    until = params.until,
-                    closeToMe = params.closeToMe,
-                    utilities = params.utilities
+                    since = "${params.since}:00",
+                    until = "${params.until}:00",
+                    utilities = params.utilities,
+                    nearMe = params.closeToMe
                 )
                 val response = api.searchRooms(request)
                 if (response.isSuccessful) {
                     Result.success(response.body() ?: RoomSearchResponse())
                 } else {
-                    Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+                    val errorBody = response.errorBody()?.string() ?: response.message()
+                    Result.failure(Exception("Error ${response.code()}: $errorBody"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
             }
         }
 
-    suspend fun trackHomeEvent(eventType: String) = withContext(Dispatchers.IO) {
+    suspend fun trackHomeEvent(eventName: String) = withContext(Dispatchers.IO) {
         try {
-            api.trackAnalyticsEvent(AnalyticsEventRequest(screen = "home", eventType = eventType))
+            api.trackAnalyticsEvent(
+                AnalyticsEventRequest(
+                    sessionId = sessionId,
+                    eventName = eventName,
+                    screen = "home"
+                )
+            )
         } catch (_: Exception) { }
     }
 }
