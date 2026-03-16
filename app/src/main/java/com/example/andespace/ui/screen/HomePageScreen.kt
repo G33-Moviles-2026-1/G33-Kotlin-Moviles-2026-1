@@ -1,11 +1,10 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.andespace.ui.screen
 
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,22 +17,31 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,19 +54,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import com.example.andespace.AssetIcon
 import com.example.andespace.data.model.HomeSearchParams
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 
 private val UTILITIES_OPTIONS = mapOf(
@@ -80,8 +80,7 @@ fun HomePageScreen(
     onFiltersOpened: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
-    var selectedUtilities by remember { mutableStateOf(UTILITIES_OPTIONS.keys.toSet()) }
-
+    var selectedUtilities by remember { mutableStateOf(emptySet<String>()) }
     if (showFilterSheet) {
         UtilitiesFilterSheet(
             selectedOptions = selectedUtilities,
@@ -145,7 +144,7 @@ private fun SearchCard(
     val initialDateMillis = remember { System.currentTimeMillis() }
     var selectedDateMillis by remember { mutableStateOf(initialDateMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var closeToMe by remember { mutableStateOf(true) }
+    var closeToMe by remember { mutableStateOf(false) }
     var sinceHour by remember { mutableStateOf(8) }
     var sinceMinute by remember { mutableStateOf(0) }
     var untilHour by remember { mutableStateOf(18) }
@@ -349,7 +348,7 @@ private fun SearchCard(
                 Spacer(modifier = Modifier.height(8.dp))
             }
             CustomYellowButton(
-                text = if (isSearching) "Buscando..." else "Search",
+                text = if (isSearching) "Searching..." else "Search",
                 onClick = {
                     if (!isSearching) {
                         val params = HomeSearchParams(

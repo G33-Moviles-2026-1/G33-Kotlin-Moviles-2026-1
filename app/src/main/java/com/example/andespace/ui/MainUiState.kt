@@ -6,16 +6,20 @@ import com.example.andespace.model.AppDestinations
 enum class ContentScreen {
     HOME,
     RESULTS,
-    HISTORY
+    HISTORY,
+    ROOMDETAIL
 }
 
 data class MainUiState(
     val currentDestination: AppDestinations = AppDestinations.CLASSROOMS,
     val contentScreen: ContentScreen = ContentScreen.HOME,
-    val userName: String = "Cargando...",
+    val userName: String = "Loading...",
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
     val isSearching: Boolean = false,
     val searchResults: List<RoomDto> = emptyList(),
-    val searchError: String? = null
+    val searchError: String? = null,
+    val resultsPageSize: Int = 20,
+    val currentResultsPage: Int = 1,
+    val totalResultsPages: Int = 1
 )

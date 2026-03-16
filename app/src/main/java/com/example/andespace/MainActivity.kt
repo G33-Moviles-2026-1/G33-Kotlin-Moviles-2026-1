@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,7 +42,7 @@ import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.screen.HomePageScreen
 import com.example.andespace.ui.screen.ResultsScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
-
+import com.example.andespace.ui.screen.RoomDetailScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,7 +99,16 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                         onSearchClick = { params -> viewModel.onSearchClick(params) },
                         onFiltersOpened = { viewModel.onFiltersOpened() }
                     )
-                    ContentScreen.RESULTS -> ResultsScreen()
+                    ContentScreen.RESULTS -> ResultsScreen(
+                        rooms = uiState.searchResults,
+                        isSearching = uiState.isSearching,
+                        errorMessage = uiState.searchError,
+                        currentPage = uiState.currentResultsPage,
+                        totalPages = uiState.totalResultsPages,
+                        onPrevPage = { viewModel.onPreviousResultsPage() },
+                        onNextPage = { viewModel.onNextResultsPage() }
+                    )
+                    ContentScreen.ROOMDETAIL -> RoomDetailScreen()
                     ContentScreen.HISTORY -> HistoryScreen()
                 }
                 AppDestinations.HISTORY -> HistoryScreen()
