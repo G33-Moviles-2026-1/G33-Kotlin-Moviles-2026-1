@@ -4,50 +4,45 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.andespace.model.AppDestinations
-import com.example.andespace.ui.screen.HistoryScreen
-import com.example.andespace.ui.screen.HomePageScreen
-import com.example.andespace.ui.screen.ResultsScreen
-import com.example.andespace.ui.state.ContentScreen
-import com.example.andespace.ui.theme.AndeSpaceTheme
-import com.example.andespace.ui.viewmodel.MainViewModel
+import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
-import coil.ImageLoader
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.layout.Box
+import com.example.andespace.model.AppDestinations
+import com.example.andespace.ui.ContentScreen
+import com.example.andespace.ui.MainViewModel
+import com.example.andespace.ui.auth.LoginScreen
+import com.example.andespace.ui.auth.RegisterScreen
+import com.example.andespace.ui.components.AndeSpaceBottomBar
+import com.example.andespace.ui.components.AndeSpaceTopBar
+import com.example.andespace.ui.screen.HistoryScreen
+import com.example.andespace.ui.screen.HomePageScreen
+import com.example.andespace.ui.screen.ResultsScreen
+import com.example.andespace.ui.theme.AndeSpaceTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,116 +56,71 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@PreviewScreenSizes
 @Composable
 fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    var displayMenu by rememberSaveable { mutableStateOf(false) }
 
-    val myItemColors = NavigationSuiteDefaults.itemColors(
-        navigationBarItemColors = NavigationBarItemDefaults.colors(
-            indicatorColor = Color.Transparent
-        )
-    )
+    Scaffold(
+        topBar = {
+            AndeSpaceTopBar(
+                isLoggedIn = uiState.isLoggedIn,
+                isMenuExpanded = displayMenu,
+                onAccountClick = { displayMenu = true },
+                onDismissMenu = { displayMenu = false },
+                onLoginClick = {
+                    viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    displayMenu = false
+                },
+                onRegisterClick = {
+                    viewModel.onDestinationChanged(AppDestinations.REGISTER)
+                    displayMenu = false
+                },
+                onHistoryClick = { viewModel.onHistoryClick() },
+                onLogOut = {
+                    viewModel.onLogOut()
+                    displayMenu = false
+                }
+            )
+        },
+        bottomBar = {
+            AndeSpaceBottomBar(
+                currentDestination = uiState.currentDestination,
+                onDestinationChanged = { viewModel.onDestinationChanged(it) }
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
 
-    NavigationSuiteScaffold(
-        containerColor = Color.Transparent,
-        navigationSuiteColors = NavigationSuiteDefaults.colors(
-            navigationBarContainerColor = MaterialTheme.colorScheme.surface,
-            navigationBarContentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach { destination ->
-                val isSelected = destination == uiState.currentDestination
-
-                item(
-                    icon = {
-                        val iconScale by animateFloatAsState(
-                            targetValue = if (isSelected) 1.5f else 1.1f,
-                            label = "iconScale"
-                        )
-                        AssetIcon(
-                            assetPath = destination.assetIconPath,
-                            contentDescription = destination.label,
-                            modifier = Modifier.scale(iconScale)
-                        )
-                    },
-                    selected = isSelected,
-                    onClick = { viewModel.onDestinationChanged(destination) },
-                    colors = myItemColors
-                )
-            }
-        }
-    ) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                AndeSpaceTopBar(
-                    onHistoryClick = { viewModel.onHistoryClick() },
-                    onAccountClick = { viewModel.onAccountClick() }
-                )
-            },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { innerPadding ->
             when (uiState.currentDestination) {
                 AppDestinations.CLASSROOMS -> when (uiState.contentScreen) {
                     ContentScreen.HOME -> HomePageScreen(
-                        modifier = Modifier.padding(innerPadding),
                         isSearching = uiState.isSearching,
                         searchError = uiState.searchError,
                         onSearchClick = { params -> viewModel.onSearchClick(params) },
                         onFiltersOpened = { viewModel.onFiltersOpened() }
                     )
-                    ContentScreen.RESULTS -> ResultsScreen(
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                    ContentScreen.HISTORY -> HistoryScreen(
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    ContentScreen.RESULTS -> ResultsScreen()
+                    ContentScreen.HISTORY -> HistoryScreen()
                 }
-                else -> Box(
+                AppDestinations.HISTORY -> HistoryScreen()
+                AppDestinations.LOGIN -> LoginScreen()
+                AppDestinations.REGISTER -> RegisterScreen()
+                else -> Greeting(
+                    name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
+                )
+            }
+
+            if (displayMenu) {
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun AndeSpaceTopBar(
-    onHistoryClick: () -> Unit,
-    onAccountClick: () -> Unit
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(onClick = onHistoryClick) {
-                AssetIcon(
-                    assetPath = "icons/clock.svg",
-                    contentDescription = "History",
-                    modifier = Modifier.scale(1.5f)
-                )
-            }
-            Text(
-                text = "AndeSpace",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            IconButton(onClick = onAccountClick) {
-                AssetIcon(
-                    assetPath = "icons/user.svg",
-                    contentDescription = "Account",
-                    modifier = Modifier.scale(1.5f)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { displayMenu = false }
                 )
             }
         }
@@ -208,10 +158,12 @@ fun AssetIcon(
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Section: $name",
-        modifier = modifier
-    )
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            text = "Section: $name",
+            style = MaterialTheme.typography.headlineMedium
+        )
+    }
 }
 
 @Preview(showBackground = true)

@@ -18,6 +18,11 @@ class AppRepository {
         return "Estudiante Uniandes"
     }
 
+    suspend fun login(user: String, password: String): Boolean {
+        delay(1000)
+        return user == "Kotlin" && password == "123"
+    }
+
     fun getHistory() = listOf("ML 001", "W 101", "SD 202")
 
     suspend fun searchRooms(params: HomeSearchParams): Result<RoomSearchResponse> =

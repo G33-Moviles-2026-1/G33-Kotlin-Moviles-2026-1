@@ -1,4 +1,4 @@
-package com.example.andespace.ui.state
+package com.example.andespace.ui
 
 import com.example.andespace.data.api.dto.RoomDto
 import com.example.andespace.model.AppDestinations
@@ -14,6 +14,7 @@ data class MainUiState(
     val contentScreen: ContentScreen = ContentScreen.HOME,
     val userName: String = "Cargando...",
     val isLoading: Boolean = false,
+    val isLoggedIn: Boolean = false,
     val isSearching: Boolean = false,
     val searchResults: List<RoomDto> = emptyList(),
     val searchError: String? = null
