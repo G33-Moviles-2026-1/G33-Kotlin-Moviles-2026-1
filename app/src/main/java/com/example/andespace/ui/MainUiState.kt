@@ -18,7 +18,11 @@ data class MainUiState(
     val isLoggedIn: Boolean = false,
     val isSearching: Boolean = false,
     val searchResults: List<RoomDto> = emptyList(),
+    val selectedRoom: RoomDto? = null,
+    val selectedSearchDate: String? = null,
     val searchError: String? = null,
+    val isLoadingRoomAvailability: Boolean = false,
+    val roomAvailabilityError: String? = null,
     val resultsPageSize: Int = 20,
     val currentResultsPage: Int = 1,
     val totalResultsPages: Int = 1

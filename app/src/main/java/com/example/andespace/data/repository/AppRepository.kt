@@ -5,30 +5,48 @@ import com.example.andespace.data.api.RetrofitClient
 import com.example.andespace.data.api.dto.AnalyticsEventRequest
 import com.example.andespace.data.api.dto.RoomSearchRequest
 import com.example.andespace.data.api.dto.RoomSearchResponse
+import com.example.andespace.data.api.dto.RoomTimeWindowDto
+import com.example.andespace.data.api.dto.toTimeWindows
 import com.example.andespace.data.model.HomeSearchParams
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-class AppRepository {
+interface AppRepositoryContract {
+    suspend fun getUserName(): String
+    suspend fun login(user: String, password: String): Boolean
+    fun getHistory(): List<String>
+    suspend fun searchRooms(
+        params: HomeSearchParams,
+        limit: Int = 20,
+        offset: Int = 0
+    ): Result<RoomSearchResponse>
+    suspend fun trackHomeEvent(eventName: String)
+    suspend fun getRoomAvailability(
+        roomId: String,
+        dateValue: String
+    ): Result<List<RoomTimeWindowDto>>
+}
+
+class AppRepository : AppRepositoryContract {
 
     private val api = RetrofitClient.apiService
     private val sessionId = UUID.randomUUID().toString()
 
-    suspend fun getUserName(): String {
+    override suspend fun getUserName(): String {
         delay(1000)
         return "Uniandes Student"
     }
 
-    suspend fun login(user: String, password: String): Boolean {
+    override suspend fun login(user: String, password: String): Boolean {
         delay(1000)
         return user == "Kotlin" && password == "123"
     }
 
-    fun getHistory() = listOf("ML 001", "W 101", "SD 202")
+    override fun getHistory() = listOf("ML 001", "W 101", "SD 202")
 
-    suspend fun searchRooms(
+    override suspend fun searchRooms(
         params: HomeSearchParams,
         limit: Int = 20,
         offset: Int = 0
@@ -72,7 +90,7 @@ class AppRepository {
             }
         }
 
-    suspend fun trackHomeEvent(eventName: String) = withContext(Dispatchers.IO) {
+    override suspend fun trackHomeEvent(eventName: String) = withContext(Dispatchers.IO) {
         try {
             api.trackAnalyticsEvent(
                 AnalyticsEventRequest(
@@ -82,6 +100,24 @@ class AppRepository {
                 )
             )
         } catch (_: Exception) { }
+    }
+
+    override suspend fun getRoomAvailability(
+        roomId: String,
+        dateValue: String
+    ): Result<List<RoomTimeWindowDto>> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getRoomAvailability(roomId = roomId, dateValue = dateValue)
+            if (response.isSuccessful) {
+                val windows = response.body()?.toTimeWindows(dateValue).orEmpty()
+                Result.success(windows)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: response.message()
+                Result.failure(Exception("Error ${response.code()}: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     companion object {

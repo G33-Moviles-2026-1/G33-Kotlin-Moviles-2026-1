@@ -2,6 +2,7 @@ package com.example.andespace.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,7 @@ fun ResultsScreen(
     errorMessage: String?,
     currentPage: Int,
     totalPages: Int,
+    onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
     modifier: Modifier = Modifier
@@ -91,7 +93,11 @@ fun ResultsScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         itemsIndexed(rooms) { index, room ->
-                            RoomResultCard(room = room, cardIndex = index)
+                            RoomResultCard(
+                                room = room,
+                                cardIndex = index,
+                                onClick = { onRoomClick(room) }
+                            )
                         }
                     }
                 }
@@ -134,7 +140,8 @@ private fun RoomResultCard(room: RoomDto, cardIndex: Int, onClick: () -> Unit = 
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 6.dp)
-            .border(1.dp, Color.Black,RoundedCornerShape(18.dp)),
+            .border(1.dp, Color.Black,RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick),
         shadowElevation = 10.dp,
         shape = RoundedCornerShape(18.dp),
         color = Color.White

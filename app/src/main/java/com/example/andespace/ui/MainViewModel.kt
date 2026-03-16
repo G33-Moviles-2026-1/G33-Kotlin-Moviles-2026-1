@@ -3,17 +3,22 @@ package com.example.andespace.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.api.dto.RoomDto
 import com.example.andespace.data.model.HomeSearchParams
 import com.example.andespace.data.repository.AppRepository
+import com.example.andespace.data.repository.AppRepositoryContract
 import com.example.andespace.model.AppDestinations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainViewModel(
-    private val repository: AppRepository = AppRepository()
+    private val repository: AppRepositoryContract = AppRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -46,6 +51,32 @@ class MainViewModel(
     fun onSearchClick(params: HomeSearchParams) {
         lastSearchParams = params
         requestSearchPage(params = params, page = 1, trackEvent = true)
+    }
+
+    fun onRoomClick(room: RoomDto) {
+        val selectedDate = _uiState.value.selectedSearchDate ?: currentDateApiValue()
+        _uiState.update {
+            it.copy(
+                selectedRoom = room,
+                selectedSearchDate = selectedDate,
+                isLoadingRoomAvailability = true,
+                roomAvailabilityError = null,
+                contentScreen = ContentScreen.ROOMDETAIL
+            )
+        }
+        fetchRoomAvailability(roomId = room.id, dateValue = selectedDate)
+    }
+
+    fun onRoomDetailDateChanged(dateValue: String) {
+        val roomId = _uiState.value.selectedRoom?.id ?: return
+        _uiState.update {
+            it.copy(
+                selectedSearchDate = dateValue,
+                isLoadingRoomAvailability = true,
+                roomAvailabilityError = null
+            )
+        }
+        fetchRoomAvailability(roomId = roomId, dateValue = dateValue)
     }
 
     fun navigateBackToHome() {
@@ -112,6 +143,7 @@ class MainViewModel(
                                 isSearching = false,
                                 contentScreen = ContentScreen.RESULTS,
                                 searchResults = response.rooms,
+                                selectedSearchDate = params.date,
                                 currentResultsPage = page,
                                 totalResultsPages = pages,
                                 searchError = null
@@ -141,6 +173,44 @@ class MainViewModel(
 
     fun onFiltersOpened() {
         viewModelScope.launch { repository.trackHomeEvent("home_filters_opened") }
+    }
+
+    private fun fetchRoomAvailability(roomId: String, dateValue: String) {
+        viewModelScope.launch {
+            repository.getRoomAvailability(roomId = roomId, dateValue = dateValue)
+                .fold(
+                    onSuccess = { windows ->
+                        _uiState.update { state ->
+                            val currentRoom = state.selectedRoom
+                            if (currentRoom == null || currentRoom.id != roomId) {
+                                state.copy(
+                                    isLoadingRoomAvailability = false,
+                                    roomAvailabilityError = null
+                                )
+                            } else {
+                                state.copy(
+                                    selectedRoom = currentRoom.copy(matchingWindows = windows),
+                                    isLoadingRoomAvailability = false,
+                                    roomAvailabilityError = null
+                                )
+                            }
+                        }
+                    },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(
+                                isLoadingRoomAvailability = false,
+                                roomAvailabilityError = error.message ?: "Could not load availability"
+                            )
+                        }
+                    }
+                )
+        }
+    }
+
+    private fun currentDateApiValue(): String {
+        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return formatter.format(Date())
     }
 
     private fun calculateTotalPages(totalItems: Int, pageSize: Int): Int {

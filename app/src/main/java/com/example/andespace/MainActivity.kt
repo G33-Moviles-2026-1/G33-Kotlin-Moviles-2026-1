@@ -105,10 +105,17 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                         errorMessage = uiState.searchError,
                         currentPage = uiState.currentResultsPage,
                         totalPages = uiState.totalResultsPages,
+                        onRoomClick = { room -> viewModel.onRoomClick(room) },
                         onPrevPage = { viewModel.onPreviousResultsPage() },
                         onNextPage = { viewModel.onNextResultsPage() }
                     )
-                    ContentScreen.ROOMDETAIL -> RoomDetailScreen()
+                    ContentScreen.ROOMDETAIL -> RoomDetailScreen(
+                        room = uiState.selectedRoom,
+                        selectedDate = uiState.selectedSearchDate,
+                        isLoadingAvailability = uiState.isLoadingRoomAvailability,
+                        availabilityError = uiState.roomAvailabilityError,
+                        onDateChange = { dateValue -> viewModel.onRoomDetailDateChanged(dateValue) }
+                    )
                     ContentScreen.HISTORY -> HistoryScreen()
                 }
                 AppDestinations.HISTORY -> HistoryScreen()
