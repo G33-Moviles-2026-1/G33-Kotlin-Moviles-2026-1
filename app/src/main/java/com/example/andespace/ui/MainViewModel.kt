@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val repository: AppRepository = AppRepository()
-) : ViewModel() {
+): ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -29,14 +29,7 @@ class MainViewModel(
     }
 
     fun onDestinationChanged(destination: AppDestinations) {
-        _uiState.update { state ->
-            val newState = state.copy(currentDestination = destination)
-            if (destination == AppDestinations.CLASSROOMS) {
-                newState.copy(contentScreen = ContentScreen.HOME)
-            } else {
-                newState
-            }
-        }
+        _uiState.update { it.copy(currentDestination = destination, isUserMenuExpanded = false) }
     }
 
     fun onHistoryClick() {
@@ -132,7 +125,18 @@ class MainViewModel(
     }
 
     fun onLogOut() {
-        _uiState.update { it.copy(isLoggedIn = false) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            repository.logout()
+            _uiState.update {
+                it.copy(
+                    isLoggedIn = false,
+                    isUserMenuExpanded = false,
+                    isLoading = false,
+                    currentDestination = AppDestinations.CLASSROOMS
+                )
+            }
+        }
     }
 
     fun onLogin() {
@@ -142,6 +146,14 @@ class MainViewModel(
     fun onFiltersOpened() {
         viewModelScope.launch { repository.trackHomeEvent("home_filters_opened") }
     }
+    fun expandUserMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = true) }
+    }
+
+    fun closeUserMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = false) }
+    }
+
 
     private fun calculateTotalPages(totalItems: Int, pageSize: Int): Int {
         if (totalItems <= 0) return 1
