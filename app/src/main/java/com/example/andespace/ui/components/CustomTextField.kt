@@ -33,8 +33,8 @@ fun CustomTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
+    modifier: Modifier = Modifier,
     isPassword: Boolean = false,
-    modifier: Modifier = Modifier
 ) {
     val cornerRadius = 10.dp
     val fieldHeight = 60.dp
