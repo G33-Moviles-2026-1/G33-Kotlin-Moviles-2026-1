@@ -1,10 +1,9 @@
-package com.example.andespace.ui.viewmodel
+package com.example.andespace.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AppRepository
 import com.example.andespace.model.AppDestinations
-import com.example.andespace.ui.state.MainUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,13 +22,7 @@ class MainViewModel(
     }
 
     private fun loadUserData() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val name = repository.getUserName()
-            _uiState.update {
-                it.copy(userName = name, isLoading = false)
-            }
-        }
+        viewModelScope.launch {}
     }
 
     fun onDestinationChanged(destination: AppDestinations) {
@@ -47,4 +40,6 @@ class MainViewModel(
     fun onLogin() {
         _uiState.update { it.copy(isLoggedIn = true) }
     }
+
+
 }

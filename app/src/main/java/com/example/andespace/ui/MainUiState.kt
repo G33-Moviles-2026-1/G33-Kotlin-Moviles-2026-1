@@ -1,10 +1,10 @@
-package com.example.andespace.ui.state
+package com.example.andespace.ui
 
 import com.example.andespace.model.AppDestinations
 
 data class MainUiState(
+    val isUserMenuExpanded: Boolean = false,
     val currentDestination: AppDestinations = AppDestinations.CLASSROOMS,
-    val userName: String = "Cargando...",
     val isLoading: Boolean = false,
-    val isLoggedIn: Boolean = true
+    val isLoggedIn: Boolean = false,
 )
