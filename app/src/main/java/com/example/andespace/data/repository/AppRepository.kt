@@ -220,6 +220,9 @@ class AppRepository {
             val parsedDate = source.parse(this)
             if (parsedDate != null) target.format(parsedDate) else this
         }.getOrDefault(this)
+
+    }
+
     suspend fun getMyBookings(): Result<List<BookingDto>> = withContext(Dispatchers.IO) {
         try {
             val response = apiService.getMyBookings()
@@ -267,70 +270,73 @@ class AppRepository {
             Result.failure(ApiException("Network error: Could not fetch schedule"))
         }
     }
-    suspend fun deleteBooking(bookingId: String): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.deleteBooking(bookingId)
-            if (response.isSuccessful || response.code() == 204) {
-                Result.success(true)
-            } else {
-                val errorBody = response.errorBody()?.string() ?: response.message()
-                Result.failure(ApiException("Error ${response.code()}: $errorBody"))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "deleteBooking exception=${e.message}", e)
-            Result.failure(Exception("Network error: Check your connection"))
 
-        }
-    }
-        suspend fun checkIfScheduleExists(): Result<Boolean> {
-            return try {
-                val response = apiService.getScheduleClasses()
-                if (response.isSuccessful) {
-                    val bodyString = response.body().toString()
-                    val hasSchedule =
-                        !bodyString.contains("\"classes\": []") && bodyString.length > 10
-                    Result.success(hasSchedule)
-                } else {
-                    val backendMessage =
-                        extractErrorMessage(response.errorBody()?.string(), response.code())
-                    Result.failure(ApiException(backendMessage))
-                }
-            } catch (e: Exception) {
-                Result.failure(ApiException("Network error: Check your connection"))
-            }
-        }
-
-        suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> {
-            return try {
-                val contentResolver = context.contentResolver
-                val inputStream = contentResolver.openInputStream(fileUri)
-                    ?: return Result.failure(Exception("Could not open the selected file"))
-
-                val fileBytes = inputStream.readBytes()
-                inputStream.close()
-
-                val requestBody = fileBytes.toRequestBody("text/calendar".toMediaTypeOrNull())
-
-                val multipartPart =
-                    MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
-
-                val response = apiService.uploadIcsFile(multipartPart)
-
-                if (response.isSuccessful) {
+    suspend fun deleteBooking(bookingId: String): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.deleteBooking(bookingId)
+                if (response.isSuccessful || response.code() == 204) {
                     Result.success(true)
                 } else {
-                    val backendMessage =
-                        extractErrorMessage(response.errorBody()?.string(), response.code())
-                    Result.failure(ApiException(backendMessage))
+                    val errorBody = response.errorBody()?.string() ?: response.message()
+                    Result.failure(ApiException("Error ${response.code()}: $errorBody"))
                 }
             } catch (e: Exception) {
-                Result.failure(ApiException("Network error: Could not upload file"))
+                Log.e(TAG, "deleteBooking exception=${e.message}", e)
+                Result.failure(Exception("Network error: Check your connection"))
+
             }
         }
 
-        class ApiException(message: String) : Exception(message) {
-            override val message: String
-                get() = super.message?.removePrefix("java.lang.Exception: ")?.trim()
-                    ?: "Unknown API Error"
+    suspend fun checkIfScheduleExists(): Result<Boolean> {
+        return try {
+            val response = apiService.getScheduleClasses()
+            if (response.isSuccessful) {
+                val bodyString = response.body().toString()
+                val hasSchedule =
+                    !bodyString.contains("\"classes\": []") && bodyString.length > 10
+                Result.success(hasSchedule)
+            } else {
+                val backendMessage =
+                    extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(ApiException("Network error: Check your connection"))
         }
     }
+
+    suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> {
+        return try {
+            val contentResolver = context.contentResolver
+            val inputStream = contentResolver.openInputStream(fileUri)
+                ?: return Result.failure(Exception("Could not open the selected file"))
+
+            val fileBytes = inputStream.readBytes()
+            inputStream.close()
+
+            val requestBody = fileBytes.toRequestBody("text/calendar".toMediaTypeOrNull())
+
+            val multipartPart =
+                MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
+
+            val response = apiService.uploadIcsFile(multipartPart)
+
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                val backendMessage =
+                    extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(ApiException("Network error: Could not upload file"))
+        }
+    }
+}
+
+class ApiException(message: String) : Exception(message) {
+    override val message: String
+        get() = super.message?.removePrefix("java.lang.Exception: ")?.trim()
+            ?: "Unknown API Error"
+}
