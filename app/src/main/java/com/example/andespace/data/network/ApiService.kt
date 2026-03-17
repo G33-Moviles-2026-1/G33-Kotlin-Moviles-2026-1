@@ -49,4 +49,7 @@ interface ApiService {
         @Query("date_value") dateValue: String
     ): Response<RoomAvailabilityResponse>
 
+    @GET("schedule/classes")
+    suspend fun getScheduleClasses(): Response<Any>
+
 }

@@ -168,6 +168,22 @@ class AppRepository {
         }
     }
 
+    suspend fun checkIfScheduleExists(): Result<Boolean> {
+        return try {
+            val response = apiService.getScheduleClasses()
+            if (response.isSuccessful) {
+                val bodyString = response.body().toString()
+                val hasSchedule = !bodyString.contains("\"classes\": []") && bodyString.length > 10
+                Result.success(hasSchedule)
+            } else {
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(ApiException("Network error: Check your connection"))
+        }
+    }
+
     companion object {
         private const val TAG = "AppRepository"
     }

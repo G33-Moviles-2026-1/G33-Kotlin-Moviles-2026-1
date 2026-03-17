@@ -36,6 +36,7 @@ import com.example.andespace.ui.auth.RegisterScreen
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.cookie.CookieScreen
+import com.example.andespace.ui.schedule.LoadScheduleScreen
 import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.screen.HomePageScreen
 import com.example.andespace.ui.screen.ResultsScreen
@@ -127,6 +128,7 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                     }
                 )
                 AppDestinations.FAVORITES -> CookieScreen()
+                AppDestinations.SCHEDULE -> LoadScheduleScreen( { viewModel.onDestinationChanged(AppDestinations.CLASSROOMS) })
                 else -> Greeting(
                     name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
                 )
