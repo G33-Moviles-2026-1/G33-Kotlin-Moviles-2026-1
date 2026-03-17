@@ -36,10 +36,12 @@ import com.example.andespace.ui.auth.RegisterScreen
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.cookie.CookieScreen
+import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.screen.HomePageScreen
-import com.example.andespace.ui.screen.ResultsScreen
-import com.example.andespace.ui.screen.RoomDetailScreen
+import com.example.andespace.ui.results.ResultsViewModel
+import com.example.andespace.ui.results.ResultsScreen
+import com.example.andespace.ui.detailRoom.RoomDetailScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 
 class MainActivity : ComponentActivity() {
@@ -57,6 +59,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    val resultsViewModel: ResultsViewModel = viewModel()
+    val resultsUiState by resultsViewModel.uiState.collectAsState()
+    val detailRoomViewModel: DetailRoomViewModel = viewModel()
+    val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
     Scaffold(
         topBar = {
             AndeSpaceTopBar(
@@ -89,27 +95,37 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
             when (uiState.currentDestination) {
                 AppDestinations.CLASSROOMS -> when (uiState.contentScreen) {
                     ContentScreen.HOME -> HomePageScreen(
-                        isSearching = uiState.isSearching,
-                        searchError = uiState.searchError,
-                        onSearchClick = { params -> viewModel.onSearchClick(params) },
+                        isSearching = resultsUiState.isSearching,
+                        searchError = resultsUiState.errorMessage,
+                        onSearchClick = { params ->
+                            resultsViewModel.onSearchClick(params)
+                            viewModel.onShowResults()
+                        },
                         onFiltersOpened = { viewModel.onFiltersOpened() }
                     )
                     ContentScreen.RESULTS -> ResultsScreen(
-                        rooms = uiState.searchResults,
-                        isSearching = uiState.isSearching,
-                        errorMessage = uiState.searchError,
-                        currentPage = uiState.currentResultsPage,
-                        totalPages = uiState.totalResultsPages,
-                        onRoomClick = { room -> viewModel.onRoomClick(room) },
-                        onPrevPage = { viewModel.onPreviousResultsPage() },
-                        onNextPage = { viewModel.onNextResultsPage() }
+                        rooms = resultsUiState.rooms,
+                        isSearching = resultsUiState.isSearching,
+                        errorMessage = resultsUiState.errorMessage,
+                        currentPage = resultsUiState.currentPage,
+                        totalPages = resultsUiState.totalPages,
+                        onRoomClick = { room ->
+                            resultsViewModel.onRoomClick(room)
+                            detailRoomViewModel.setRoom(
+                                room = room,
+                                selectedDate = resultsUiState.selectedSearchDate
+                            )
+                            viewModel.onShowRoomDetailScreen()
+                        },
+                        onPrevPage = { resultsViewModel.onPreviousPage() },
+                        onNextPage = { resultsViewModel.onNextPage() }
                     )
-                    ContentScreen.ROOMDETAIL -> RoomDetailScreen(
-                        room = uiState.selectedRoom,
-                        selectedDate = uiState.selectedSearchDate,
-                        isLoadingAvailability = uiState.isLoadingRoomAvailability,
-                        availabilityError = uiState.roomAvailabilityError,
-                        onDateChange = { dateValue -> viewModel.onRoomDetailDateChanged(dateValue) }
+                    ContentScreen.ROOM_DETAIL -> RoomDetailScreen(
+                        room = detailRoomUiState.room,
+                        selectedDate = detailRoomUiState.selectedDate,
+                        isLoadingAvailability = detailRoomUiState.isLoadingAvailability,
+                        availabilityError = detailRoomUiState.availabilityError,
+                        onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) }
                     )
                     ContentScreen.HISTORY -> HistoryScreen()
                 }
