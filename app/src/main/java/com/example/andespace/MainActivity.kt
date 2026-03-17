@@ -132,7 +132,8 @@ fun AndeSpaceApp(
                                 selectedDate = detailRoomUiState.selectedDate,
                                 isLoadingAvailability = detailRoomUiState.isLoadingAvailability,
                                 availabilityError = detailRoomUiState.availabilityError,
-                                onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) }
+                                onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) },
+                                onBookRoom = { homepageViewModel.onShowMakeBooking() }
                             )
                         }
                         ContentScreen.MAKE_BOOKING -> {
