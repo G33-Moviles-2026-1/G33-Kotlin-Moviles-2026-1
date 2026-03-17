@@ -1,12 +1,19 @@
 package com.example.andespace.ui.schedule
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -16,10 +23,19 @@ import com.example.andespace.ui.components.IconPosition
 
 @Composable
 fun LoadScheduleScreen(
-    onGoogleCalendarClick: () -> Unit = {},
-    onIcsFileClick: () -> Unit = {},
-    onLoadManuallyClick: () -> Unit = {}
+    viewModel: ScheduleViewModel,
+    onScheduleLoaded: () -> Unit = {}
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.uploadIcsFile(context, uri, onSuccess = onScheduleLoaded)
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,29 +63,29 @@ fun LoadScheduleScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        CustomIconButton(
-            text = "Google Calendar",
-            iconResId = R.drawable.ic_google,
-            iconPosition = IconPosition.START,
-            onClick = onGoogleCalendarClick
-        )
+        if (uiState.isLoading) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+        else{
+            CustomIconButton(
+                text = ".ics File",
+                iconResId = R.drawable.ic_file,
+                iconPosition = IconPosition.START,
+                onClick = {filePickerLauncher.launch("*/*")}
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        CustomIconButton(
-            text = ".ics File",
-            iconResId = R.drawable.ic_file,
-            iconPosition = IconPosition.START,
-            onClick = onIcsFileClick
-        )
+            uiState.errorMessage?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        }
 
-        CustomIconButton(
-            text = "Load Manually",
-            iconResId = R.drawable.ic_manual,
-            iconPosition = IconPosition.START,
-            onClick = onIcsFileClick
-        )
     }
 }

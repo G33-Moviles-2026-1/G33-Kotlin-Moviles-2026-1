@@ -1,18 +1,24 @@
 package com.example.andespace.data.repository
+
+import android.content.Context
+import android.net.Uri
 import android.util.Log
+import com.example.andespace.data.model.HomeSearchParams
 import com.example.andespace.data.model.dto.AnalyticsEventRequest
 import com.example.andespace.data.model.dto.RoomSearchRequest
 import com.example.andespace.data.model.dto.RoomSearchResponse
 import com.example.andespace.data.model.dto.RoomTimeWindowDto
 import com.example.andespace.data.model.dto.toTimeWindows
-import com.example.andespace.data.model.HomeSearchParams
+import com.example.andespace.data.model.schedule.WeeklyScheduleOut
+import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.LoginRequest
 import com.example.andespace.data.network.NetworkModule
 import com.example.andespace.data.network.RegisterRequest
-import com.example.andespace.data.network.ApiService
-
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.UUID
 
@@ -168,6 +174,8 @@ class AppRepository {
         }
     }
 
+
+
     suspend fun checkIfScheduleExists(): Result<Boolean> {
         return try {
             val response = apiService.getScheduleClasses()
@@ -181,6 +189,46 @@ class AppRepository {
             }
         } catch (e: Exception) {
             Result.failure(ApiException("Network error: Check your connection"))
+        }
+    }
+
+    suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> {
+        return try {
+            val contentResolver = context.contentResolver
+            val inputStream = contentResolver.openInputStream(fileUri)
+                ?: return Result.failure(Exception("Could not open the selected file"))
+
+            val fileBytes = inputStream.readBytes()
+            inputStream.close()
+
+            val requestBody = fileBytes.toRequestBody("text/calendar".toMediaTypeOrNull())
+
+            val multipartPart = MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
+
+            val response = apiService.uploadIcsFile(multipartPart)
+
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(ApiException("Network error: Could not upload file"))
+        }
+    }
+
+    suspend fun getWeeklySchedule(): Result<WeeklyScheduleOut> {
+        return try {
+            val response = apiService.getWeeklySchedule()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(ApiException("Network error: Could not fetch schedule"))
         }
     }
 

@@ -36,7 +36,8 @@ import com.example.andespace.ui.auth.RegisterScreen
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.cookie.CookieScreen
-import com.example.andespace.ui.schedule.LoadScheduleScreen
+import com.example.andespace.ui.schedule.MainScheduleScreen
+import com.example.andespace.ui.schedule.ScheduleViewModel
 import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.screen.HomePageScreen
 import com.example.andespace.ui.screen.ResultsScreen
@@ -56,7 +57,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
+fun AndeSpaceApp(
+    viewModel: MainViewModel = viewModel(),
+    scheduleViewModel: ScheduleViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     Scaffold(
         topBar = {
@@ -74,6 +77,7 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                 onHistoryClick = { viewModel.onHistoryClick() },
                 onLogOut = {
                     viewModel.onLogOut()
+                    scheduleViewModel.clearScheduleData()
                 }
             )
         },
@@ -118,17 +122,19 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                 AppDestinations.LOGIN -> LoginScreen(
                     onLoginSuccess = {
                         viewModel.onLogin()
+                        scheduleViewModel.checkScheduleStatus()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     }
                 )
                 AppDestinations.REGISTER -> RegisterScreen(
                     onRegisterSuccess = {
                         viewModel.onLogin()
+                        scheduleViewModel.clearScheduleData()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     }
                 )
                 AppDestinations.FAVORITES -> CookieScreen()
-                AppDestinations.SCHEDULE -> LoadScheduleScreen( { viewModel.onDestinationChanged(AppDestinations.CLASSROOMS) })
+                AppDestinations.SCHEDULE -> MainScheduleScreen(scheduleViewModel = scheduleViewModel)
                 else -> Greeting(
                     name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
                 )

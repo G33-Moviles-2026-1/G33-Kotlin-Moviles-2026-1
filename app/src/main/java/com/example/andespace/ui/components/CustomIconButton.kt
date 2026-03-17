@@ -31,6 +31,7 @@ fun CustomIconButton(
     @DrawableRes iconResId: Int,
     modifier: Modifier = Modifier,
     iconPosition: IconPosition = IconPosition.START,
+    textPosition: Alignment = Alignment.Center,
     onClick: () -> Unit
 ) {
     OutlinedButton(
@@ -63,7 +64,7 @@ fun CustomIconButton(
                 text = text,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier.align(textPosition)
             )
         }
     }

@@ -1,5 +1,7 @@
 package com.example.andespace.ui.schedule
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AppRepository
@@ -9,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class UploadScheduleViewModel(
+class ScheduleViewModel(
     private val repository: AppRepository = AppRepository()
 ) : ViewModel() {
 
@@ -18,6 +20,9 @@ class UploadScheduleViewModel(
 
     init {
         checkScheduleStatus()
+        if (uiState.value.hasSchedule){
+            loadSchedule()
+        }
     }
 
     fun checkScheduleStatus() {
@@ -27,11 +32,10 @@ class UploadScheduleViewModel(
             val result = repository.checkIfScheduleExists()
 
             result.onSuccess { hasSchedule ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        hasSchedule = hasSchedule
-                    )
+                if (hasSchedule) {
+                    loadSchedule()
+                } else {
+                    _uiState.update { it.copy(isLoading = false, hasSchedule = false) }
                 }
             }.onFailure { error ->
                 _uiState.update {
@@ -42,5 +46,49 @@ class UploadScheduleViewModel(
                 }
             }
         }
+    }
+    fun uploadIcsFile(context: Context, uri: Uri, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val result = repository.uploadIcs(context, uri)
+
+            result.onSuccess {
+                _uiState.update { it.copy(isLoading = false, hasSchedule = true) }
+                onSuccess()
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "Failed to upload file"
+                    )
+                }
+            }
+        }
+    }
+
+    fun loadSchedule() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val result = repository.getWeeklySchedule()
+
+            result.onSuccess { data ->
+                _uiState.update {
+                    it.copy(isLoading = false,
+                    hasSchedule = true,
+                    scheduleData = data)
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message)
+                }
+            }
+        }
+    }
+
+    fun clearScheduleData() {
+        _uiState.update { ScheduleUiState() }
     }
 }
