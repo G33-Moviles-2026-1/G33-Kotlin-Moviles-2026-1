@@ -17,19 +17,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
@@ -49,48 +47,70 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.andespace.AssetIcon
-import com.example.andespace.model.Booking
+import com.example.andespace.data.model.dto.BookingDto
+import com.example.andespace.data.model.dto.CreateBookingRequest
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 private fun formatTime(hour: Int, minute: Int): String =
     "%02d:%02d".format(hour, minute)
 
 private val dateDisplayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-private fun formatDateMillis(millis: Long): String =
-    dateDisplayFormat.format(millis)
+private fun formatDateMillis(millis: Long): String = dateDisplayFormat.format(millis)
+
+private fun parseDateToMillis(dateStr: String): Long {
+    return try {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        sdf.parse(dateStr)?.time ?: System.currentTimeMillis()
+    } catch (_: Exception) {
+        System.currentTimeMillis()
+    }
+}
+
+private fun parseTimeHour(timeStr: String): Int =
+    timeStr.split(":").getOrNull(0)?.toIntOrNull() ?: 8
+
+private fun parseTimeMinute(timeStr: String): Int =
+    timeStr.split(":").getOrNull(1)?.toIntOrNull() ?: 0
 
 @Composable
 fun EditBookingScreen(
-    booking: Booking,
-    onSave: (Booking) -> Unit,
+    booking: BookingDto,
+    isSaving: Boolean,
+    onSave: (CreateBookingRequest, String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedDateMillis by remember { mutableLongStateOf(booking.dateMillis) }
+    var selectedDateMillis by remember { mutableLongStateOf(parseDateToMillis(booking.date)) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    var sinceHour by remember { mutableIntStateOf(booking.sinceHour) }
-    var sinceMinute by remember { mutableIntStateOf(booking.sinceMinute) }
+    var sinceHour by remember { mutableIntStateOf(parseTimeHour(booking.startTime)) }
+    var sinceMinute by remember { mutableIntStateOf(parseTimeMinute(booking.startTime)) }
     var showSincePicker by remember { mutableStateOf(false) }
 
-    var untilHour by remember { mutableIntStateOf(booking.untilHour) }
-    var untilMinute by remember { mutableIntStateOf(booking.untilMinute) }
+    var untilHour by remember { mutableIntStateOf(parseTimeHour(booking.endTime)) }
+    var untilMinute by remember { mutableIntStateOf(parseTimeMinute(booking.endTime)) }
     var showUntilPicker by remember { mutableStateOf(false) }
 
     var purpose by remember { mutableStateOf(booking.purpose) }
-    var peopleCount by remember {
-        mutableStateOf(if (booking.peopleCount > 0) booking.peopleCount.toString() else "")
-    }
 
-    val purposes = listOf("Studying", "Tutoring", "Chilling")
+    val purposes = listOf(
+        "study_alone" to "Study Alone",
+        "study_small_group" to "Study Small Group",
+        "chill_alone" to "Chill Alone",
+        "hangout_friends" to "Hangout Friends",
+        "tutoring_big_group" to "Tutoring Big Group"
+    )
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -157,7 +177,7 @@ fun EditBookingScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Book ${booking.roomName}",
+            text = "Edit ${booking.roomId}",
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp)
         )
 
@@ -232,55 +252,30 @@ fun EditBookingScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        purposes.forEach { option ->
+        purposes.forEach { (value, label) ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { purpose = option }
+                    .clickable { purpose = value }
                     .padding(vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(
-                    selected = purpose == option,
-                    onClick = { purpose = option },
+                    selected = purpose == value,
+                    onClick = { purpose = value },
                     colors = RadioButtonDefaults.colors(
                         selectedColor = Color.Black,
                         unselectedColor = Color.Black
                     )
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(text = option, fontSize = 15.sp, color = Color.Black)
+                Text(
+                    text = label,
+                    fontSize = 15.sp,
+                    color = Color.Black
+                )
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Write how many people",
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = peopleCount,
-            onValueChange = { value ->
-                if (value.all { it.isDigit() } && value.length <= 2) {
-                    peopleCount = value
-                }
-            },
-            placeholder = { Text("Min. 1 – Max. 30") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            shape = RoundedCornerShape(8.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Black,
-                unfocusedBorderColor = Color.Gray
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -292,40 +287,60 @@ fun EditBookingScreen(
         ) {
             Button(
                 onClick = onCancel,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE57373)),
-                shape = RoundedCornerShape(12.dp),
+                enabled = !isSaving,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE57373),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
+                    .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
             ) {
                 Text("Cancel", color = Color.White, fontWeight = FontWeight.Bold)
             }
 
             Button(
                 onClick = {
-                    val count = peopleCount.toIntOrNull() ?: 1
-                    onSave(
-                        booking.copy(
-                            dateMillis = selectedDateMillis,
-                            sinceHour = sinceHour,
-                            sinceMinute = sinceMinute,
-                            untilHour = untilHour,
-                            untilMinute = untilMinute,
-                            purpose = purpose,
-                            peopleCount = count.coerceIn(1, 30)
-                        )
+                    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                        timeInMillis = selectedDateMillis
+                    }
+                    val dateStr = String.format(
+                        "%04d-%02d-%02d",
+                        cal.get(Calendar.YEAR),
+                        cal.get(Calendar.MONTH) + 1,
+                        cal.get(Calendar.DAY_OF_MONTH)
                     )
+                    val request = CreateBookingRequest(
+                        roomId = booking.roomId,
+                        date = dateStr,
+                        startTime = "%02d:%02d:00".format(sinceHour, sinceMinute),
+                        endTime = "%02d:%02d:00".format(untilHour, untilMinute),
+                        purpose = purpose
+                    )
+                    onSave(request, booking.id)
                 },
+                enabled = !isSaving,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryYellow,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    contentColor = Color.Black
                 ),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
+                    .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
             ) {
-                Text("Save", color = Color.Black, fontWeight = FontWeight.Bold)
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.Black,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Save", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
