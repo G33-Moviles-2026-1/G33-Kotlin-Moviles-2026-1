@@ -70,7 +70,7 @@ private val UTILITIES_OPTIONS = mapOf(
     "Power Outlet" to "power_outlet",
     "Television" to "television",
     "Interactive Classroom" to "interactive_classroom",
-    "Mobile WhiteBoards" to "mobile_whiteboards",
+    "Mobile WhiteBoards" to "mobile_whiteboards     ",
     "Computer" to "computer",
     "Videobeam" to "videobeam"
 )
@@ -114,6 +114,7 @@ fun HomepageContent(
         )
 
         ContentScreen.ROOM_DETAIL -> Unit
+        else -> {}
     }
 }
 
