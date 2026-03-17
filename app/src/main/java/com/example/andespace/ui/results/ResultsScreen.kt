@@ -1,4 +1,4 @@
-package com.example.andespace.ui.screen
+package com.example.andespace.ui.results
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
