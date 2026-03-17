@@ -7,6 +7,7 @@ import com.example.andespace.data.model.dto.MyBookingsResponse
 import com.example.andespace.data.model.dto.RoomAvailabilityResponse
 import com.example.andespace.data.model.dto.RoomSearchRequest
 import com.example.andespace.data.model.dto.RoomSearchResponse
+import com.example.andespace.data.model.dto.UserFreeSlotsResponse
 import com.example.andespace.data.model.schedule.WeeklyScheduleOut
 import okhttp3.MultipartBody
 import retrofit2.Response
@@ -56,6 +57,11 @@ interface ApiService {
         @Path("roomId") roomId: String,
         @Query("date_value") dateValue: String
     ): Response<RoomAvailabilityResponse>
+
+    @GET("schedule/free-slots")
+    suspend fun getUserFreeSlots(
+        @Query("date") date: String
+    ): Response<UserFreeSlotsResponse>
 
     @GET("bookings/mine")
     suspend fun getMyBookings(): Response<MyBookingsResponse>
