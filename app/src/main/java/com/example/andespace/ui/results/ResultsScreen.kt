@@ -24,6 +24,7 @@ import com.example.andespace.ui.components.PaginationFooter
 fun ResultsScreen(
     rooms: List<RoomDto>,
     isSearching: Boolean,
+    isUserLoggedIn: Boolean,
     errorMessage: String?,
     currentPage: Int,
     totalPages: Int,
@@ -57,17 +58,6 @@ fun ResultsScreen(
                     }
                 }
 
-                rooms.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No classrooms found for this search")
-                    }
-                }
-
                 else -> {
                     LazyColumn(
                         modifier = Modifier
@@ -80,6 +70,7 @@ fun ResultsScreen(
                             RoomCard(
                                 room = room,
                                 cardIndex = index,
+                                isUserLoggedIn = isUserLoggedIn,
                                 onClick = { onRoomClick(room) }
                             )
                         }

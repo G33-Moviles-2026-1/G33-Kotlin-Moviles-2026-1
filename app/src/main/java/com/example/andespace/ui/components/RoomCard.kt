@@ -32,20 +32,24 @@ import com.example.andespace.data.model.dto.RoomDto
 import com.example.andespace.ui.theme.LightYellow
 
 @Composable
-fun RoomCard(room: RoomDto, cardIndex: Int, onClick: () -> Unit = {}) {
-    val availability = room.availabilityStatus
-        ?: if (cardIndex % 2 == 0) "available_after" else "free_in_schedule"
+fun RoomCard(
+    room: RoomDto,
+    cardIndex: Int,
+    isUserLoggedIn: Boolean,
+    onClick: () -> Unit = {}
+) {
+    val availability = room.availabilityStatus ?: "available_after"
     val isFreeNow = availability.equals("free_in_schedule", ignoreCase = true)
     val headerColor = if (isFreeNow) Color(0xFFD9E8D9) else Color(0xFFEFE5D4)
     val statusColor = if (isFreeNow) Color(0xFF4C9654) else Color(0xFFD8A327)
     val statusTitle = if (isFreeNow) "FREE IN YOUR SCHEDULE" else "AVAILABLE AFTER"
-    val scheduleText = buildString {
-        val since = room.availableSince ?: "15:20:00"
-        val until = room.availableUntil ?: "16:50:00"
-        append("From ")
-        append(since)
-        append(" to ")
-        append(until)
+    val firstMatch = room.matchingWindows.firstOrNull()
+    val matchSince = firstMatch?.start ?: room.availableSince
+    val matchUntil = firstMatch?.end ?: room.availableUntil
+    val scheduleText = if (matchSince != null && matchUntil != null) {
+        "From $matchSince to $matchUntil"
+    } else {
+        if (isFreeNow) "No schedule match found" else "No availability window"
     }
     val extraUtilities = room.utilities
     val roomId = room.id
@@ -57,7 +61,7 @@ fun RoomCard(room: RoomDto, cardIndex: Int, onClick: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 6.dp)
-            .border(1.dp, Color.Black,RoundedCornerShape(18.dp))
+            .border(1.dp, Color.Black, RoundedCornerShape(18.dp))
             .clickable(onClick = onClick),
         shadowElevation = 10.dp,
         shape = RoundedCornerShape(18.dp),
@@ -98,40 +102,44 @@ fun RoomCard(room: RoomDto, cardIndex: Int, onClick: () -> Unit = {}) {
                 color = Color(0xFF555555)
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            if (isUserLoggedIn) {
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(headerColor, RoundedCornerShape(12.dp))
-                    .border(1.dp, Color.Black.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = if (isFreeNow) Icons.Default.CheckCircle else Icons.Default.Schedule,
-                    contentDescription = "Availability status",
-                    tint = statusColor,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = statusTitle,
-                        color = statusColor,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(headerColor, RoundedCornerShape(12.dp))
+                        .border(1.dp, Color.Black.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isFreeNow) Icons.Default.CheckCircle else Icons.Default.Schedule,
+                        contentDescription = "Availability status",
+                        tint = statusColor,
+                        modifier = Modifier.size(20.dp)
                     )
-                    Text(
-                        text = scheduleText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = statusTitle,
+                            color = statusColor,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = scheduleText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+            } else {
+                Spacer(modifier = Modifier.height(10.dp))
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FeatureChip(
