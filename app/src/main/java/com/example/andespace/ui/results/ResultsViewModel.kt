@@ -75,6 +75,12 @@ class ResultsViewModel(
 
             if (trackEvent) {
                 repository.trackHomeEvent("home_search_submitted")
+                repository.trackAppliedFilters(
+                    placeUsed = params.classroom.isNotBlank(),
+                    timeUsed = params.since != null || params.until != null,
+                    utilitiesUsed = params.utilities.isNotEmpty(),
+                    closeToMeUsed = params.closeToMe
+                )
             }
 
             repository.searchRooms(params, limit = pageSize, offset = offset)
@@ -85,8 +91,8 @@ class ResultsViewModel(
                         val comparedRooms = enrichRoomsWithUserSchedule(
                             rooms = response.rooms,
                             dateValue = params.date,
-                            searchSince = params.since,
-                            searchUntil = params.until,
+                            searchSince = params.since ?: "08:00",
+                            searchUntil = params.until ?: "18:00",
                             isUserLoggedIn = isUserLoggedIn
                         )
 

@@ -117,8 +117,8 @@ class AppRepository {
                 val request = RoomSearchRequest(
                     roomPrefix = params.classroom.ifBlank { null },
                     date = params.date,
-                    since = "${params.since}:00",
-                    until = "${params.until}:00",
+                    since = "${params.since ?: "08:00"}:00",
+                    until = "${params.until ?: "18:00"}:00",
                     utilities = params.utilities,
                     nearMe = params.closeToMe,
                     limit = limit,
@@ -162,6 +162,32 @@ class AppRepository {
                         sessionId = sessionId,
                         eventName = eventName,
                         screen = "home"
+                    )
+                )
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    suspend fun trackAppliedFilters(
+        placeUsed: Boolean,
+        timeUsed: Boolean,
+        utilitiesUsed: Boolean,
+        closeToMeUsed: Boolean
+    ) {
+        withContext(Dispatchers.IO) {
+            try {
+                apiService.trackAnalyticsEvent(
+                    AnalyticsEventRequest(
+                        sessionId = sessionId,
+                        eventName = "home_filters_opened",
+                        screen = "home",
+                        propsJson = mapOf(
+                            "place" to placeUsed,
+                            "time" to timeUsed,
+                            "utilities" to utilitiesUsed,
+                            "close_to_me" to closeToMeUsed
+                        )
                     )
                 )
             } catch (_: Exception) {

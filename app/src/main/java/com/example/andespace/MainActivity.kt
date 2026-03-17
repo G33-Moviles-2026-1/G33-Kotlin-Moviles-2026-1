@@ -79,10 +79,6 @@ fun AndeSpaceApp(
     val bookingsViewModel: BookingsViewModel = viewModel()
     val bookingsUiState by bookingsViewModel.uiState.collectAsState()
 
-    val isOnAuthScreen = !uiState.isLoggedIn &&
-            (uiState.currentDestination == AppDestinations.LOGIN ||
-                    uiState.currentDestination == AppDestinations.REGISTER)
-
     Scaffold(
         topBar = {
             AndeSpaceTopBar(
@@ -104,17 +100,15 @@ fun AndeSpaceApp(
             )
         },
         bottomBar = {
-            if (!isOnAuthScreen) {
-                AndeSpaceBottomBar(
-                    currentDestination = uiState.currentDestination,
-                    onDestinationChanged = { destination ->
-                        viewModel.onDestinationChanged(destination)
-                        if (destination == AppDestinations.CLASSROOMS) {
-                            homepageViewModel.resetToHome()
-                        }
+            AndeSpaceBottomBar(
+                currentDestination = uiState.currentDestination,
+                onDestinationChanged = { destination ->
+                    viewModel.onDestinationChanged(destination)
+                    if (destination == AppDestinations.CLASSROOMS) {
+                        homepageViewModel.resetToHome()
                     }
-                )
-            }
+                }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
