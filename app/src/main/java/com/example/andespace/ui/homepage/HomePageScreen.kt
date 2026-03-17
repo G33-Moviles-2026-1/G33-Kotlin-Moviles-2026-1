@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.example.andespace.ui.screen
+package com.example.andespace.ui.homepage
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,6 +39,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.andespace.AssetIcon
 import com.example.andespace.data.model.HomeSearchParams
+import androidx.compose.ui.unit.sp
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
@@ -93,34 +95,29 @@ fun HomePageScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 24.dp)
+            .padding(top = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .padding(top = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Where do you\nwant to go?",
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+        Text(
+            text = "Where do you\nwant to go?",
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 28.sp),
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground
+        )
 
-            Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-            SearchCard(
-                selectedUtilities = selectedUtilities,
-                isSearching = isSearching,
-                searchError = searchError,
-                onFilterClick = {
-                    onFiltersOpened()
-                    showFilterSheet = true
-                },
-                onSearchClick = onSearchClick
-            )
-        }
+        SearchCard(
+            selectedUtilities = selectedUtilities,
+            isSearching = isSearching,
+            searchError = searchError,
+            onFilterClick = {
+                onFiltersOpened()
+                showFilterSheet = true
+            },
+            onSearchClick = onSearchClick
+        )
     }
 }
 
@@ -177,8 +174,28 @@ private fun SearchCard(
         )
     }
     if (showDatePicker) {
+        val todayMillis = remember {
+            val cal = java.util.Calendar.getInstance()
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            cal.set(java.util.Calendar.MINUTE, 0)
+            cal.set(java.util.Calendar.SECOND, 0)
+            cal.set(java.util.Calendar.MILLISECOND, 0)
+            cal.timeInMillis
+        }
+        val maxDateMillis = remember { todayMillis + 7L * 24 * 60 * 60 * 1000 }
+
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDateMillis
+            initialSelectedDateMillis = selectedDateMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    return utcTimeMillis in todayMillis..maxDateMillis
+                }
+
+                override fun isSelectableYear(year: Int): Boolean {
+                    val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                    return year == currentYear
+                }
+            }
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -206,17 +223,9 @@ private fun SearchCard(
         }
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp)
-        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -363,7 +372,6 @@ private fun SearchCard(
                     }
                 }
             )
-        }
     }
 }
 

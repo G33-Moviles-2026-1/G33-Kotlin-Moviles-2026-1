@@ -29,7 +29,6 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.andespace.model.AppDestinations
-import com.example.andespace.ui.ContentScreen
 import com.example.andespace.ui.MainViewModel
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
@@ -37,10 +36,12 @@ import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.cookie.CookieScreen
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
-import com.example.andespace.ui.screen.HistoryScreen
-import com.example.andespace.ui.screen.HomePageScreen
-import com.example.andespace.ui.results.ResultsViewModel
+import com.example.andespace.ui.homepage.ContentScreen
+import com.example.andespace.ui.homepage.HomePageScreen
+import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.results.ResultsScreen
+import com.example.andespace.ui.results.ResultsViewModel
+import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.detailRoom.RoomDetailScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 
@@ -57,12 +58,21 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
+fun AndeSpaceApp(
+    viewModel: MainViewModel = viewModel(),
+    homepageViewModel: HomepageViewModel = viewModel()
+) {
     val uiState by viewModel.uiState.collectAsState()
+    val homepageState by homepageViewModel.uiState.collectAsState()
     val resultsViewModel: ResultsViewModel = viewModel()
     val resultsUiState by resultsViewModel.uiState.collectAsState()
     val detailRoomViewModel: DetailRoomViewModel = viewModel()
     val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
+
+    val isOnAuthScreen = !uiState.isLoggedIn &&
+            (uiState.currentDestination == AppDestinations.LOGIN ||
+                    uiState.currentDestination == AppDestinations.REGISTER)
+
     Scaffold(
         topBar = {
             AndeSpaceTopBar(
@@ -76,32 +86,38 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                 onRegisterClick = {
                     viewModel.onDestinationChanged(AppDestinations.REGISTER)
                 },
-                onHistoryClick = { viewModel.onHistoryClick() },
+                onHistoryClick = { viewModel.onDestinationChanged(AppDestinations.HISTORY) },
                 onLogOut = {
                     viewModel.onLogOut()
                 }
             )
         },
         bottomBar = {
-            AndeSpaceBottomBar(
-                currentDestination = uiState.currentDestination,
-                onDestinationChanged = { viewModel.onDestinationChanged(it) }
-            )
+            if (!isOnAuthScreen) {
+                AndeSpaceBottomBar(
+                    currentDestination = uiState.currentDestination,
+                    onDestinationChanged = { destination ->
+                        viewModel.onDestinationChanged(destination)
+                        if (destination == AppDestinations.CLASSROOMS) {
+                            homepageViewModel.resetToHome()
+                        }
+                    }
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-        // TODO: QUE ES ESTE BLOQUESOTE DE LÓGICA?
             when (uiState.currentDestination) {
-                AppDestinations.CLASSROOMS -> when (uiState.contentScreen) {
+                AppDestinations.CLASSROOMS -> when (homepageState.contentScreen) {
                     ContentScreen.HOME -> HomePageScreen(
                         isSearching = resultsUiState.isSearching,
                         searchError = resultsUiState.errorMessage,
                         onSearchClick = { params ->
                             resultsViewModel.onSearchClick(params)
-                            viewModel.onShowResults()
+                            homepageViewModel.onShowResults()
                         },
-                        onFiltersOpened = { viewModel.onFiltersOpened() }
+                        onFiltersOpened = { homepageViewModel.onFiltersOpened() }
                     )
                     ContentScreen.RESULTS -> ResultsScreen(
                         rooms = resultsUiState.rooms,
@@ -115,7 +131,7 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                                 room = room,
                                 selectedDate = resultsUiState.selectedSearchDate
                             )
-                            viewModel.onShowRoomDetailScreen()
+                            homepageViewModel.onShowRoomDetailScreen()
                         },
                         onPrevPage = { resultsViewModel.onPreviousPage() },
                         onNextPage = { resultsViewModel.onNextPage() }
@@ -127,19 +143,24 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                         availabilityError = detailRoomUiState.availabilityError,
                         onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) }
                     )
-                    ContentScreen.HISTORY -> HistoryScreen()
                 }
                 AppDestinations.HISTORY -> HistoryScreen()
                 AppDestinations.LOGIN -> LoginScreen(
                     onLoginSuccess = {
                         viewModel.onLogin()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                    },
+                    onNavigateToRegister = {
+                        viewModel.onDestinationChanged(AppDestinations.REGISTER)
                     }
                 )
                 AppDestinations.REGISTER -> RegisterScreen(
                     onRegisterSuccess = {
                         viewModel.onLogin()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                    },
+                    onNavigateToLogin = {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
                     }
                 )
                 AppDestinations.FAVORITES -> CookieScreen()

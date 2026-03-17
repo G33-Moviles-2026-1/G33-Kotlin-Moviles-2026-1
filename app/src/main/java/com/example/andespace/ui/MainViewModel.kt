@@ -26,26 +26,7 @@ class MainViewModel(
     }
 
     fun onDestinationChanged(destination: AppDestinations) {
-        _uiState.update { state ->
-            val newState = state.copy(currentDestination = destination, isUserMenuExpanded = false)
-            if (destination == AppDestinations.CLASSROOMS) {
-                newState.copy(contentScreen = ContentScreen.HOME)
-            } else {
-                newState
-            }
-        }
-    }
-
-    fun onHistoryClick() {
-        _uiState.update { it.copy(contentScreen = ContentScreen.HISTORY) }
-    }
-
-    fun onShowResults() {
-        _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS) }
-    }
-
-    fun onShowRoomDetailScreen() {
-        _uiState.update { it.copy(contentScreen = ContentScreen.ROOM_DETAIL) }
+        _uiState.update { it.copy(currentDestination = destination, isUserMenuExpanded = false) }
     }
 
     fun expandUserMenu() {
@@ -56,7 +37,6 @@ class MainViewModel(
         _uiState.update { it.copy(isUserMenuExpanded = false) }
     }
 
-
     fun onLogOut() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -66,16 +46,13 @@ class MainViewModel(
                     isLoggedIn = false,
                     isUserMenuExpanded = false,
                     isLoading = false,
-                    currentDestination = AppDestinations.CLASSROOMS
+                    currentDestination = AppDestinations.LOGIN
                 )
             }
         }
     }
+
     fun onLogin() {
         _uiState.update { it.copy(isLoggedIn = true) }
-    }
-
-    fun onFiltersOpened() {
-        viewModelScope.launch { repository.trackHomeEvent("home_filters_opened") }
     }
 }
