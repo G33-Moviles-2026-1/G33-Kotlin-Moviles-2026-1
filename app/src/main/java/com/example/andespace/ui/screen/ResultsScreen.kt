@@ -1,5 +1,6 @@
 package com.example.andespace.ui.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,7 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.andespace.data.api.dto.RoomDto
+import com.example.andespace.data.model.dto.RoomDto
 import com.example.andespace.ui.theme.LightYellow
 
 @Composable
@@ -291,7 +292,7 @@ private fun ResultsPaginationFooter(
                     disabledContentColor = Color(0xFF9A9A9A)
                 ),
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black)
+                border = BorderStroke(1.dp, Color.Black)
             ) {
                 Text("Prev")
             }
@@ -312,7 +313,7 @@ private fun ResultsPaginationFooter(
                     disabledContentColor = Color(0xFF9A9A9A)
                 ),
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black)
+                border = BorderStroke(1.dp, Color.Black)
             ) {
                 Text("Next")
             }

@@ -3,10 +3,9 @@ package com.example.andespace.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.api.dto.RoomDto
+import com.example.andespace.data.model.dto.RoomDto
 import com.example.andespace.data.model.HomeSearchParams
 import com.example.andespace.data.repository.AppRepository
-import com.example.andespace.data.repository.AppRepositoryContract
 import com.example.andespace.model.AppDestinations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +17,7 @@ import java.util.Date
 import java.util.Locale
 
 class MainViewModel(
-    private val repository: AppRepositoryContract = AppRepository()
+    private val repository: AppRepository = AppRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -35,7 +34,7 @@ class MainViewModel(
 
     fun onDestinationChanged(destination: AppDestinations) {
         _uiState.update { state ->
-            val newState = state.copy(currentDestination = destination)
+            val newState = state.copy(currentDestination = destination, isUserMenuExpanded = false)
             if (destination == AppDestinations.CLASSROOMS) {
                 newState.copy(contentScreen = ContentScreen.HOME)
             } else {
@@ -51,6 +50,14 @@ class MainViewModel(
     fun onSearchClick(params: HomeSearchParams) {
         lastSearchParams = params
         requestSearchPage(params = params, page = 1, trackEvent = true)
+    }
+
+    fun expandUserMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = true) }
+    }
+
+    fun closeUserMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = false) }
     }
 
     fun onRoomClick(room: RoomDto) {
@@ -79,9 +86,6 @@ class MainViewModel(
         fetchRoomAvailability(roomId = roomId, dateValue = dateValue)
     }
 
-    fun navigateBackToHome() {
-        _uiState.update { it.copy(contentScreen = ContentScreen.HOME) }
-    }
 
     fun onNextResultsPage() {
         val state = _uiState.value
@@ -164,9 +168,19 @@ class MainViewModel(
     }
 
     fun onLogOut() {
-        _uiState.update { it.copy(isLoggedIn = false) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            repository.logout()
+            _uiState.update {
+                it.copy(
+                    isLoggedIn = false,
+                    isUserMenuExpanded = false,
+                    isLoading = false,
+                    currentDestination = AppDestinations.CLASSROOMS
+                )
+            }
+        }
     }
-
     fun onLogin() {
         _uiState.update { it.copy(isLoggedIn = true) }
     }

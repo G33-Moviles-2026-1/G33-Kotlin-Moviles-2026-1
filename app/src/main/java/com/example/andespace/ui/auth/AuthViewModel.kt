@@ -3,7 +3,6 @@ package com.example.andespace.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AppRepository
-import com.example.andespace.data.repository.AppRepositoryContract
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
-    private val repository: AppRepositoryContract = AppRepository()
+    private val repository: AppRepository = AppRepository()
 ) : ViewModel(){
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -27,18 +26,46 @@ class AuthViewModel(
         _uiState.update { it.copy(repeatPassword = repPassword) }
     }
 
-    fun onLoginClick(){
+    fun onLoginClick(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            repository.login(uiState.value.email, uiState.value.password)
-            _uiState.update { it.copy(isLoading = false) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val result = repository.login(uiState.value.email, uiState.value.password)
+
+            result.onSuccess {
+                _uiState.update { it.copy(isLoading = false, password = "", email = "", repeatPassword = "") }
+                onSuccess()
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "Unknown authentication error"
+                    )
+                }
+            }
         }
     }
-    fun onRegisterClick(){
+    fun onRegisterClick(onSuccess: () -> Unit) {
+        if (uiState.value.password != uiState.value.repeatPassword) {
+            _uiState.update { it.copy(errorMessage = "Passwords do not match") }
+            return
+        }
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            repository.login(uiState.value.email, uiState.value.password)
-            _uiState.update { it.copy(isLoading = false) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val result = repository.register(uiState.value.email, uiState.value.password, "2026-10")
+
+            result.onSuccess {
+                _uiState.update { it.copy(isLoading = false, password = "", email = "", repeatPassword = "") }
+                onSuccess()
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "Unknown registration error"
+                    )
+                }
+            }
         }
     }
 }

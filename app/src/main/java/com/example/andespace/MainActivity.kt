@@ -17,10 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,11 +35,13 @@ import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
+import com.example.andespace.ui.cookie.CookieScreen
 import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.screen.HomePageScreen
 import com.example.andespace.ui.screen.ResultsScreen
-import com.example.andespace.ui.theme.AndeSpaceTheme
 import com.example.andespace.ui.screen.RoomDetailScreen
+import com.example.andespace.ui.theme.AndeSpaceTheme
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,26 +57,22 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
-    var displayMenu by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
-                isMenuExpanded = displayMenu,
-                onAccountClick = { displayMenu = true },
-                onDismissMenu = { displayMenu = false },
+                isMenuExpanded = uiState.isUserMenuExpanded,
+                onAccountClick = { viewModel.expandUserMenu() },
+                onDismissMenu = { viewModel.closeUserMenu() },
                 onLoginClick = {
                     viewModel.onDestinationChanged(AppDestinations.LOGIN)
-                    displayMenu = false
                 },
                 onRegisterClick = {
                     viewModel.onDestinationChanged(AppDestinations.REGISTER)
-                    displayMenu = false
                 },
                 onHistoryClick = { viewModel.onHistoryClick() },
                 onLogOut = {
                     viewModel.onLogOut()
-                    displayMenu = false
                 }
             )
         },
@@ -90,7 +85,7 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-
+        // TODO: QUE ES ESTE BLOQUESOTE DE LÓGICA?
             when (uiState.currentDestination) {
                 AppDestinations.CLASSROOMS -> when (uiState.contentScreen) {
                     ContentScreen.HOME -> HomePageScreen(
@@ -119,14 +114,25 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                     ContentScreen.HISTORY -> HistoryScreen()
                 }
                 AppDestinations.HISTORY -> HistoryScreen()
-                AppDestinations.LOGIN -> LoginScreen()
-                AppDestinations.REGISTER -> RegisterScreen()
+                AppDestinations.LOGIN -> LoginScreen(
+                    onLoginSuccess = {
+                        viewModel.onLogin()
+                        viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                    }
+                )
+                AppDestinations.REGISTER -> RegisterScreen(
+                    onRegisterSuccess = {
+                        viewModel.onLogin()
+                        viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                    }
+                )
+                AppDestinations.FAVORITES -> CookieScreen()
                 else -> Greeting(
                     name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
                 )
             }
 
-            if (displayMenu) {
+            if (uiState.isUserMenuExpanded) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -134,7 +140,7 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { displayMenu = false }
+                        ) { viewModel.closeUserMenu() }
                 )
             }
         }

@@ -1,4 +1,4 @@
-package com.example.andespace.data.api.dto
+package com.example.andespace.data.model.dto
 
 import com.google.gson.annotations.SerializedName
 import java.text.SimpleDateFormat

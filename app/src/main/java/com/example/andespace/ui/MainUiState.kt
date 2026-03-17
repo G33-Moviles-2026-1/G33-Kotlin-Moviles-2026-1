@@ -1,6 +1,6 @@
 package com.example.andespace.ui
 
-import com.example.andespace.data.api.dto.RoomDto
+import com.example.andespace.data.model.dto.RoomDto
 import com.example.andespace.model.AppDestinations
 
 enum class ContentScreen {
@@ -16,6 +16,7 @@ data class MainUiState(
     val userName: String = "Loading...",
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
+    val isUserMenuExpanded: Boolean = false,
     val isSearching: Boolean = false,
     val searchResults: List<RoomDto> = emptyList(),
     val selectedRoom: RoomDto? = null,

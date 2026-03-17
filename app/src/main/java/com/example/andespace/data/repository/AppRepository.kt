@@ -1,52 +1,97 @@
 package com.example.andespace.data.repository
-
 import android.util.Log
-import com.example.andespace.data.api.RetrofitClient
-import com.example.andespace.data.api.dto.AnalyticsEventRequest
-import com.example.andespace.data.api.dto.RoomSearchRequest
-import com.example.andespace.data.api.dto.RoomSearchResponse
-import com.example.andespace.data.api.dto.RoomTimeWindowDto
-import com.example.andespace.data.api.dto.toTimeWindows
+import com.example.andespace.data.model.dto.AnalyticsEventRequest
+import com.example.andespace.data.model.dto.RoomSearchRequest
+import com.example.andespace.data.model.dto.RoomSearchResponse
+import com.example.andespace.data.model.dto.RoomTimeWindowDto
+import com.example.andespace.data.model.dto.toTimeWindows
 import com.example.andespace.data.model.HomeSearchParams
-import kotlinx.coroutines.delay
+import com.example.andespace.data.network.LoginRequest
+import com.example.andespace.data.network.NetworkModule
+import com.example.andespace.data.network.RegisterRequest
+import com.example.andespace.data.network.ApiService
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.util.UUID
 
-interface AppRepositoryContract {
-    suspend fun getUserName(): String
-    suspend fun login(user: String, password: String): Boolean
-    fun getHistory(): List<String>
-    suspend fun searchRooms(
-        params: HomeSearchParams,
-        limit: Int = 20,
-        offset: Int = 0
-    ): Result<RoomSearchResponse>
-    suspend fun trackHomeEvent(eventName: String)
-    suspend fun getRoomAvailability(
-        roomId: String,
-        dateValue: String
-    ): Result<List<RoomTimeWindowDto>>
-}
-
-class AppRepository : AppRepositoryContract {
-
-    private val api = RetrofitClient.apiService
+class AppRepository {
+    private val apiService: ApiService = NetworkModule.apiService
     private val sessionId = UUID.randomUUID().toString()
 
-    override suspend fun getUserName(): String {
-        delay(1000)
-        return "Uniandes Student"
+
+    suspend fun register(email: String, password: String, semester: String): Result<Boolean> {
+        return try {
+            val response = apiService.register(RegisterRequest(email, password, semester))
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Network error: Check your connection"))
+
+        }
     }
 
-    override suspend fun login(user: String, password: String): Boolean {
-        delay(1000)
-        return user == "Kotlin" && password == "123"
+    suspend fun login(email: String, password: String): Result<Boolean> {
+        return try {
+            val response = apiService.login(LoginRequest(email, password))
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Network error: Check your connection"))
+        }
     }
 
-    override fun getHistory() = listOf("ML 001", "W 101", "SD 202")
+    suspend fun getMeData(): Result<String> {
+        return try {
+            val response = apiService.checkSession()
+            if (response.isSuccessful) {
+                val dataString = response.body().toString()
+                Result.success(dataString)
+            } else {
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Network error: Check your connection"))
+        }
+    }
 
-    override suspend fun searchRooms(
+    suspend fun logout(): Result<Boolean> {
+        return try {
+            apiService.logout()
+            NetworkModule.cookieJar.clearCookies()
+            Result.success(true)
+        } catch (e: Exception) {
+            NetworkModule.cookieJar.clearCookies()
+            Result.failure(Exception("Network error: Check your connection"))
+        }
+    }
+
+    private fun extractErrorMessage(errorBody: String?, defaultCode: Int): String {
+        if (errorBody.isNullOrEmpty()) return "Error code: $defaultCode"
+
+        return try {
+            val jsonObject = JSONObject(errorBody)
+            when {
+                jsonObject.has("detail") -> jsonObject.getString("detail")
+                jsonObject.has("message") -> jsonObject.getString("message")
+                else -> "Error code: $defaultCode"
+            }
+        } catch (e: Exception) {
+            "Error code: $defaultCode"
+        }
+    }
+
+    suspend fun searchRooms(
         params: HomeSearchParams,
         limit: Int,
         offset: Int
@@ -67,7 +112,7 @@ class AppRepository : AppRepositoryContract {
                     TAG,
                     "searchRooms request -> roomPrefix=${request.roomPrefix}, date=${request.date}, since=${request.since}, until=${request.until}, nearMe=${request.nearMe}, limit=${request.limit}, offset=${request.offset}, utilities=${request.utilities}"
                 )
-                val response = api.searchRooms(request)
+                val response = apiService.searchRooms(request)
                 Log.d(TAG, "searchRooms response code=${response.code()}, successful=${response.isSuccessful}")
                 if (response.isSuccessful) {
                     val body = response.body() ?: RoomSearchResponse()
@@ -90,10 +135,10 @@ class AppRepository : AppRepositoryContract {
             }
         }
 
-    override suspend fun trackHomeEvent(eventName: String) {
+    suspend fun trackHomeEvent(eventName: String) {
         withContext(Dispatchers.IO) {
             try {
-                api.trackAnalyticsEvent(
+                apiService.trackAnalyticsEvent(
                     AnalyticsEventRequest(
                         sessionId = sessionId,
                         eventName = eventName,
@@ -105,12 +150,12 @@ class AppRepository : AppRepositoryContract {
         }
     }
 
-    override suspend fun getRoomAvailability(
+    suspend fun getRoomAvailability(
         roomId: String,
         dateValue: String
     ): Result<List<RoomTimeWindowDto>> = withContext(Dispatchers.IO) {
         try {
-            val response = api.getRoomAvailability(roomId = roomId, dateValue = dateValue)
+            val response = apiService.getRoomAvailability(roomId = roomId, dateValue = dateValue)
             if (response.isSuccessful) {
                 val windows = response.body()?.toTimeWindows(dateValue).orEmpty()
                 Result.success(windows)
@@ -125,5 +170,10 @@ class AppRepository : AppRepositoryContract {
 
     companion object {
         private const val TAG = "AppRepository"
+    }
+
+    class ApiException(message: String) : Exception(message) {
+        override val message: String
+            get() = super.message?.removePrefix("java.lang.Exception: ")?.trim() ?: "Unknown API Error"
     }
 }

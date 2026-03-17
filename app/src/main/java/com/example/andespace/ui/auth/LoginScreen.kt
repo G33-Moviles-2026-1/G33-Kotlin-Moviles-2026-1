@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +21,8 @@ import com.example.andespace.ui.components.CustomYellowButton
 
 @Composable
 fun LoginScreen(
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    onLoginSuccess: () -> Unit
 ) {
     val uiState by authViewModel.uiState.collectAsState()
     Column(
@@ -54,7 +56,16 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        CustomYellowButton("Continue", {authViewModel.onLoginClick()})
+        if (uiState.isLoading) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(16.dp)
+            )
+        } else {
+            CustomYellowButton("Continue", {
+                authViewModel.onLoginClick(onSuccess = onLoginSuccess)
+            })
+        }
 
         uiState.errorMessage?.let {
             Text(

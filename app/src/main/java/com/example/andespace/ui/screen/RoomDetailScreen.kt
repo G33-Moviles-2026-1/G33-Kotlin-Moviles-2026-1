@@ -40,7 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.andespace.data.api.dto.RoomDto
+import com.example.andespace.data.model.dto.RoomDto
 import com.example.andespace.ui.theme.LightYellow
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
@@ -58,7 +58,7 @@ fun RoomDetailScreen(
 ) {
     if (room == null) {
         Box(
-            modifier = androidx.compose.ui.Modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp)
         ) {
