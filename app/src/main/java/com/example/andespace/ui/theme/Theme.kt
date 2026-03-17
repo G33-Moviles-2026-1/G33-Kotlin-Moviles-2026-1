@@ -44,6 +44,7 @@ fun AndeSpaceTheme(
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val view = LocalView.current
+    val typography = AndeSpaceTypography()
     
     if (!view.isInEditMode) {
         SideEffect {
@@ -57,7 +58,7 @@ fun AndeSpaceTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = typography,
         content = content
     )
 }

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,14 +32,17 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.andespace.model.AppDestinations
-import com.example.andespace.ui.components.AndeSpaceBottomBar
-import com.example.andespace.ui.components.AndeSpaceTopBar
-import com.example.andespace.ui.theme.AndeSpaceTheme
+import com.example.andespace.ui.ContentScreen
 import com.example.andespace.ui.MainViewModel
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
-import com.example.andespace.ui.cookie.CookieScreen
-
+import com.example.andespace.ui.components.AndeSpaceBottomBar
+import com.example.andespace.ui.components.AndeSpaceTopBar
+import com.example.andespace.ui.screen.HistoryScreen
+import com.example.andespace.ui.screen.HomePageScreen
+import com.example.andespace.ui.screen.ResultsScreen
+import com.example.andespace.ui.theme.AndeSpaceTheme
+import com.example.andespace.ui.screen.RoomDetailScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,23 +59,25 @@ class MainActivity : ComponentActivity() {
 fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     var displayMenu by rememberSaveable { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
-                isMenuExpanded = uiState.isUserMenuExpanded,
-                onAccountClick = { viewModel.expandUserMenu() },
-                onDismissMenu = { viewModel.closeUserMenu() },
+                isMenuExpanded = displayMenu,
+                onAccountClick = { displayMenu = true },
+                onDismissMenu = { displayMenu = false },
                 onLoginClick = {
                     viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    displayMenu = false
                 },
                 onRegisterClick = {
                     viewModel.onDestinationChanged(AppDestinations.REGISTER)
+                    displayMenu = false
                 },
                 onHistoryClick = { viewModel.onHistoryClick() },
                 onLogOut = {
                     viewModel.onLogOut()
+                    displayMenu = false
                 }
             )
         },
@@ -82,25 +86,41 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                 currentDestination = uiState.currentDestination,
                 onDestinationChanged = { viewModel.onDestinationChanged(it) }
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
 
             when (uiState.currentDestination) {
+                AppDestinations.CLASSROOMS -> when (uiState.contentScreen) {
+                    ContentScreen.HOME -> HomePageScreen(
+                        isSearching = uiState.isSearching,
+                        searchError = uiState.searchError,
+                        onSearchClick = { params -> viewModel.onSearchClick(params) },
+                        onFiltersOpened = { viewModel.onFiltersOpened() }
+                    )
+                    ContentScreen.RESULTS -> ResultsScreen(
+                        rooms = uiState.searchResults,
+                        isSearching = uiState.isSearching,
+                        errorMessage = uiState.searchError,
+                        currentPage = uiState.currentResultsPage,
+                        totalPages = uiState.totalResultsPages,
+                        onRoomClick = { room -> viewModel.onRoomClick(room) },
+                        onPrevPage = { viewModel.onPreviousResultsPage() },
+                        onNextPage = { viewModel.onNextResultsPage() }
+                    )
+                    ContentScreen.ROOMDETAIL -> RoomDetailScreen(
+                        room = uiState.selectedRoom,
+                        selectedDate = uiState.selectedSearchDate,
+                        isLoadingAvailability = uiState.isLoadingRoomAvailability,
+                        availabilityError = uiState.roomAvailabilityError,
+                        onDateChange = { dateValue -> viewModel.onRoomDetailDateChanged(dateValue) }
+                    )
+                    ContentScreen.HISTORY -> HistoryScreen()
+                }
                 AppDestinations.HISTORY -> HistoryScreen()
-                AppDestinations.LOGIN -> LoginScreen(
-                    onLoginSuccess = {
-                        viewModel.onLogin()
-                        viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
-                    }
-                )
-                AppDestinations.REGISTER -> RegisterScreen(
-                    onRegisterSuccess = {
-                        viewModel.onLogin()
-                        viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
-                    }
-                )
-                AppDestinations.FAVORITES -> CookieScreen()
+                AppDestinations.LOGIN -> LoginScreen()
+                AppDestinations.REGISTER -> RegisterScreen()
                 else -> Greeting(
                     name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
                 )
@@ -117,18 +137,6 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                         ) { displayMenu = false }
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun HistoryScreen(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text("History Screen Content")
         }
     }
 }

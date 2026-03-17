@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,8 +20,7 @@ import com.example.andespace.ui.components.CustomYellowButton
 
 @Composable
 fun RegisterScreen(
-    authViewModel: AuthViewModel = viewModel(),
-    onRegisterSuccess: () -> Unit
+    authViewModel: AuthViewModel = viewModel()
 ) {
     val uiState by authViewModel.uiState.collectAsState()
     Column(
@@ -65,17 +63,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-
-        if (uiState.isLoading) {
-            CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(16.dp)
-            )
-        } else {
-            CustomYellowButton("Save", {
-                authViewModel.onRegisterClick(onSuccess = onRegisterSuccess)
-            })
-        }
+        CustomYellowButton("Save",{authViewModel.onRegisterClick()})
 
         uiState.errorMessage?.let {
             Text(
