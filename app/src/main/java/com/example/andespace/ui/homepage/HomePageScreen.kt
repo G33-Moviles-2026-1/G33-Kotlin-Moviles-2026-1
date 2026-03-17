@@ -191,6 +191,8 @@ private fun SearchCard(
     var sinceMinute by remember { mutableStateOf(0) }
     var untilHour by remember { mutableStateOf(18) }
     var untilMinute by remember { mutableStateOf(0) }
+    var sinceSet by remember { mutableStateOf(false) }
+    var untilSet by remember { mutableStateOf(false) }
     var showSincePicker by remember { mutableStateOf(false) }
     var showUntilPicker by remember { mutableStateOf(false) }
 
@@ -202,6 +204,7 @@ private fun SearchCard(
             onConfirm = { h, m ->
                 sinceHour = h
                 sinceMinute = m
+                sinceSet = true
                 showSincePicker = false
             }
         )
@@ -214,6 +217,7 @@ private fun SearchCard(
             onConfirm = { h, m ->
                 untilHour = h
                 untilMinute = m
+                untilSet = true
                 showUntilPicker = false
             }
         )
@@ -355,13 +359,13 @@ private fun SearchCard(
             ) {
                 TimePickerPill(
                     label = "Since",
-                    timeText = formatTime(sinceHour, sinceMinute),
+                    timeText = if (sinceSet) formatTime(sinceHour, sinceMinute) else "--:--",
                     onClick = { showSincePicker = true },
                     modifier = Modifier.weight(1f)
                 )
                 TimePickerPill(
                     label = "Until",
-                    timeText = formatTime(untilHour, untilMinute),
+                    timeText = if (untilSet) formatTime(untilHour, untilMinute) else "--:--",
                     onClick = { showUntilPicker = true },
                     modifier = Modifier.weight(1f)
                 )
@@ -407,8 +411,8 @@ private fun SearchCard(
                         val params = HomeSearchParams(
                             classroom = classroomInput,
                             date = formatDateMillis(selectedDateMillis),
-                            since = formatTime(sinceHour, sinceMinute),
-                            until = formatTime(untilHour, untilMinute),
+                            since = if (sinceSet) formatTime(sinceHour, sinceMinute) else null,
+                            until = if (untilSet) formatTime(untilHour, untilMinute) else null,
                             closeToMe = closeToMe,
                             utilities = selectedUtilities.mapNotNull { UTILITIES_OPTIONS[it] }
                         )
