@@ -7,11 +7,15 @@ import com.example.andespace.data.model.dto.MyBookingsResponse
 import com.example.andespace.data.model.dto.RoomAvailabilityResponse
 import com.example.andespace.data.model.dto.RoomSearchRequest
 import com.example.andespace.data.model.dto.RoomSearchResponse
+import com.example.andespace.data.model.schedule.WeeklyScheduleOut
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -61,4 +65,15 @@ interface ApiService {
 
     @DELETE("bookings/{bookingId}")
     suspend fun deleteBooking(@Path("bookingId") bookingId: String): Response<Unit>
+    @GET("schedule/classes")
+    suspend fun getScheduleClasses(): Response<Any>
+
+    @Multipart
+    @POST("schedule/upload/ics")
+    suspend fun uploadIcsFile(@Part file: MultipartBody.Part): Response<Any>
+
+    @GET("schedule/week")
+    suspend fun getWeeklySchedule(
+        @Query("date") date: String? = null
+    ): Response<WeeklyScheduleOut>
 }
