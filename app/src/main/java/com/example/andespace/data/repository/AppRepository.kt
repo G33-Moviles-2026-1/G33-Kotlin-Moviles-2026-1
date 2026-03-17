@@ -1,6 +1,8 @@
 package com.example.andespace.data.repository
 import android.util.Log
 import com.example.andespace.data.model.dto.AnalyticsEventRequest
+import com.example.andespace.data.model.dto.BookingDto
+import com.example.andespace.data.model.dto.CreateBookingRequest
 import com.example.andespace.data.model.dto.RoomSearchRequest
 import com.example.andespace.data.model.dto.RoomSearchResponse
 import com.example.andespace.data.model.dto.RoomTimeWindowDto
@@ -203,6 +205,52 @@ class AppRepository {
             val parsedDate = source.parse(this)
             if (parsedDate != null) target.format(parsedDate) else this
         }.getOrDefault(this)
+    suspend fun getMyBookings(): Result<List<BookingDto>> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getMyBookings()
+            if (response.isSuccessful) {
+                Result.success(response.body()?.items.orEmpty())
+            } else {
+                val code = response.code()
+                val errorBody = response.errorBody()?.string() ?: response.message()
+                Result.failure(ApiException(if (code == 401) "SESSION_EXPIRED" else "Error $code: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getMyBookings exception=${e.message}", e)
+            Result.failure(Exception("Network error: Check your connection"))
+        }
+    }
+
+    suspend fun createBooking(request: CreateBookingRequest): Result<BookingDto> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.createBooking(request)
+                if (response.isSuccessful) {
+                    response.body()?.let { Result.success(it) }
+                        ?: Result.failure(Exception("Empty response"))
+                } else {
+                    val errorBody = response.errorBody()?.string() ?: response.message()
+                    Result.failure(ApiException("Error ${response.code()}: $errorBody"))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "createBooking exception=${e.message}", e)
+                Result.failure(Exception("Network error: Check your connection"))
+            }
+        }
+
+    suspend fun deleteBooking(bookingId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.deleteBooking(bookingId)
+            if (response.isSuccessful || response.code() == 204) {
+                Result.success(true)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: response.message()
+                Result.failure(ApiException("Error ${response.code()}: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteBooking exception=${e.message}", e)
+            Result.failure(Exception("Network error: Check your connection"))
+        }
     }
 
     companion object {
