@@ -48,8 +48,8 @@ class AppRepository : AppRepositoryContract {
 
     override suspend fun searchRooms(
         params: HomeSearchParams,
-        limit: Int = 20,
-        offset: Int = 0
+        limit: Int,
+        offset: Int
     ): Result<RoomSearchResponse> =
         withContext(Dispatchers.IO) {
             try {
@@ -90,16 +90,19 @@ class AppRepository : AppRepositoryContract {
             }
         }
 
-    override suspend fun trackHomeEvent(eventName: String) = withContext(Dispatchers.IO) {
-        try {
-            api.trackAnalyticsEvent(
-                AnalyticsEventRequest(
-                    sessionId = sessionId,
-                    eventName = eventName,
-                    screen = "home"
+    override suspend fun trackHomeEvent(eventName: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                api.trackAnalyticsEvent(
+                    AnalyticsEventRequest(
+                        sessionId = sessionId,
+                        eventName = eventName,
+                        screen = "home"
+                    )
                 )
-            )
-        } catch (_: Exception) { }
+            } catch (_: Exception) {
+            }
+        }
     }
 
     override suspend fun getRoomAvailability(
