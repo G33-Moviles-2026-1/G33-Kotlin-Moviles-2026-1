@@ -14,6 +14,8 @@ import com.example.andespace.data.network.ApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.UUID
 
 class AppRepository {
@@ -166,6 +168,41 @@ class AppRepository {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    suspend fun getUserFreeSlots(dateValue: String): Result<List<RoomTimeWindowDto>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val formattedDate = dateValue.toScheduleDateParam()
+                val response = apiService.getUserFreeSlots(date = formattedDate)
+                if (response.isSuccessful) {
+                    val slots = response.body()?.freeSlots.orEmpty()
+                        .mapNotNull { slot ->
+                            val start = slot.startTime
+                            val end = slot.endTime
+                            if (start.isNullOrBlank() || end.isNullOrBlank()) {
+                                null
+                            } else {
+                                RoomTimeWindowDto(start = start, end = end)
+                            }
+                        }
+                    Result.success(slots)
+                } else {
+                    val errorBody = response.errorBody()?.string() ?: response.message()
+                    Result.failure(Exception("Error ${response.code()}: $errorBody"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    private fun String.toScheduleDateParam(): String {
+        return runCatching {
+            val source = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val target = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+            val parsedDate = source.parse(this)
+            if (parsedDate != null) target.format(parsedDate) else this
+        }.getOrDefault(this)
     }
 
     companion object {

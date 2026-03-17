@@ -4,6 +4,7 @@ import com.example.andespace.data.model.dto.AnalyticsEventRequest
 import com.example.andespace.data.model.dto.RoomAvailabilityResponse
 import com.example.andespace.data.model.dto.RoomSearchRequest
 import com.example.andespace.data.model.dto.RoomSearchResponse
+import com.example.andespace.data.model.dto.UserFreeSlotsResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -48,5 +49,10 @@ interface ApiService {
         @Path("roomId") roomId: String,
         @Query("date_value") dateValue: String
     ): Response<RoomAvailabilityResponse>
+
+    @GET("schedule/free-slots")
+    suspend fun getUserFreeSlots(
+        @Query("date") date: String
+    ): Response<UserFreeSlotsResponse>
 
 }

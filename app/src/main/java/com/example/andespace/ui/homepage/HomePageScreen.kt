@@ -59,7 +59,9 @@ import com.example.andespace.AssetIcon
 import com.example.andespace.data.model.HomeSearchParams
 import androidx.compose.ui.unit.sp
 import com.example.andespace.ui.components.CustomYellowButton
+import com.example.andespace.ui.results.ResultsScreen
 import com.example.andespace.ui.theme.PrimaryYellow
+import com.example.andespace.data.model.dto.RoomDto
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -72,6 +74,48 @@ private val UTILITIES_OPTIONS = mapOf(
     "Computer" to "computer",
     "Videobeam" to "videobeam"
 )
+
+@Composable
+fun HomepageContent(
+    contentScreen: ContentScreen,
+    isSearching: Boolean,
+    isUserLoggedIn: Boolean,
+    searchError: String?,
+    rooms: List<RoomDto>,
+    currentPage: Int,
+    totalPages: Int,
+    onSearchClick: (HomeSearchParams) -> Unit,
+    onFiltersOpened: () -> Unit,
+    onRoomClick: (RoomDto) -> Unit,
+    onPrevPage: () -> Unit,
+    onNextPage: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when (contentScreen) {
+        ContentScreen.HOME -> HomePageScreen(
+            modifier = modifier,
+            isSearching = isSearching,
+            searchError = searchError,
+            onSearchClick = onSearchClick,
+            onFiltersOpened = onFiltersOpened
+        )
+
+        ContentScreen.RESULTS -> ResultsScreen(
+            rooms = rooms,
+            isSearching = isSearching,
+            isUserLoggedIn = isUserLoggedIn,
+            errorMessage = searchError,
+            currentPage = currentPage,
+            totalPages = totalPages,
+            onRoomClick = onRoomClick,
+            onPrevPage = onPrevPage,
+            onNextPage = onNextPage,
+            modifier = modifier
+        )
+
+        ContentScreen.ROOM_DETAIL -> Unit
+    }
+}
 
 @Composable
 fun HomePageScreen(
@@ -326,20 +370,19 @@ private fun SearchCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
                 AssetIcon(
                     assetPath = "icons/location.svg",
                     contentDescription = "Location",
                     modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Close to me",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.weight(1f))
                 Checkbox(
                     checked = closeToMe,
                     onCheckedChange = { closeToMe = it }

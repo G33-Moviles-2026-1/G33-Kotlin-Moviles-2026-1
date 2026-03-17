@@ -37,9 +37,9 @@ import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.cookie.CookieScreen
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.homepage.ContentScreen
+import com.example.andespace.ui.homepage.HomepageContent
 import com.example.andespace.ui.homepage.HomePageScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
-import com.example.andespace.ui.results.ResultsScreen
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.detailRoom.RoomDetailScreen
@@ -109,22 +109,31 @@ fun AndeSpaceApp(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
             when (uiState.currentDestination) {
-                AppDestinations.CLASSROOMS -> when (homepageState.contentScreen) {
-                    ContentScreen.HOME -> HomePageScreen(
-                        isSearching = resultsUiState.isSearching,
-                        searchError = resultsUiState.errorMessage,
-                        onSearchClick = { params ->
-                            resultsViewModel.onSearchClick(params)
-                            homepageViewModel.onShowResults()
-                        },
-                        onFiltersOpened = { homepageViewModel.onFiltersOpened() }
+                AppDestinations.CLASSROOMS -> if (homepageState.contentScreen == ContentScreen.ROOM_DETAIL) {
+                    RoomDetailScreen(
+                        room = detailRoomUiState.room,
+                        selectedDate = detailRoomUiState.selectedDate,
+                        isLoadingAvailability = detailRoomUiState.isLoadingAvailability,
+                        availabilityError = detailRoomUiState.availabilityError,
+                        onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) }
                     )
-                    ContentScreen.RESULTS -> ResultsScreen(
-                        rooms = resultsUiState.rooms,
+                } else {
+                    HomepageContent(
+                        contentScreen = homepageState.contentScreen,
                         isSearching = resultsUiState.isSearching,
-                        errorMessage = resultsUiState.errorMessage,
+                        isUserLoggedIn = uiState.isLoggedIn,
+                        searchError = resultsUiState.errorMessage,
+                        rooms = resultsUiState.rooms,
                         currentPage = resultsUiState.currentPage,
                         totalPages = resultsUiState.totalPages,
+                        onSearchClick = { params ->
+                            resultsViewModel.onSearchClick(
+                                params = params,
+                                isUserLoggedIn = uiState.isLoggedIn
+                            )
+                            homepageViewModel.onShowResults()
+                        },
+                        onFiltersOpened = { homepageViewModel.onFiltersOpened() },
                         onRoomClick = { room ->
                             resultsViewModel.onRoomClick(room)
                             detailRoomViewModel.setRoom(
@@ -133,15 +142,8 @@ fun AndeSpaceApp(
                             )
                             homepageViewModel.onShowRoomDetailScreen()
                         },
-                        onPrevPage = { resultsViewModel.onPreviousPage() },
-                        onNextPage = { resultsViewModel.onNextPage() }
-                    )
-                    ContentScreen.ROOM_DETAIL -> RoomDetailScreen(
-                        room = detailRoomUiState.room,
-                        selectedDate = detailRoomUiState.selectedDate,
-                        isLoadingAvailability = detailRoomUiState.isLoadingAvailability,
-                        availabilityError = detailRoomUiState.availabilityError,
-                        onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) }
+                        onPrevPage = { resultsViewModel.onPreviousPage(isUserLoggedIn = uiState.isLoggedIn) },
+                        onNextPage = { resultsViewModel.onNextPage(isUserLoggedIn = uiState.isLoggedIn) }
                     )
                 }
                 AppDestinations.HISTORY -> HistoryScreen()
