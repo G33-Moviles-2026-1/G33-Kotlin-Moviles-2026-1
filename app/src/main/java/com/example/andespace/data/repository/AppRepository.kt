@@ -28,6 +28,9 @@ class AppRepository {
     private val apiService: ApiService = NetworkModule.apiService
     private val sessionId = UUID.randomUUID().toString()
 
+    companion object {
+        private const val TAG = "AppRepository"
+    }
 
     suspend fun register(email: String, password: String, semester: String): Result<Boolean> {
         return try {
@@ -35,7 +38,8 @@ class AppRepository {
             if (response.isSuccessful) {
                 Result.success(true)
             } else {
-                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                val backendMessage =
+                    extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
         } catch (e: Exception) {
@@ -50,7 +54,8 @@ class AppRepository {
             if (response.isSuccessful) {
                 Result.success(true)
             } else {
-                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                val backendMessage =
+                    extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
         } catch (e: Exception) {
@@ -65,7 +70,8 @@ class AppRepository {
                 val dataString = response.body().toString()
                 Result.success(dataString)
             } else {
-                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
+                val backendMessage =
+                    extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
         } catch (e: Exception) {
@@ -121,7 +127,10 @@ class AppRepository {
                     "searchRooms request -> roomPrefix=${request.roomPrefix}, date=${request.date}, since=${request.since}, until=${request.until}, nearMe=${request.nearMe}, limit=${request.limit}, offset=${request.offset}, utilities=${request.utilities}"
                 )
                 val response = apiService.searchRooms(request)
-                Log.d(TAG, "searchRooms response code=${response.code()}, successful=${response.isSuccessful}")
+                Log.d(
+                    TAG,
+                    "searchRooms response code=${response.code()}, successful=${response.isSuccessful}"
+                )
                 if (response.isSuccessful) {
                     val body = response.body() ?: RoomSearchResponse()
                     Log.d(TAG, "searchRooms parsed rooms=${body.rooms.size}, total=${body.total}")
@@ -209,6 +218,20 @@ class AppRepository {
             }
         }
 
+    suspend fun getWeeklySchedule(): Result<WeeklyScheduleOut> {
+        return try {
+            val response = apiService.getWeeklySchedule()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val backendMessage =
+                    extractErrorMessage(response.errorBody()?.string(), response.code())
+                Result.failure(ApiException(backendMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(ApiException("Network error: Could not fetch schedule"))
+        }
+    }
     suspend fun deleteBooking(bookingId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val response = apiService.deleteBooking(bookingId)
@@ -222,69 +245,57 @@ class AppRepository {
             Log.e(TAG, "deleteBooking exception=${e.message}", e)
             Result.failure(Exception("Network error: Check your connection"))
 
-
-    suspend fun checkIfScheduleExists(): Result<Boolean> {
-        return try {
-            val response = apiService.getScheduleClasses()
-            if (response.isSuccessful) {
-                val bodyString = response.body().toString()
-                val hasSchedule = !bodyString.contains("\"classes\": []") && bodyString.length > 10
-                Result.success(hasSchedule)
-            } else {
-                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
-                Result.failure(ApiException(backendMessage))
-            }
-        } catch (e: Exception) {
-            Result.failure(ApiException("Network error: Check your connection"))
         }
     }
-
-    suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> {
-        return try {
-            val contentResolver = context.contentResolver
-            val inputStream = contentResolver.openInputStream(fileUri)
-                ?: return Result.failure(Exception("Could not open the selected file"))
-
-            val fileBytes = inputStream.readBytes()
-            inputStream.close()
-
-            val requestBody = fileBytes.toRequestBody("text/calendar".toMediaTypeOrNull())
-
-            val multipartPart = MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
-
-            val response = apiService.uploadIcsFile(multipartPart)
-
-            if (response.isSuccessful) {
-                Result.success(true)
-            } else {
-                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
-                Result.failure(ApiException(backendMessage))
+        suspend fun checkIfScheduleExists(): Result<Boolean> {
+            return try {
+                val response = apiService.getScheduleClasses()
+                if (response.isSuccessful) {
+                    val bodyString = response.body().toString()
+                    val hasSchedule =
+                        !bodyString.contains("\"classes\": []") && bodyString.length > 10
+                    Result.success(hasSchedule)
+                } else {
+                    val backendMessage =
+                        extractErrorMessage(response.errorBody()?.string(), response.code())
+                    Result.failure(ApiException(backendMessage))
+                }
+            } catch (e: Exception) {
+                Result.failure(ApiException("Network error: Check your connection"))
             }
-        } catch (e: Exception) {
-            Result.failure(ApiException("Network error: Could not upload file"))
+        }
+
+        suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> {
+            return try {
+                val contentResolver = context.contentResolver
+                val inputStream = contentResolver.openInputStream(fileUri)
+                    ?: return Result.failure(Exception("Could not open the selected file"))
+
+                val fileBytes = inputStream.readBytes()
+                inputStream.close()
+
+                val requestBody = fileBytes.toRequestBody("text/calendar".toMediaTypeOrNull())
+
+                val multipartPart =
+                    MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
+
+                val response = apiService.uploadIcsFile(multipartPart)
+
+                if (response.isSuccessful) {
+                    Result.success(true)
+                } else {
+                    val backendMessage =
+                        extractErrorMessage(response.errorBody()?.string(), response.code())
+                    Result.failure(ApiException(backendMessage))
+                }
+            } catch (e: Exception) {
+                Result.failure(ApiException("Network error: Could not upload file"))
+            }
+        }
+
+        class ApiException(message: String) : Exception(message) {
+            override val message: String
+                get() = super.message?.removePrefix("java.lang.Exception: ")?.trim()
+                    ?: "Unknown API Error"
         }
     }
-
-    suspend fun getWeeklySchedule(): Result<WeeklyScheduleOut> {
-        return try {
-            val response = apiService.getWeeklySchedule()
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
-            } else {
-                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
-                Result.failure(ApiException(backendMessage))
-            }
-        } catch (e: Exception) {
-            Result.failure(ApiException("Network error: Could not fetch schedule"))
-        }
-    }
-
-    companion object {
-        private const val TAG = "AppRepository"
-    }
-
-    class ApiException(message: String) : Exception(message) {
-        override val message: String
-            get() = super.message?.removePrefix("java.lang.Exception: ")?.trim() ?: "Unknown API Error"
-    }
-}
