@@ -1,4 +1,4 @@
-package com.example.andespace.ui.screen
+package com.example.andespace.ui.detailRoom
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,6 +55,7 @@ fun RoomDetailScreen(
     isLoadingAvailability: Boolean,
     availabilityError: String?,
     onDateChange: (String) -> Unit,
+    onBookRoom: () -> Unit = {},
 ) {
     if (room == null) {
         Box(
@@ -293,7 +294,7 @@ fun RoomDetailScreen(
         item {
             Spacer(modifier = Modifier.height(6.dp))
             Button(
-                onClick = {},
+                onClick = onBookRoom,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp)

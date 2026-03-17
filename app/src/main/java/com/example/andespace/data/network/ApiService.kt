@@ -1,6 +1,9 @@
 package com.example.andespace.data.network
 
 import com.example.andespace.data.model.dto.AnalyticsEventRequest
+import com.example.andespace.data.model.dto.BookingDto
+import com.example.andespace.data.model.dto.CreateBookingRequest
+import com.example.andespace.data.model.dto.MyBookingsResponse
 import com.example.andespace.data.model.dto.RoomAvailabilityResponse
 import com.example.andespace.data.model.dto.RoomSearchRequest
 import com.example.andespace.data.model.dto.RoomSearchResponse
@@ -8,6 +11,7 @@ import com.example.andespace.data.model.schedule.WeeklyScheduleOut
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
@@ -53,6 +57,14 @@ interface ApiService {
         @Query("date_value") dateValue: String
     ): Response<RoomAvailabilityResponse>
 
+    @GET("bookings/mine")
+    suspend fun getMyBookings(): Response<MyBookingsResponse>
+
+    @POST("bookings/")
+    suspend fun createBooking(@Body request: CreateBookingRequest): Response<BookingDto>
+
+    @DELETE("bookings/{bookingId}")
+    suspend fun deleteBooking(@Path("bookingId") bookingId: String): Response<Unit>
     @GET("schedule/classes")
     suspend fun getScheduleClasses(): Response<Any>
 
