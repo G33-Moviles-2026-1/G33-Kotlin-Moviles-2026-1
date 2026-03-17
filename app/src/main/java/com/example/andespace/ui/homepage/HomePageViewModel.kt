@@ -31,4 +31,8 @@ class HomepageViewModel(
     fun onFiltersOpened() {
         viewModelScope.launch { repository.trackHomeEvent("home_filters_opened") }
     }
+
+    fun onShowMakeBooking() {
+        _uiState.update { it.copy(contentScreen = ContentScreen.MAKE_BOOKING) }
+    }
 }

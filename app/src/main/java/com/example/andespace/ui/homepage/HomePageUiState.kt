@@ -3,7 +3,8 @@ package com.example.andespace.ui.homepage
 enum class ContentScreen {
     HOME,
     RESULTS,
-    ROOM_DETAIL
+    ROOM_DETAIL,
+    MAKE_BOOKING
 }
 
 data class HomepageUiState(
