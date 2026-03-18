@@ -106,7 +106,6 @@ fun AndeSpaceApp(
     val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
     val bookingsViewModel: BookingsViewModel = viewModel()
     val bookingsUiState by bookingsViewModel.uiState.collectAsState()
-
     Scaffold(
         topBar = {
             AndeSpaceTopBar(

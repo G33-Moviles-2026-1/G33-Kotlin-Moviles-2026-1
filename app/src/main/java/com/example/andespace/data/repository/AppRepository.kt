@@ -8,6 +8,7 @@ import com.example.andespace.data.model.dto.AnalyticsEventRequest
 import com.example.andespace.data.model.dto.BookingDto
 import com.example.andespace.data.model.dto.CreateBookingRequest
 import com.example.andespace.data.model.dto.RoomSearchRequest
+import com.example.andespace.data.model.dto.UserLocation
 import com.example.andespace.data.model.dto.RoomSearchResponse
 import com.example.andespace.data.model.dto.RoomTimeWindowDto
 import com.example.andespace.data.model.dto.toTimeWindows
@@ -121,6 +122,9 @@ class AppRepository {
                     until = "${params.until ?: "18:00"}:00",
                     utilities = params.utilities,
                     nearMe = params.closeToMe,
+                    userLocation = if (params.closeToMe && params.userLatitude != null && params.userLongitude != null) {
+                        UserLocation(params.userLatitude, params.userLongitude)
+                    } else null,
                     limit = limit,
                     offset = offset
                 )
@@ -174,10 +178,10 @@ class AppRepository {
         timeUsed: Boolean,
         utilitiesUsed: Boolean,
         closeToMeUsed: Boolean
-    ) {
-        withContext(Dispatchers.IO) {
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
             try {
-                apiService.trackAnalyticsEvent(
+                val response = apiService.trackAnalyticsEvent(
                     AnalyticsEventRequest(
                         sessionId = sessionId,
                         eventName = "home_filters_opened",
@@ -190,7 +194,9 @@ class AppRepository {
                         )
                     )
                 )
+                response.isSuccessful
             } catch (_: Exception) {
+                false
             }
         }
     }
