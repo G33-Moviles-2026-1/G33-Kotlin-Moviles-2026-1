@@ -7,5 +7,6 @@ data class MainUiState(
     val userName: String = "Loading...",
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
-    val isUserMenuExpanded: Boolean = false
+    val isUserMenuExpanded: Boolean = false,
+    val isDarkMode: Boolean = false
 )
