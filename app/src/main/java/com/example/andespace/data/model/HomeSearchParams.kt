@@ -6,5 +6,7 @@ data class HomeSearchParams(
     val since: String?,
     val until: String?,
     val closeToMe: Boolean,
-    val utilities: List<String>
+    val utilities: List<String>,
+    val userLatitude: Double? = null,
+    val userLongitude: Double? = null
 )

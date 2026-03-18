@@ -43,6 +43,10 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,9 +56,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import com.example.andespace.AssetIcon
 import com.example.andespace.data.model.HomeSearchParams
 import androidx.compose.ui.unit.sp
@@ -62,6 +68,8 @@ import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.results.ResultsScreen
 import com.example.andespace.ui.theme.PrimaryYellow
 import com.example.andespace.data.model.dto.RoomDto
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -182,11 +190,38 @@ private fun SearchCard(
     onFilterClick: () -> Unit,
     onSearchClick: (HomeSearchParams) -> Unit,
 ) {
+    val context = LocalContext.current
     var classroomInput by remember { mutableStateOf("") }
     val initialDateMillis = remember { System.currentTimeMillis() }
     var selectedDateMillis by remember { mutableStateOf(initialDateMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
     var closeToMe by remember { mutableStateOf(false) }
+    var userLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var locationError by remember { mutableStateOf(false) }
+    var isLocating by remember { mutableStateOf(false) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            isLocating = true
+            fetchCurrentLocation(context) { loc ->
+                isLocating = false
+                if (loc != null) {
+                    userLocation = loc
+                } else {
+                    closeToMe = false
+                    locationError = true
+                }
+            }
+        } else {
+            closeToMe = false
+            locationError = true
+        }
+    }
+
     var sinceHour by remember { mutableStateOf(8) }
     var sinceMinute by remember { mutableStateOf(0) }
     var untilHour by remember { mutableStateOf(18) }
@@ -390,8 +425,57 @@ private fun SearchCard(
                 )
                 Checkbox(
                     checked = closeToMe,
-                    onCheckedChange = { closeToMe = it }
+                    onCheckedChange = { checked ->
+                        locationError = false
+                        if (checked) {
+                            val alreadyGranted =
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                            if (alreadyGranted) {
+                                closeToMe = true
+                                isLocating = true
+                                fetchCurrentLocation(context) { loc ->
+                                    isLocating = false
+                                    if (loc != null) {
+                                        userLocation = loc
+                                    } else {
+                                        closeToMe = false
+                                        locationError = true
+                                    }
+                                }
+                            } else {
+                                closeToMe = true
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
+                            }
+                        } else {
+                            closeToMe = false
+                            userLocation = null
+                            isLocating = false
+                        }
+                    }
                 )
+            }
+
+            if (isLocating) {
+                Text(
+                    text = "Getting your location...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            if (locationError) {
+                Text(
+                    text = "Could not get your location. Enable GPS and try again.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(4.dp))
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -414,7 +498,9 @@ private fun SearchCard(
                             since = if (sinceSet) formatTime(sinceHour, sinceMinute) else null,
                             until = if (untilSet) formatTime(untilHour, untilMinute) else null,
                             closeToMe = closeToMe,
-                            utilities = selectedUtilities.mapNotNull { UTILITIES_OPTIONS[it] }
+                            utilities = selectedUtilities.mapNotNull { UTILITIES_OPTIONS[it] },
+                            userLatitude = if (closeToMe) userLocation?.first else null,
+                            userLongitude = if (closeToMe) userLocation?.second else null
                         )
                         onSearchClick(params)
                     }
@@ -580,3 +666,20 @@ private fun UtilitiesFilterSheet(
     }
 }
 
+private fun fetchCurrentLocation(
+    context: android.content.Context,
+    onResult: (Pair<Double, Double>?) -> Unit
+) {
+    try {
+        val client = LocationServices.getFusedLocationProviderClient(context)
+        client.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { location ->
+                onResult(location?.let { Pair(it.latitude, it.longitude) })
+            }
+            .addOnFailureListener {
+                onResult(null)
+            }
+    } catch (_: SecurityException) {
+        onResult(null)
+    }
+}
