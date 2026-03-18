@@ -194,6 +194,7 @@ fun AndeSpaceApp(
                 AppDestinations.LOGIN -> LoginScreen(
                     onLoginSuccess = {
                         viewModel.onLogin()
+                        bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.checkScheduleStatus()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     },
@@ -205,6 +206,7 @@ fun AndeSpaceApp(
                 AppDestinations.REGISTER -> RegisterScreen(
                     onRegisterSuccess = {
                         viewModel.onLogin()
+                        bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.clearScheduleData()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     },

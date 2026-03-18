@@ -111,12 +111,19 @@ class ResultsViewModel(
                         _uiState.update {
                             it.copy(
                                 isSearching = false,
-                                errorMessage = error.message ?: "Search error"
+                                errorMessage = friendlyError(error.message)
                             )
                         }
                     }
                 )
         }
+    }
+
+    private fun friendlyError(raw: String?): String = when {
+        raw == null -> "Something went wrong. Please try again."
+        raw.startsWith("Network error") -> "Could not connect. Check your internet connection."
+        raw.matches(Regex("Error \\d+.*")) -> "Could not load results. Please try again."
+        else -> raw
     }
 
     private suspend fun enrichRoomsWithUserSchedule(
