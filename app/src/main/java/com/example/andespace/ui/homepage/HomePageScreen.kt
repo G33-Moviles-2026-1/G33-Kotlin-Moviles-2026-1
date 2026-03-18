@@ -285,8 +285,8 @@ private fun SearchCard(
                         .weight(1f)
                         .heightIn(min = 48.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                         .padding(horizontal = 12.dp, vertical = 12.dp)
                 ) {
                     BasicTextField(
@@ -326,8 +326,8 @@ private fun SearchCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-                    .background(Color.White)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surface)
                     .height(40.dp)
                     .padding(horizontal = 12.dp)
                     .clickable(onClick = { showDatePicker = true }),
@@ -433,8 +433,8 @@ private fun TimePickerPill(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-            .background(Color.White)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surface)
             .height(40.dp)
             .padding(horizontal = 12.dp)
             .clickable(onClick = onClick),
@@ -451,7 +451,7 @@ private fun TimePickerPill(
             modifier = Modifier
                 .height(18.dp)
                 .width(1.dp),
-            color = Color(0xFFE8E8E8)
+            color = MaterialTheme.colorScheme.outline
         )
         Spacer(modifier = Modifier.width(8.dp))
         AssetIcon(

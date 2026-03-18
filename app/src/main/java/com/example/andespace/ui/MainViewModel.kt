@@ -55,4 +55,8 @@ class MainViewModel(
     fun onLogin() {
         _uiState.update { it.copy(isLoggedIn = true) }
     }
+
+    fun setDarkMode(isDark: Boolean) {
+        _uiState.update { it.copy(isDarkMode = isDark) }
+    }
 }

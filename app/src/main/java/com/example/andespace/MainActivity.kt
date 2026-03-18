@@ -1,5 +1,10 @@
 package com.example.andespace
 
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,8 +63,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AndeSpaceTheme {
-                AndeSpaceApp()
+            val mainViewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val mainUiState by mainViewModel.uiState.collectAsState()
+            AndeSpaceTheme(darkTheme = mainUiState.isDarkMode) {
+                AndeSpaceApp(viewModel = mainViewModel)
             }
         }
     }
@@ -71,6 +79,26 @@ fun AndeSpaceApp(
     scheduleViewModel: ScheduleViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val lux = event.values[0]
+                val isDark = viewModel.uiState.value.isDarkMode
+                when {
+                    lux < 25f && !isDark -> viewModel.setDarkMode(true)
+                    lux > 35f && isDark  -> viewModel.setDarkMode(false)
+                }
+            }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+        sensorManager.registerListener(listener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
+        onDispose { sensorManager.unregisterListener(listener) }
+    }
+
     val homepageState by homepageViewModel.uiState.collectAsState()
     val resultsViewModel: ResultsViewModel = viewModel()
     val resultsUiState by resultsViewModel.uiState.collectAsState()
