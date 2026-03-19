@@ -39,18 +39,13 @@ import com.example.andespace.model.AppDestinations
 import com.example.andespace.ui.MainViewModel
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
-import com.example.andespace.ui.bookings.BookingsContentScreen
+import com.example.andespace.ui.bookings.MainBookingsScreen
 import com.example.andespace.ui.bookings.BookingsViewModel
-import com.example.andespace.ui.bookings.EditBookingScreen
-import com.example.andespace.ui.bookings.MakeBookingScreen
-import com.example.andespace.ui.bookings.MyBookingsScreen
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.cookie.CookieScreen
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
-import com.example.andespace.ui.detailRoom.RoomDetailScreen
-import com.example.andespace.ui.homepage.ContentScreen
-import com.example.andespace.ui.homepage.HomepageContent
+import com.example.andespace.ui.homepage.MainClassroomsScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
@@ -63,7 +58,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val mainViewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val mainViewModel: MainViewModel = viewModel()
             val mainUiState by mainViewModel.uiState.collectAsState()
             AndeSpaceTheme(darkTheme = mainUiState.isDarkMode) {
                 AndeSpaceApp(viewModel = mainViewModel)
@@ -90,22 +85,19 @@ fun AndeSpaceApp(
                 val isDark = viewModel.uiState.value.isDarkMode
                 when {
                     lux < 25f && !isDark -> viewModel.setDarkMode(true)
-                    lux > 35f && isDark  -> viewModel.setDarkMode(false)
+                    lux > 35f && isDark -> viewModel.setDarkMode(false)
                 }
             }
+
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         }
         sensorManager.registerListener(listener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
         onDispose { sensorManager.unregisterListener(listener) }
     }
 
-    val homepageState by homepageViewModel.uiState.collectAsState()
     val resultsViewModel: ResultsViewModel = viewModel()
-    val resultsUiState by resultsViewModel.uiState.collectAsState()
     val detailRoomViewModel: DetailRoomViewModel = viewModel()
-    val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
     val bookingsViewModel: BookingsViewModel = viewModel()
-    val bookingsUiState by bookingsViewModel.uiState.collectAsState()
     Scaffold(
         topBar = {
             AndeSpaceTopBar(
@@ -139,81 +131,26 @@ fun AndeSpaceApp(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
 
             // MAIN NAVIGATION SWITCH
             when (uiState.currentDestination) {
 
                 AppDestinations.CLASSROOMS -> {
-                    // SUB-NAVIGATION FOR CLASSROOMS
-                    when (homepageState.contentScreen) {
-                        ContentScreen.ROOM_DETAIL -> {
-                            RoomDetailScreen(
-                                room = detailRoomUiState.room,
-                                selectedDate = detailRoomUiState.selectedDate,
-                                isLoadingAvailability = detailRoomUiState.isLoadingAvailability,
-                                availabilityError = detailRoomUiState.availabilityError,
-                                onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) },
-                                onBookRoom = { homepageViewModel.onShowMakeBooking() }
-                            )
+                    MainClassroomsScreen(
+                        homepageViewModel = homepageViewModel,
+                        resultsViewModel = resultsViewModel,
+                        detailRoomViewModel = detailRoomViewModel,
+                        bookingsViewModel = bookingsViewModel,
+                        isUserLoggedIn = uiState.isLoggedIn,
+                        onBookingCreatedNavigate = {
+                            viewModel.onDestinationChanged(AppDestinations.BOOKINGS)
                         }
-                        ContentScreen.MAKE_BOOKING -> {
-                            val room = detailRoomUiState.room
-                            val roomId = room?.id ?: ""
-                            val date = detailRoomUiState.selectedDate ?: ""
-                            val windows = room?.matchingWindows.orEmpty()
-
-                            if (bookingsUiState.bookingCreatedSuccess) {
-                                LaunchedEffect(Unit) {
-                                    bookingsViewModel.consumeBookingCreatedSuccess()
-                                    viewModel.onDestinationChanged(AppDestinations.BOOKINGS)
-                                    homepageViewModel.resetToHome()
-                                }
-                            }
-
-                            MakeBookingScreen(
-                                roomId = roomId,
-                                selectedDate = date,
-                                availableWindows = windows,
-                                isLoadingSlots = detailRoomUiState.isLoadingAvailability,
-                                isCreating = bookingsUiState.isCreating,
-                                errorMessage = bookingsUiState.createError,
-                                onDateChanged = { newDate ->
-                                    detailRoomViewModel.onDateChange(newDate)
-                                },
-                                onBook = { request -> bookingsViewModel.onCreateBooking(request) }
-                            )
-                        }
-                        else -> { // Default to HomepageContent (SEARCH, FILTERS, RESULTS)
-                            HomepageContent(
-                                contentScreen = homepageState.contentScreen,
-                                isSearching = resultsUiState.isSearching,
-                                isUserLoggedIn = uiState.isLoggedIn,
-                                searchError = resultsUiState.errorMessage,
-                                rooms = resultsUiState.rooms,
-                                currentPage = resultsUiState.currentPage,
-                                totalPages = resultsUiState.totalPages,
-                                onSearchClick = { params ->
-                                    resultsViewModel.onSearchClick(
-                                        params = params,
-                                        isUserLoggedIn = uiState.isLoggedIn
-                                    )
-                                    homepageViewModel.onShowResults()
-                                },
-                                onFiltersOpened = { homepageViewModel.onFiltersOpened() },
-                                onRoomClick = { room ->
-                                    resultsViewModel.onRoomClick(room)
-                                    detailRoomViewModel.setRoom(
-                                        room = room,
-                                        selectedDate = resultsUiState.selectedSearchDate
-                                    )
-                                    homepageViewModel.onShowRoomDetailScreen()
-                                },
-                                onPrevPage = { resultsViewModel.onPreviousPage(isUserLoggedIn = uiState.isLoggedIn) },
-                                onNextPage = { resultsViewModel.onNextPage(isUserLoggedIn = uiState.isLoggedIn) }
-                            )
-                        }
-                    }
+                    )
                 }
 
                 AppDestinations.HISTORY -> HistoryScreen()
@@ -245,48 +182,19 @@ fun AndeSpaceApp(
                 AppDestinations.FAVORITES -> CookieScreen()
 
                 AppDestinations.BOOKINGS -> {
-                    LaunchedEffect(uiState.currentDestination) {
-                        bookingsViewModel.loadBookings()
-                    }
-
-                    if (bookingsUiState.requiresLogin) {
-                        LaunchedEffect(bookingsUiState.requiresLogin) {
-                            viewModel.onDestinationChanged(AppDestinations.LOGIN)
-                        }
-                    } else when (bookingsUiState.contentScreen) {
-                        BookingsContentScreen.LIST -> MyBookingsScreen(
-                            bookings = bookingsUiState.bookings,
-                            isLoading = bookingsUiState.isLoading,
-                            errorMessage = bookingsUiState.errorMessage,
-                            onDeleteBooking = { bookingsViewModel.onDeleteBooking(it) },
-                            onEditBooking = { bookingsViewModel.onEditBooking(it) }
-                        )
-                        BookingsContentScreen.EDIT -> {
-                            bookingsUiState.selectedBooking?.let { booking ->
-                                EditBookingScreen(
-                                    booking = booking,
-                                    isSaving = bookingsUiState.isSaving,
-                                    onSave = { request, oldId ->
-                                        bookingsViewModel.onSaveBooking(request, oldId)
-                                    },
-                                    onCancel = { bookingsViewModel.onCancelEdit() }
-                                )
-                            }
-                        }
-                    }
+                    MainBookingsScreen(
+                        bookingsViewModel = bookingsViewModel,
+                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
+                    )
                 }
 
-                AppDestinations.SCHEDULE ->
-                {   if(uiState.isLoggedIn){
-                    MainScheduleScreen(scheduleViewModel = scheduleViewModel)}
-                    else{
+                AppDestinations.SCHEDULE -> {
+                    if (uiState.isLoggedIn) {
+                        MainScheduleScreen(scheduleViewModel = scheduleViewModel)
+                    } else {
                         viewModel.onDestinationChanged(AppDestinations.LOGIN)
                     }
                 }
-
-                else -> Greeting(
-                    name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
-                )
             }
 
             // OVERLAY MENU
