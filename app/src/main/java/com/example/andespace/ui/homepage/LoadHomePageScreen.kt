@@ -62,25 +62,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import com.example.andespace.AssetIcon
+import com.example.andespace.data.location.GeoLocation
 import com.example.andespace.data.model.HomeSearchParams
+import com.example.andespace.data.model.RoomUtility
 import com.example.andespace.data.model.dto.RoomDto
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.results.ResultsScreen
 import com.example.andespace.ui.theme.PrimaryYellow
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import java.text.SimpleDateFormat
 import java.util.Locale
-
-private val UTILITIES_OPTIONS = mapOf(
-    "Blackout" to "blackout",
-    "Power Outlet" to "power_outlet",
-    "Television" to "television",
-    "Interactive Classroom" to "interactive_classroom",
-    "Mobile WhiteBoards" to "mobile_whiteboards     ",
-    "Computer" to "computer",
-    "Videobeam" to "videobeam"
-)
+import java.util.TimeZone
 
 @Composable
 fun LoadHomePageScreen(
@@ -88,12 +79,20 @@ fun LoadHomePageScreen(
     isSearching: Boolean,
     isUserLoggedIn: Boolean,
     hasUploadedSchedule: Boolean,
+    closeToMe: Boolean,
+    isLocating: Boolean,
+    locationError: Boolean,
+    userLocation: GeoLocation?,
     searchError: String?,
     rooms: List<RoomDto>,
     currentPage: Int,
     totalPages: Int,
     onSearchClick: (HomeSearchParams) -> Unit,
     onFiltersOpened: () -> Unit,
+    onRequestCurrentLocation: () -> Unit,
+    onLocationPermissionDenied: () -> Unit,
+    onCloseToMeDisabled: () -> Unit,
+    onClearLocationError: () -> Unit,
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
@@ -105,6 +104,14 @@ fun LoadHomePageScreen(
             isSearching = isSearching,
             searchError = searchError,
             onSearchClick = onSearchClick,
+            closeToMe = closeToMe,
+            isLocating = isLocating,
+            locationError = locationError,
+            userLocation = userLocation,
+            onRequestCurrentLocation = onRequestCurrentLocation,
+            onLocationPermissionDenied = onLocationPermissionDenied,
+            onCloseToMeDisabled = onCloseToMeDisabled,
+            onClearLocationError = onClearLocationError,
             onFiltersOpened = onFiltersOpened
         )
 
@@ -133,6 +140,14 @@ private fun LoadHomeSearchScreen(
     isSearching: Boolean = false,
     searchError: String? = null,
     onSearchClick: (HomeSearchParams) -> Unit = {},
+    closeToMe: Boolean,
+    isLocating: Boolean,
+    locationError: Boolean,
+    userLocation: GeoLocation?,
+    onRequestCurrentLocation: () -> Unit,
+    onLocationPermissionDenied: () -> Unit,
+    onCloseToMeDisabled: () -> Unit,
+    onClearLocationError: () -> Unit,
     onFiltersOpened: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
@@ -166,6 +181,14 @@ private fun LoadHomeSearchScreen(
             selectedUtilities = selectedUtilities,
             isSearching = isSearching,
             searchError = searchError,
+            closeToMe = closeToMe,
+            isLocating = isLocating,
+            locationError = locationError,
+            userLocation = userLocation,
+            onRequestCurrentLocation = onRequestCurrentLocation,
+            onLocationPermissionDenied = onLocationPermissionDenied,
+            onCloseToMeDisabled = onCloseToMeDisabled,
+            onClearLocationError = onClearLocationError,
             onFilterClick = {
                 onFiltersOpened()
                 showFilterSheet = true
@@ -178,7 +201,9 @@ private fun LoadHomeSearchScreen(
 private fun formatTime(hour: Int, minute: Int): String =
     "%02d:%02d".format(hour, minute)
 
-private val dateDisplayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+private val dateDisplayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+    timeZone = TimeZone.getTimeZone("UTC")
+}
 
 private fun formatDateMillis(millis: Long): String =
     dateDisplayFormat.format(millis)
@@ -188,6 +213,14 @@ private fun SearchCard(
     selectedUtilities: Set<String>,
     isSearching: Boolean = false,
     searchError: String? = null,
+    closeToMe: Boolean,
+    isLocating: Boolean,
+    locationError: Boolean,
+    userLocation: GeoLocation?,
+    onRequestCurrentLocation: () -> Unit,
+    onLocationPermissionDenied: () -> Unit,
+    onCloseToMeDisabled: () -> Unit,
+    onClearLocationError: () -> Unit,
     onFilterClick: () -> Unit,
     onSearchClick: (HomeSearchParams) -> Unit,
 ) {
@@ -196,10 +229,6 @@ private fun SearchCard(
     val initialDateMillis = remember { System.currentTimeMillis() }
     var selectedDateMillis by remember { mutableStateOf(initialDateMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var closeToMe by remember { mutableStateOf(false) }
-    var userLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-    var locationError by remember { mutableStateOf(false) }
-    var isLocating by remember { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -207,19 +236,9 @@ private fun SearchCard(
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) {
-            isLocating = true
-            fetchCurrentLocation(context) { loc ->
-                isLocating = false
-                if (loc != null) {
-                    userLocation = loc
-                } else {
-                    closeToMe = false
-                    locationError = true
-                }
-            }
+            onRequestCurrentLocation()
         } else {
-            closeToMe = false
-            locationError = true
+            onLocationPermissionDenied()
         }
     }
 
@@ -430,25 +449,14 @@ private fun SearchCard(
             Checkbox(
                 checked = closeToMe,
                 onCheckedChange = { checked ->
-                    locationError = false
+                    onClearLocationError()
                     if (checked) {
                         val alreadyGranted =
                             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                                 ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                         if (alreadyGranted) {
-                            closeToMe = true
-                            isLocating = true
-                            fetchCurrentLocation(context) { loc ->
-                                isLocating = false
-                                if (loc != null) {
-                                    userLocation = loc
-                                } else {
-                                    closeToMe = false
-                                    locationError = true
-                                }
-                            }
+                            onRequestCurrentLocation()
                         } else {
-                            closeToMe = true
                             locationPermissionLauncher.launch(
                                 arrayOf(
                                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -457,9 +465,7 @@ private fun SearchCard(
                             )
                         }
                     } else {
-                        closeToMe = false
-                        userLocation = null
-                        isLocating = false
+                        onCloseToMeDisabled()
                     }
                 }
             )
@@ -498,7 +504,7 @@ private fun SearchCard(
             onClick = {
                 if (!isSearching) {
                     if (!sinceSet || !untilSet) {
-                        missingTimeError = "Debes seleccionar las dos horas (Since y Until) para buscar."
+                        missingTimeError = "You must select both times (Since and Until) to search."
                         return@CustomYellowButton
                     }
                     missingTimeError = null
@@ -508,9 +514,9 @@ private fun SearchCard(
                         since = if (sinceSet) formatTime(sinceHour, sinceMinute) else null,
                         until = if (untilSet) formatTime(untilHour, untilMinute) else null,
                         closeToMe = closeToMe,
-                        utilities = selectedUtilities.mapNotNull { UTILITIES_OPTIONS[it] },
-                        userLatitude = if (closeToMe) userLocation?.first else null,
-                        userLongitude = if (closeToMe) userLocation?.second else null
+                        utilities = selectedUtilities.mapNotNull { RoomUtility.codeFromDisplayName(it) },
+                        userLatitude = if (closeToMe) userLocation?.latitude else null,
+                        userLongitude = if (closeToMe) userLocation?.longitude else null
                     )
                     onSearchClick(params)
                 }
@@ -648,7 +654,7 @@ private fun UtilitiesFilterSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                UTILITIES_OPTIONS.keys.forEach { option ->
+                RoomUtility.displayNames.forEach { option ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -676,20 +682,3 @@ private fun UtilitiesFilterSheet(
     }
 }
 
-private fun fetchCurrentLocation(
-    context: android.content.Context,
-    onResult: (Pair<Double, Double>?) -> Unit
-) {
-    try {
-        val client = LocationServices.getFusedLocationProviderClient(context)
-        client.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-            .addOnSuccessListener { location ->
-                onResult(location?.let { Pair(it.latitude, it.longitude) })
-            }
-            .addOnFailureListener {
-                onResult(null)
-            }
-    } catch (_: SecurityException) {
-        onResult(null)
-    }
-}

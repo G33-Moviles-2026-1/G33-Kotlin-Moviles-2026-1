@@ -201,7 +201,7 @@ private fun LoadMakeBookingContent(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .height(40.dp)
                     .padding(horizontal = 12.dp)
@@ -226,7 +226,7 @@ private fun LoadMakeBookingContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .height(40.dp)
                         .padding(horizontal = 12.dp)

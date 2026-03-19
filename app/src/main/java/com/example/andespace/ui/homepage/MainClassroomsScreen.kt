@@ -1,8 +1,12 @@
 package com.example.andespace.ui.homepage
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.example.andespace.data.location.FusedLocationSensor
 import com.example.andespace.ui.bookings.BookingsUIState
 import com.example.andespace.ui.bookings.BookingsViewModel
 import com.example.andespace.ui.detailRoom.DetailRoomUiState
@@ -23,10 +27,17 @@ fun MainClassroomsScreen(
     val resultsUiState by resultsViewModel.uiState.collectAsState()
     val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
     val bookingsUiState by bookingsViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val locationSensor = remember(context) { FusedLocationSensor(context.applicationContext) }
+
+    BackHandler(enabled = homepageState.contentScreen != ContentScreen.HOME) {
+        homepageViewModel.onBackPressedInSearchFlow()
+    }
 
     LoadClassroomsScreen(
         contentScreen = homepageState.contentScreen,
         isUserLoggedIn = isUserLoggedIn,
+        homepageUiState = homepageState,
         resultsUiState = resultsUiState,
         detailRoomUiState = detailRoomUiState,
         bookingsUiState = bookingsUiState,
@@ -49,6 +60,10 @@ fun MainClassroomsScreen(
         onPrevPage = { resultsViewModel.onPreviousPage(isUserLoggedIn = isUserLoggedIn) },
         onNextPage = { resultsViewModel.onNextPage(isUserLoggedIn = isUserLoggedIn) },
         onRoomDetailDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) },
+        onRequestCurrentLocation = { homepageViewModel.requestCurrentLocation(locationSensor) },
+        onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
+        onCloseToMeDisabled = { homepageViewModel.onCloseToMeDisabled() },
+        onClearLocationError = { homepageViewModel.clearLocationError() },
         onShowMakeBooking = { homepageViewModel.onShowMakeBooking() },
         onCreateBooking = { request -> bookingsViewModel.onCreateBooking(request) },
         onBookingCreatedConsumed = { bookingsViewModel.consumeBookingCreatedSuccess() },
