@@ -334,13 +334,14 @@ private fun SmallIconButton(icon: ImageVector) {
 private fun UtilityChip(text: String) {
     Box(
         modifier = Modifier
-            .background(LightYellow, RoundedCornerShape(14.dp))
-            .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
+            .border(1.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(14.dp))
             .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

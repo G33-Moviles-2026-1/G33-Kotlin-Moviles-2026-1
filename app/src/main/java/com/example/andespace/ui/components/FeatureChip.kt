@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun FeatureChip(
     text: String,
-    background: Color = Color.White,
-    borderColor: Color = Color(0xFF444444)
+    background: Color = MaterialTheme.colorScheme.surfaceVariant,
+    borderColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Box(
         modifier = Modifier
@@ -29,7 +29,7 @@ fun FeatureChip(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

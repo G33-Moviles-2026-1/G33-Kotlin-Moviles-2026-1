@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -102,12 +101,12 @@ fun AndeSpaceTopBar(
                                     .size(16.dp)
                                     .offset(y = 8.dp)
                                     .rotate(45f)
-                                    .background(Color.White)
+                                    .background(MaterialTheme.colorScheme.background)
                             )
 
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.background,
                                 shadowElevation = 8.dp,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp)
                             ) {

@@ -276,7 +276,13 @@ fun AndeSpaceApp(
                     }
                 }
 
-                AppDestinations.SCHEDULE -> MainScheduleScreen(scheduleViewModel = scheduleViewModel)
+                AppDestinations.SCHEDULE ->
+                {   if(uiState.isLoggedIn){
+                    MainScheduleScreen(scheduleViewModel = scheduleViewModel)}
+                    else{
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    }
+                }
 
                 else -> Greeting(
                     name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label

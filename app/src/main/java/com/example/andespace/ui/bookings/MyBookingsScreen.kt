@@ -43,9 +43,9 @@ fun MyBookingsScreen(
     bookings: List<BookingDto>,
     isLoading: Boolean,
     errorMessage: String?,
+    modifier: Modifier = Modifier,
     onDeleteBooking: (BookingDto) -> Unit = {},
-    onEditBooking: (BookingDto) -> Unit = {},
-    modifier: Modifier = Modifier
+    onEditBooking: (BookingDto) -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -61,7 +61,7 @@ fun MyBookingsScreen(
 
         if (isLoading && bookings.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.Black)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return
         }
@@ -81,7 +81,7 @@ fun MyBookingsScreen(
                 Text(
                     text = "You don't have any bookings yet.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color(0xFF888888)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             return
@@ -122,10 +122,10 @@ private fun BookingCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, Color.Black, RoundedCornerShape(18.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(18.dp)),
         shadowElevation = 10.dp,
         shape = RoundedCornerShape(18.dp),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -143,7 +143,7 @@ private fun BookingCard(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = "Edit booking",
                             modifier = Modifier.size(20.dp),
-                            tint = Color.Black
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Spacer(modifier = Modifier.width(2.dp))
@@ -152,7 +152,7 @@ private fun BookingCard(
                             imageVector = Icons.Outlined.Delete,
                             contentDescription = "Delete booking",
                             modifier = Modifier.size(20.dp),
-                            tint = Color.Black
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -161,8 +161,7 @@ private fun BookingCard(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "Date: ${booking.date}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFF555555)
+                style = MaterialTheme.typography.bodyLarge
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -171,7 +170,7 @@ private fun BookingCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(headerColor, RoundedCornerShape(12.dp))
-                    .border(1.dp, Color.Black.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -193,7 +192,7 @@ private fun BookingCard(
                         text = "From $startDisplay to $endDisplay",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSecondary
                     )
                 }
             }
@@ -215,14 +214,14 @@ private fun PurposeChip(
     Box(
         modifier = modifier
             .background(LightYellow, RoundedCornerShape(20.dp))
-            .border(1.dp, Color(0xFF8F8A30), RoundedCornerShape(20.dp))
+            .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(20.dp))
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSecondary
         )
     }
 }

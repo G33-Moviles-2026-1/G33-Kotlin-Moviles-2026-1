@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -33,8 +33,8 @@ fun CustomTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    isPassword: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPassword: Boolean = false
 ) {
     val cornerRadius = 10.dp
     val fieldHeight = 60.dp
@@ -46,7 +46,7 @@ fun CustomTextField(
         singleLine = true,
         textStyle = TextStyle(
             textAlign = TextAlign.Center,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 16.sp
         ),
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
@@ -60,7 +60,7 @@ fun CustomTextField(
                 clip = false
             )
             .background(
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(cornerRadius)
             )
             .onFocusChanged { focusState ->
@@ -76,7 +76,7 @@ fun CustomTextField(
                 if (value.isEmpty() && !isFocused) {
                     Text(
                         text = placeholder,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 16.sp,
                         textAlign = TextAlign.Center
                     )

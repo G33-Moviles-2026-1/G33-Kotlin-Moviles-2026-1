@@ -196,8 +196,8 @@ fun EditBookingScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-                .background(Color.White)
+                .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .height(40.dp)
                 .padding(horizontal = 12.dp)
                 .clickable(onClick = { showDatePicker = true }),
@@ -264,15 +264,15 @@ fun EditBookingScreen(
                     selected = purpose == value,
                     onClick = { purpose = value },
                     colors = RadioButtonDefaults.colors(
-                        selectedColor = Color.Black,
-                        unselectedColor = Color.Black
+                        selectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = label,
                     fontSize = 15.sp,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -290,15 +290,15 @@ fun EditBookingScreen(
                 enabled = !isSaving,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFE57373),
-                    contentColor = Color.White
+                    contentColor = Color.Black
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
-                    .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp))
             ) {
-                Text("Cancel", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Cancel", color = Color.Black , fontWeight = FontWeight.Bold)
             }
 
             Button(
@@ -330,16 +330,16 @@ fun EditBookingScreen(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
-                    .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp))
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Save", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Save", color = Color.Black , fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -357,7 +357,7 @@ private fun TimePickerPill(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .height(40.dp)
             .padding(horizontal = 12.dp)
             .clickable(onClick = onClick),

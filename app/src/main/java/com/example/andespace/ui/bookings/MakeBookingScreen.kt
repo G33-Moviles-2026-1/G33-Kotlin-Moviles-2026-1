@@ -167,7 +167,7 @@ fun MakeBookingScreen(
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .height(40.dp)
                     .padding(horizontal = 12.dp)
                     .clickable { showDatePicker = true },
@@ -177,7 +177,7 @@ fun MakeBookingScreen(
                 Text(
                     text = selectedDate,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 AssetIcon(
                     assetPath = "icons/schedule.svg",
@@ -192,7 +192,7 @@ fun MakeBookingScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
                         .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-                        .background(Color.White)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .height(40.dp)
                         .padding(horizontal = 12.dp)
                         .clickable(enabled = availableWindows.isNotEmpty() && !isLoadingSlots) {
@@ -209,7 +209,7 @@ fun MakeBookingScreen(
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (availableWindows.isEmpty() && !isLoadingSlots)
-                            Color(0xFF999999)
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         else
                             MaterialTheme.colorScheme.onBackground
                     )
@@ -266,15 +266,15 @@ fun MakeBookingScreen(
                     selected = purpose == value,
                     onClick = { purpose = value },
                     colors = RadioButtonDefaults.colors(
-                        selectedColor = Color.Black,
-                        unselectedColor = Color.Black
+                        selectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = label,
                     fontSize = 15.sp,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

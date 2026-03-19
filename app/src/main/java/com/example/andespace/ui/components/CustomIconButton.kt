@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,8 +43,8 @@ fun CustomIconButton(
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.White,
-            contentColor = Color.Black
+            containerColor = MaterialTheme.colorScheme.background ,
+            contentColor = MaterialTheme.colorScheme.onBackground
         )
     ) {
         Box(
@@ -57,14 +58,16 @@ fun CustomIconButton(
                     .align(
                         if (iconPosition == IconPosition.START) Alignment.CenterStart
                         else Alignment.CenterEnd
-                    )
+                    ),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
             )
 
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.align(textPosition)
+                modifier = Modifier.align(textPosition),
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
     }
