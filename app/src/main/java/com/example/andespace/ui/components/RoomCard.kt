@@ -34,7 +34,7 @@ import com.example.andespace.data.model.dto.RoomDto
 fun RoomCard(
     room: RoomDto,
     cardIndex: Int,
-    isUserLoggedIn: Boolean,
+    showScheduleLabel: Boolean,
     onClick: () -> Unit = {}
 ) {
     val availability = room.availabilityStatus ?: "available_after"
@@ -101,7 +101,7 @@ fun RoomCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if (isUserLoggedIn) {
+            if (showScheduleLabel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Row(

@@ -53,6 +53,7 @@ fun LoadClassroomsScreen(
                 contentScreen = contentScreen,
                 isSearching = resultsUiState.isSearching,
                 isUserLoggedIn = isUserLoggedIn,
+                hasUploadedSchedule = resultsUiState.hasUploadedSchedule,
                 searchError = resultsUiState.errorMessage,
                 rooms = resultsUiState.rooms,
                 currentPage = resultsUiState.currentPage,

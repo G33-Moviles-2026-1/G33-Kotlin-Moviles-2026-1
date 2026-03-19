@@ -25,6 +25,7 @@ fun ResultsScreen(
     rooms: List<RoomDto>,
     isSearching: Boolean,
     isUserLoggedIn: Boolean,
+    hasUploadedSchedule: Boolean,
     errorMessage: String?,
     currentPage: Int,
     totalPages: Int,
@@ -70,7 +71,7 @@ fun ResultsScreen(
                             RoomCard(
                                 room = room,
                                 cardIndex = index,
-                                isUserLoggedIn = isUserLoggedIn,
+                                showScheduleLabel = isUserLoggedIn && hasUploadedSchedule,
                                 onClick = { onRoomClick(room) }
                             )
                         }

@@ -87,6 +87,7 @@ fun LoadHomePageScreen(
     contentScreen: ContentScreen,
     isSearching: Boolean,
     isUserLoggedIn: Boolean,
+    hasUploadedSchedule: Boolean,
     searchError: String?,
     rooms: List<RoomDto>,
     currentPage: Int,
@@ -111,6 +112,7 @@ fun LoadHomePageScreen(
             rooms = rooms,
             isSearching = isSearching,
             isUserLoggedIn = isUserLoggedIn,
+            hasUploadedSchedule = hasUploadedSchedule,
             errorMessage = searchError,
             currentPage = currentPage,
             totalPages = totalPages,
@@ -227,6 +229,7 @@ private fun SearchCard(
     var untilMinute by remember { mutableStateOf(0) }
     var sinceSet by remember { mutableStateOf(false) }
     var untilSet by remember { mutableStateOf(false) }
+    var missingTimeError by remember { mutableStateOf<String?>(null) }
     var showSincePicker by remember { mutableStateOf(false) }
     var showUntilPicker by remember { mutableStateOf(false) }
 
@@ -239,6 +242,7 @@ private fun SearchCard(
                 sinceHour = h
                 sinceMinute = m
                 sinceSet = true
+                missingTimeError = null
                 showSincePicker = false
             }
         )
@@ -252,6 +256,7 @@ private fun SearchCard(
                 untilHour = h
                 untilMinute = m
                 untilSet = true
+                missingTimeError = null
                 showUntilPicker = false
             }
         )
@@ -479,9 +484,10 @@ private fun SearchCard(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (searchError != null) {
+        val displayedError = missingTimeError ?: searchError
+        if (displayedError != null) {
             Text(
-                text = searchError,
+                text = displayedError,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )
@@ -491,6 +497,11 @@ private fun SearchCard(
             text = if (isSearching) "Searching..." else "Search",
             onClick = {
                 if (!isSearching) {
+                    if (!sinceSet || !untilSet) {
+                        missingTimeError = "Debes seleccionar las dos horas (Since y Until) para buscar."
+                        return@CustomYellowButton
+                    }
+                    missingTimeError = null
                     val params = HomeSearchParams(
                         classroom = classroomInput,
                         date = formatDateMillis(selectedDateMillis),
