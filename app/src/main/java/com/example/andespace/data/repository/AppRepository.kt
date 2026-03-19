@@ -119,8 +119,8 @@ class AppRepository {
                 val request = RoomSearchRequest(
                     roomPrefix = params.classroom.ifBlank { null },
                     date = params.date,
-                    since = "${params.since ?: "08:00"}:00",
-                    until = "${params.until ?: "18:00"}:00",
+                    since = "${params.since ?: "00:00"}:00",
+                    until = "${params.until ?: "23:59"}:00",
                     utilities = params.utilities,
                     nearMe = params.closeToMe,
                     userLocation = if (params.closeToMe && params.userLatitude != null && params.userLongitude != null) {

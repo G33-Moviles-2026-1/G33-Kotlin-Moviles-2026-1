@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +27,7 @@ fun ResultsScreen(
     rooms: List<RoomDto>,
     isSearching: Boolean,
     isUserLoggedIn: Boolean,
+    hasUploadedSchedule: Boolean,
     errorMessage: String?,
     currentPage: Int,
     totalPages: Int,
@@ -33,6 +36,12 @@ fun ResultsScreen(
     onNextPage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(currentPage) {
+        listState.scrollToItem(0)
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -64,13 +73,14 @@ fun ResultsScreen(
                             .fillMaxWidth()
                             .weight(1f)
                             .padding(horizontal = 16.dp),
+                        state = listState,
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         itemsIndexed(rooms) { index, room ->
                             RoomCard(
                                 room = room,
                                 cardIndex = index,
-                                isUserLoggedIn = isUserLoggedIn,
+                                showScheduleLabel = isUserLoggedIn && hasUploadedSchedule,
                                 onClick = { onRoomClick(room) }
                             )
                         }

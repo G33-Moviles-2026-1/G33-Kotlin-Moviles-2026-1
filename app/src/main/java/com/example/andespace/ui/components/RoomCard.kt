@@ -28,13 +28,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.andespace.data.model.RoomUtility
 import com.example.andespace.data.model.dto.RoomDto
 
 @Composable
 fun RoomCard(
     room: RoomDto,
     cardIndex: Int,
-    isUserLoggedIn: Boolean,
+    showScheduleLabel: Boolean,
     onClick: () -> Unit = {}
 ) {
     val availability = room.availabilityStatus ?: "available_after"
@@ -50,7 +51,7 @@ fun RoomCard(
     } else {
         if (isFreeNow) "No schedule match found" else "No availability window"
     }
-    val extraUtilities = room.utilities
+    val extraUtilities = room.utilities.map { RoomUtility.displayNameFromCode(it) }
     val roomId = room.id
     val roomName = room.name ?: "Unnamed"
     val buildingText = room.building ?: "Unnamed"
@@ -101,7 +102,7 @@ fun RoomCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if (isUserLoggedIn) {
+            if (showScheduleLabel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Row(

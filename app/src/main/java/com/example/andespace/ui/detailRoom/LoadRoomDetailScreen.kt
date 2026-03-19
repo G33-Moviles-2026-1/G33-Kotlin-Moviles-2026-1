@@ -41,7 +41,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.andespace.data.model.dto.RoomDto
-import com.example.andespace.ui.theme.LightYellow
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,7 +48,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoomDetailScreen(
+fun LoadRoomDetailScreen(
     room: RoomDto?,
     selectedDate: String?,
     isLoadingAvailability: Boolean,
