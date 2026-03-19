@@ -25,15 +25,16 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Locale
-import java.util.UUID
 
 class AppRepository {
     private val apiService: ApiService = NetworkModule.apiService
-    private val sessionId = UUID.randomUUID().toString()
+    private val sessionId = AnalyticsSessionManager.currentSessionId
 
     companion object {
         private const val TAG = "AppRepository"
     }
+
+
 
     suspend fun register(email: String, password: String, semester: String): Result<Boolean> {
         return try {
@@ -198,6 +199,20 @@ class AppRepository {
             } catch (_: Exception) {
                 false
             }
+        }
+    }
+
+    suspend fun trackScreensTime(
+        screenName: String,
+    ) {
+        try {
+            val payload = AnalyticsEventRequest(
+                sessionId = sessionId,
+                eventName = "open_screen_timestamp",
+                screen = screenName
+            )
+            apiService.trackAnalyticsEvent(payload)
+        } catch (e: Exception) {
         }
     }
 
