@@ -81,6 +81,17 @@ class ResultsViewModel(
                     utilitiesUsed = params.utilities.isNotEmpty(),
                     closeToMeUsed = params.closeToMe
                 )
+
+                val hasGapAndUtilities =
+                    params.since != null && params.until != null && params.utilities.isNotEmpty()
+                if (hasGapAndUtilities) {
+                    repository.trackRoomGapSearch(
+                        dateValue = params.date,
+                        gapStart = params.since,
+                        gapEnd = params.until,
+                        utilities = params.utilities
+                    )
+                }
             }
 
             repository.searchRooms(params, limit = pageSize, offset = offset)
