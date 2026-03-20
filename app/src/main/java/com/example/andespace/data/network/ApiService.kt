@@ -4,6 +4,7 @@ import com.example.andespace.data.model.dto.AnalyticsEventRequest
 import com.example.andespace.data.model.dto.BookingDto
 import com.example.andespace.data.model.dto.CreateBookingRequest
 import com.example.andespace.data.model.dto.MyBookingsResponse
+import com.example.andespace.data.model.dto.RoomGapSearchAnalyticsRequest
 import com.example.andespace.data.model.dto.RoomAvailabilityResponse
 import com.example.andespace.data.model.dto.RoomSearchRequest
 import com.example.andespace.data.model.dto.RoomSearchResponse
@@ -51,6 +52,9 @@ interface ApiService {
 
     @POST("analytics/events")
     suspend fun trackAnalyticsEvent(@Body body: AnalyticsEventRequest): Response<Unit>
+
+    @POST("analytics/room-gap-search")
+    suspend fun trackRoomGapSearch(@Body body: RoomGapSearchAnalyticsRequest): Response<Unit>
 
     @GET("rooms/{roomId}/availability")
     suspend fun getRoomAvailability(

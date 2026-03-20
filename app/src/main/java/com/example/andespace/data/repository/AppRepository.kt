@@ -7,6 +7,7 @@ import com.example.andespace.data.model.HomeSearchParams
 import com.example.andespace.data.model.dto.AnalyticsEventRequest
 import com.example.andespace.data.model.dto.BookingDto
 import com.example.andespace.data.model.dto.CreateBookingRequest
+import com.example.andespace.data.model.dto.RoomGapSearchAnalyticsRequest
 import com.example.andespace.data.model.dto.RoomSearchRequest
 import com.example.andespace.data.model.dto.UserLocation
 import com.example.andespace.data.model.dto.RoomSearchResponse
@@ -202,6 +203,32 @@ class AppRepository {
         }
     }
 
+    suspend fun trackRoomGapSearch(
+        dateValue: String,
+        gapStart: String,
+        gapEnd: String,
+        utilities: List<String>
+    ): Boolean {
+        if (utilities.isEmpty()) return false
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.trackRoomGapSearch(
+                    RoomGapSearchAnalyticsRequest(
+                        sessionId = sessionId,
+                        dateValue = dateValue,
+                        gapStart = gapStart.toHhMmSs(),
+                        gapEnd = gapEnd.toHhMmSs(),
+                        utilities = utilities
+                    )
+                )
+                response.isSuccessful
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
     suspend fun trackScreensTime(
         screenName: String,
     ) {
@@ -268,6 +295,11 @@ class AppRepository {
             if (parsedDate != null) target.format(parsedDate) else this
         }.getOrDefault(this)
 
+    }
+
+    private fun String.toHhMmSs(): String {
+        val trimmed = trim()
+        return if (trimmed.count { it == ':' } == 1) "$trimmed:00" else trimmed
     }
 
     suspend fun getMyBookings(): Result<List<BookingDto>> = withContext(Dispatchers.IO) {

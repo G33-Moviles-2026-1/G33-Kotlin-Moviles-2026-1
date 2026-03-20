@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.andespace.data.model.RoomUtility
 import com.example.andespace.data.model.dto.RoomDto
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
@@ -87,7 +88,9 @@ fun LoadRoomDetailScreen(
             )
         }
 
-    val utilities = room.utilities.ifEmpty {
+    val utilities = room.utilities
+        .map { RoomUtility.displayNameFromCode(it) }
+        .ifEmpty {
         listOf("Blackout", "Power Outlet", "Mobile Whiteboards")
     }
 
