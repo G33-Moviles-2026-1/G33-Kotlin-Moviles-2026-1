@@ -56,8 +56,12 @@ class MainViewModel(
         _uiState.update { it.copy(isLoggedIn = true) }
     }
 
-    fun setDarkMode(isDark: Boolean) {
-        _uiState.update { it.copy(isDarkMode = isDark) }
+    fun setThemeMode(mode: ThemeMode) {
+        _uiState.update { it.copy(themeMode = mode) }
+    }
+
+    fun setSensorDarkMode(isDark: Boolean) {
+        _uiState.update { it.copy(sensorDarkMode = isDark) }
     }
 
     private fun logScreenChange(screenName: String) {

@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +38,7 @@ import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.ui.MainViewModel
+import com.example.andespace.ui.ThemeMode
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
 import com.example.andespace.ui.bookings.MainBookingsScreen
@@ -60,7 +62,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             val mainViewModel: MainViewModel = viewModel()
             val mainUiState by mainViewModel.uiState.collectAsState()
-            AndeSpaceTheme(darkTheme = mainUiState.isDarkMode) {
+            val isSystemDark = isSystemInDarkTheme()
+            val isDarkMode = when (mainUiState.themeMode) {
+                ThemeMode.AUTOMATIC -> mainUiState.sensorDarkMode
+                ThemeMode.SYSTEM    -> isSystemDark
+                ThemeMode.LIGHT     -> false
+                ThemeMode.DARK      -> true
+            }
+            AndeSpaceTheme(darkTheme = isDarkMode) {
                 AndeSpaceApp(viewModel = mainViewModel)
             }
         }
@@ -82,10 +91,10 @@ fun AndeSpaceApp(
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent) {
                 val lux = event.values[0]
-                val isDark = viewModel.uiState.value.isDarkMode
+                val sensorDark = viewModel.uiState.value.sensorDarkMode
                 when {
-                    lux < 25f && !isDark -> viewModel.setDarkMode(true)
-                    lux > 35f && isDark -> viewModel.setDarkMode(false)
+                    lux < 25f && !sensorDark -> viewModel.setSensorDarkMode(true)
+                    lux > 35f && sensorDark  -> viewModel.setSensorDarkMode(false)
                 }
             }
 
@@ -103,6 +112,8 @@ fun AndeSpaceApp(
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
                 isMenuExpanded = uiState.isUserMenuExpanded,
+                themeMode = uiState.themeMode,
+                onThemeModeChange = { viewModel.setThemeMode(it) },
                 onAccountClick = { viewModel.expandUserMenu() },
                 onDismissMenu = { viewModel.closeUserMenu() },
                 onLoginClick = {
@@ -111,7 +122,6 @@ fun AndeSpaceApp(
                 onRegisterClick = {
                     viewModel.onDestinationChanged(AppDestinations.REGISTER)
                 },
-                onHistoryClick = { viewModel.onDestinationChanged(AppDestinations.HISTORY) },
                 onLogOut = {
                     viewModel.onLogOut()
                     scheduleViewModel.clearScheduleData()
@@ -137,7 +147,6 @@ fun AndeSpaceApp(
                 .fillMaxSize()
         ) {
 
-            // MAIN NAVIGATION SWITCH
             when (uiState.currentDestination) {
 
                 AppDestinations.CLASSROOMS -> {
@@ -147,6 +156,7 @@ fun AndeSpaceApp(
                         detailRoomViewModel = detailRoomViewModel,
                         bookingsViewModel = bookingsViewModel,
                         isUserLoggedIn = uiState.isLoggedIn,
+                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) },
                         onBookingCreatedNavigate = {
                             viewModel.onDestinationChanged(AppDestinations.BOOKINGS)
                         }
@@ -182,10 +192,14 @@ fun AndeSpaceApp(
                 AppDestinations.FAVORITES -> CookieScreen()
 
                 AppDestinations.BOOKINGS -> {
-                    MainBookingsScreen(
-                        bookingsViewModel = bookingsViewModel,
-                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
-                    )
+                    if (uiState.isLoggedIn) {
+                        MainBookingsScreen(
+                            bookingsViewModel = bookingsViewModel,
+                            onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
+                        )
+                    } else {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    }
                 }
 
                 AppDestinations.SCHEDULE -> {
@@ -197,7 +211,6 @@ fun AndeSpaceApp(
                 }
             }
 
-            // OVERLAY MENU
             if (uiState.isUserMenuExpanded) {
                 Box(
                     modifier = Modifier

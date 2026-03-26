@@ -349,7 +349,7 @@ private fun SearchCard(
             ) {
                 BasicTextField(
                     value = classroomInput,
-                    onValueChange = { classroomInput = it },
+                    onValueChange = { if (it.length <= 15) classroomInput = it },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(
