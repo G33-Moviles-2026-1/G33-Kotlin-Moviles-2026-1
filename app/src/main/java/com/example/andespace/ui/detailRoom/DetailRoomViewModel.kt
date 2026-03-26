@@ -70,12 +70,19 @@ class DetailRoomViewModel(
                         _uiState.update {
                             it.copy(
                                 isLoadingAvailability = false,
-                                availabilityError = error.message ?: "Could not load availability"
+                                availabilityError = friendlyAvailabilityError(error.message)
                             )
                         }
                     }
                 )
         }
+    }
+
+    private fun friendlyAvailabilityError(raw: String?): String = when {
+        raw == null -> "Could not load the room's availability. Please try again."
+        raw.startsWith("No internet connection") -> "No internet connection. Please check your network and try again."
+        raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
+        else -> "Could not load the room's availability. Please try again."
     }
 
     private fun currentDateApiValue(): String {

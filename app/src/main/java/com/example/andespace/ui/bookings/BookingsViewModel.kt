@@ -141,8 +141,9 @@ class BookingsViewModel(
 
     private fun friendlyError(raw: String?): String = when {
         raw == null -> "Something went wrong. Please try again."
-        raw.startsWith("Network error") -> "Could not connect. Check your internet connection."
+        raw.startsWith("No internet connection") -> "No internet connection. Please check your network and try again."
+        raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
         raw.matches(Regex("Error \\d+.*")) -> "Something went wrong. Please try again."
-        else -> raw
+        else -> "Something went wrong. Please try again."
     }
 }
