@@ -21,6 +21,7 @@ fun MainClassroomsScreen(
     detailRoomViewModel: DetailRoomViewModel,
     bookingsViewModel: BookingsViewModel,
     isUserLoggedIn: Boolean,
+    onRequireLogin: () -> Unit,
     onBookingCreatedNavigate: () -> Unit
 ) {
     val homepageState by homepageViewModel.uiState.collectAsState()
@@ -64,7 +65,7 @@ fun MainClassroomsScreen(
         onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
         onCloseToMeDisabled = { homepageViewModel.onCloseToMeDisabled() },
         onClearLocationError = { homepageViewModel.clearLocationError() },
-        onShowMakeBooking = { homepageViewModel.onShowMakeBooking() },
+        onShowMakeBooking = { if (isUserLoggedIn) homepageViewModel.onShowMakeBooking() else onRequireLogin() },
         onCreateBooking = { request -> bookingsViewModel.onCreateBooking(request) },
         onBookingCreatedConsumed = { bookingsViewModel.consumeBookingCreatedSuccess() },
         onBookingCreatedNavigate = {

@@ -156,6 +156,7 @@ fun AndeSpaceApp(
                         detailRoomViewModel = detailRoomViewModel,
                         bookingsViewModel = bookingsViewModel,
                         isUserLoggedIn = uiState.isLoggedIn,
+                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) },
                         onBookingCreatedNavigate = {
                             viewModel.onDestinationChanged(AppDestinations.BOOKINGS)
                         }
@@ -191,10 +192,14 @@ fun AndeSpaceApp(
                 AppDestinations.FAVORITES -> CookieScreen()
 
                 AppDestinations.BOOKINGS -> {
-                    MainBookingsScreen(
-                        bookingsViewModel = bookingsViewModel,
-                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
-                    )
+                    if (uiState.isLoggedIn) {
+                        MainBookingsScreen(
+                            bookingsViewModel = bookingsViewModel,
+                            onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
+                        )
+                    } else {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    }
                 }
 
                 AppDestinations.SCHEDULE -> {
