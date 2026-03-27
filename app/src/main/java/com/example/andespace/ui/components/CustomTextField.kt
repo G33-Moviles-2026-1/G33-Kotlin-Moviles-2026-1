@@ -34,7 +34,8 @@ fun CustomTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
+    maxLength: Int = 30
 ) {
     val cornerRadius = 10.dp
     val fieldHeight = 60.dp
@@ -42,7 +43,10 @@ fun CustomTextField(
 
     BasicTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { newText ->
+            if(newText.length <= maxLength){
+                onValueChange(newText)
+            }},
         singleLine = true,
         textStyle = TextStyle(
             textAlign = TextAlign.Center,

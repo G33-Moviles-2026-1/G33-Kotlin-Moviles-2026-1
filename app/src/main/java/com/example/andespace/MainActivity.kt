@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -45,7 +44,6 @@ import com.example.andespace.ui.bookings.MainBookingsScreen
 import com.example.andespace.ui.bookings.BookingsViewModel
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
-import com.example.andespace.ui.cookie.CookieScreen
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.homepage.MainClassroomsScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
@@ -189,7 +187,7 @@ fun AndeSpaceApp(
                     }
                 )
 
-                AppDestinations.FAVORITES -> CookieScreen()
+                AppDestinations.FAVORITES -> Greeting("Work in progress ...")
 
                 AppDestinations.BOOKINGS -> {
                     if (uiState.isLoggedIn) {
@@ -259,7 +257,7 @@ fun AssetIcon(
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
-            text = "Section: $name",
+            text = name,
             style = MaterialTheme.typography.headlineMedium
         )
     }
