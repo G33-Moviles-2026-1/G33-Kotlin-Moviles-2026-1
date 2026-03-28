@@ -17,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.RoomCard
 import com.example.andespace.ui.components.PaginationFooter
 

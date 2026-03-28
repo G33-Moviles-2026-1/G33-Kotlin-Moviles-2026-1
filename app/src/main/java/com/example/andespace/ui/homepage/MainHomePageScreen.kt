@@ -3,8 +3,8 @@ package com.example.andespace.ui.homepage
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.andespace.data.location.GeoLocation
-import com.example.andespace.data.model.HomeSearchParams
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.model.dto.RoomDto
 
 @Composable
 fun MainHomePageScreen(

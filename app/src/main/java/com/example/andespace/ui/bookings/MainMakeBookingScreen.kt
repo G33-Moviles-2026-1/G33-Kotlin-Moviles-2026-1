@@ -1,7 +1,7 @@
 package com.example.andespace.ui.bookings
 
 import androidx.compose.runtime.Composable
-import com.example.andespace.data.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.ui.detailRoom.DetailRoomUiState
 
 @Composable

@@ -1,6 +1,6 @@
 package com.example.andespace.ui.detailRoom
 
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomDto
 
 data class DetailRoomUiState(
     val room: RoomDto? = null,

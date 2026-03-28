@@ -51,8 +51,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.andespace.AssetIcon
-import com.example.andespace.data.model.dto.CreateBookingRequest
-import com.example.andespace.data.model.dto.RoomTimeWindowDto
+import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.RoomTimeWindowDto
 import com.example.andespace.ui.detailRoom.DetailRoomUiState
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat

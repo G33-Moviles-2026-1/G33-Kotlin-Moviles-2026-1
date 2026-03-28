@@ -2,8 +2,8 @@ package com.example.andespace.ui.bookings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.model.dto.BookingDto
-import com.example.andespace.data.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.BookingDto
+import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

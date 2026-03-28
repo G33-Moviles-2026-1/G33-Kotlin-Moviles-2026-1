@@ -64,8 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.andespace.AssetIcon
-import com.example.andespace.data.model.dto.BookingDto
-import com.example.andespace.data.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.BookingDto
+import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.ui.theme.LightYellow
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat

@@ -2,7 +2,7 @@ package com.example.andespace.ui.detailRoom
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

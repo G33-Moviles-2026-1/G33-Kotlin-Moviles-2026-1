@@ -1,15 +1,15 @@
 package com.example.andespace.data.network
 
-import com.example.andespace.data.model.dto.AnalyticsEventRequest
-import com.example.andespace.data.model.dto.BookingDto
-import com.example.andespace.data.model.dto.CreateBookingRequest
-import com.example.andespace.data.model.dto.MyBookingsResponse
-import com.example.andespace.data.model.dto.RoomGapSearchAnalyticsRequest
-import com.example.andespace.data.model.dto.RoomAvailabilityResponse
-import com.example.andespace.data.model.dto.RoomSearchRequest
-import com.example.andespace.data.model.dto.RoomSearchResponse
-import com.example.andespace.data.model.dto.UserFreeSlotsResponse
-import com.example.andespace.data.model.schedule.WeeklyScheduleOut
+import com.example.andespace.model.dto.AnalyticsEventRequest
+import com.example.andespace.model.dto.BookingDto
+import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.MyBookingsResponse
+import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
+import com.example.andespace.model.dto.RoomAvailabilityResponse
+import com.example.andespace.model.dto.RoomSearchRequest
+import com.example.andespace.model.dto.RoomSearchResponse
+import com.example.andespace.model.dto.UserFreeSlotsResponse
+import com.example.andespace.model.schedule.WeeklyScheduleOut
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body

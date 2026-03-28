@@ -28,8 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.andespace.data.model.RoomUtility
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.RoomUtility
+import com.example.andespace.model.dto.RoomDto
 
 @Composable
 fun RoomCard(

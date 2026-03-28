@@ -1,4 +1,4 @@
-package com.example.andespace.data.model
+package com.example.andespace.model
 
 import java.util.Locale
 

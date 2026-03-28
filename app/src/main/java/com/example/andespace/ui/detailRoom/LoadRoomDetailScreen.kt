@@ -40,8 +40,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.andespace.data.model.RoomUtility
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.RoomUtility
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -154,10 +154,10 @@ fun LoadRoomDetailScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                /*Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SmallIconButton(icon = Icons.Default.ErrorOutline)
                     SmallIconButton(icon = Icons.Default.FavoriteBorder)
-                }
+                }*/
             }
         }
 

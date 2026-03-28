@@ -1,9 +1,9 @@
 package com.example.andespace.ui.homepage
 
 import androidx.compose.runtime.Composable
-import com.example.andespace.data.model.HomeSearchParams
-import com.example.andespace.data.model.dto.CreateBookingRequest
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.bookings.BookingsUIState
 import com.example.andespace.ui.bookings.MainMakeBookingScreen
 import com.example.andespace.ui.detailRoom.DetailRoomUiState

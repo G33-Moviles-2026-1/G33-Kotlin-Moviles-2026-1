@@ -63,9 +63,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import com.example.andespace.AssetIcon
 import com.example.andespace.data.location.GeoLocation
-import com.example.andespace.data.model.HomeSearchParams
-import com.example.andespace.data.model.RoomUtility
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.model.RoomUtility
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.results.ResultsScreen
 import com.example.andespace.ui.theme.PrimaryYellow
