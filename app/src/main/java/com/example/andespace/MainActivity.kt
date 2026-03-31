@@ -50,6 +50,8 @@ import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
+import com.example.andespace.ui.favorites.FavoritesViewModel
+import com.example.andespace.ui.favorites.MainFavoritesScreen
 import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 
@@ -78,7 +80,8 @@ class MainActivity : ComponentActivity() {
 fun AndeSpaceApp(
     viewModel: MainViewModel = viewModel(),
     homepageViewModel: HomepageViewModel = viewModel(),
-    scheduleViewModel: ScheduleViewModel = viewModel()
+    scheduleViewModel: ScheduleViewModel = viewModel(),
+    favoritesViewModel: FavoritesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -123,6 +126,7 @@ fun AndeSpaceApp(
                 onLogOut = {
                     viewModel.onLogOut()
                     scheduleViewModel.clearScheduleData()
+                    favoritesViewModel.clearFavorites()
                 }
             )
         },
@@ -153,6 +157,7 @@ fun AndeSpaceApp(
                         resultsViewModel = resultsViewModel,
                         detailRoomViewModel = detailRoomViewModel,
                         bookingsViewModel = bookingsViewModel,
+                        favoritesViewModel = favoritesViewModel,
                         isUserLoggedIn = uiState.isLoggedIn,
                         onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) },
                         onBookingCreatedNavigate = {
@@ -187,7 +192,20 @@ fun AndeSpaceApp(
                     }
                 )
 
-                AppDestinations.FAVORITES -> Greeting("Work in progress ...")
+                AppDestinations.FAVORITES -> {
+                    if (uiState.isLoggedIn) {
+                        MainFavoritesScreen(
+                            favoritesViewModel = favoritesViewModel,
+                            onRoomClick = { room ->
+                                detailRoomViewModel.setRoom(room = room)
+                                homepageViewModel.onShowRoomDetailScreen()
+                                viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                            }
+                        )
+                    } else {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    }
+                }
 
                 AppDestinations.BOOKINGS -> {
                     if (uiState.isLoggedIn) {

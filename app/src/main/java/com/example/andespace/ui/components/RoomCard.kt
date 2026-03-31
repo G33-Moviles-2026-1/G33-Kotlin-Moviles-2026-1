@@ -16,8 +16,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +39,8 @@ fun RoomCard(
     room: RoomDto,
     cardIndex: Int,
     showScheduleLabel: Boolean,
+    isFavorite: Boolean = false,
+    onFavoriteClick: (() -> Unit)? = null,
     onClick: () -> Unit = {}
 ) {
     val availability = room.availabilityStatus ?: "available_after"
@@ -80,7 +85,8 @@ fun RoomCard(
                     text = roomId,
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
                 Box(
                     modifier = Modifier
@@ -92,6 +98,18 @@ fun RoomCard(
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold
                     )
+                }
+                if (onFavoriteClick != null) {
+                    IconButton(
+                        onClick = onFavoriteClick,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) Color.Black else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
 
