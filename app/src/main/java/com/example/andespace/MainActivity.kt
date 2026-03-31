@@ -1,5 +1,10 @@
 package com.example.andespace
 
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,8 +19,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -31,20 +37,15 @@ import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.ui.MainViewModel
+import com.example.andespace.ui.ThemeMode
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
-import com.example.andespace.ui.bookings.BookingsContentScreen
+import com.example.andespace.ui.bookings.MainBookingsScreen
 import com.example.andespace.ui.bookings.BookingsViewModel
-import com.example.andespace.ui.bookings.EditBookingScreen
-import com.example.andespace.ui.bookings.MakeBookingScreen
-import com.example.andespace.ui.bookings.MyBookingsScreen
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
-import com.example.andespace.ui.cookie.CookieScreen
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
-import com.example.andespace.ui.detailRoom.RoomDetailScreen
-import com.example.andespace.ui.homepage.ContentScreen
-import com.example.andespace.ui.homepage.HomepageContent
+import com.example.andespace.ui.homepage.MainClassroomsScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
@@ -57,8 +58,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AndeSpaceTheme {
-                AndeSpaceApp()
+            val mainViewModel: MainViewModel = viewModel()
+            val mainUiState by mainViewModel.uiState.collectAsState()
+            val isSystemDark = isSystemInDarkTheme()
+            val isDarkMode = when (mainUiState.themeMode) {
+                ThemeMode.AUTOMATIC -> mainUiState.sensorDarkMode
+                ThemeMode.SYSTEM    -> isSystemDark
+                ThemeMode.LIGHT     -> false
+                ThemeMode.DARK      -> true
+            }
+            AndeSpaceTheme(darkTheme = isDarkMode) {
+                AndeSpaceApp(viewModel = mainViewModel)
             }
         }
     }
@@ -71,23 +81,37 @@ fun AndeSpaceApp(
     scheduleViewModel: ScheduleViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val homepageState by homepageViewModel.uiState.collectAsState()
+
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val lux = event.values[0]
+                val sensorDark = viewModel.uiState.value.sensorDarkMode
+                when {
+                    lux < 25f && !sensorDark -> viewModel.setSensorDarkMode(true)
+                    lux > 35f && sensorDark  -> viewModel.setSensorDarkMode(false)
+                }
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+        sensorManager.registerListener(listener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
+        onDispose { sensorManager.unregisterListener(listener) }
+    }
+
     val resultsViewModel: ResultsViewModel = viewModel()
-    val resultsUiState by resultsViewModel.uiState.collectAsState()
     val detailRoomViewModel: DetailRoomViewModel = viewModel()
-    val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
     val bookingsViewModel: BookingsViewModel = viewModel()
-    val bookingsUiState by bookingsViewModel.uiState.collectAsState()
-
-    val isOnAuthScreen = !uiState.isLoggedIn &&
-            (uiState.currentDestination == AppDestinations.LOGIN ||
-                    uiState.currentDestination == AppDestinations.REGISTER)
-
     Scaffold(
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
                 isMenuExpanded = uiState.isUserMenuExpanded,
+                themeMode = uiState.themeMode,
+                onThemeModeChange = { viewModel.setThemeMode(it) },
                 onAccountClick = { viewModel.expandUserMenu() },
                 onDismissMenu = { viewModel.closeUserMenu() },
                 onLoginClick = {
@@ -96,7 +120,6 @@ fun AndeSpaceApp(
                 onRegisterClick = {
                     viewModel.onDestinationChanged(AppDestinations.REGISTER)
                 },
-                onHistoryClick = { viewModel.onDestinationChanged(AppDestinations.HISTORY) },
                 onLogOut = {
                     viewModel.onLogOut()
                     scheduleViewModel.clearScheduleData()
@@ -104,94 +127,38 @@ fun AndeSpaceApp(
             )
         },
         bottomBar = {
-            if (!isOnAuthScreen) {
-                AndeSpaceBottomBar(
-                    currentDestination = uiState.currentDestination,
-                    onDestinationChanged = { destination ->
-                        viewModel.onDestinationChanged(destination)
-                        if (destination == AppDestinations.CLASSROOMS) {
-                            homepageViewModel.resetToHome()
-                        }
+            AndeSpaceBottomBar(
+                currentDestination = uiState.currentDestination,
+                onDestinationChanged = { destination ->
+                    viewModel.onDestinationChanged(destination)
+                    if (destination == AppDestinations.CLASSROOMS) {
+                        homepageViewModel.resetToHome()
                     }
-                )
-            }
+                }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
 
-            // MAIN NAVIGATION SWITCH
             when (uiState.currentDestination) {
 
                 AppDestinations.CLASSROOMS -> {
-                    // SUB-NAVIGATION FOR CLASSROOMS
-                    when (homepageState.contentScreen) {
-                        ContentScreen.ROOM_DETAIL -> {
-                            RoomDetailScreen(
-                                room = detailRoomUiState.room,
-                                selectedDate = detailRoomUiState.selectedDate,
-                                isLoadingAvailability = detailRoomUiState.isLoadingAvailability,
-                                availabilityError = detailRoomUiState.availabilityError,
-                                onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) }
-                            )
+                    MainClassroomsScreen(
+                        homepageViewModel = homepageViewModel,
+                        resultsViewModel = resultsViewModel,
+                        detailRoomViewModel = detailRoomViewModel,
+                        bookingsViewModel = bookingsViewModel,
+                        isUserLoggedIn = uiState.isLoggedIn,
+                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) },
+                        onBookingCreatedNavigate = {
+                            viewModel.onDestinationChanged(AppDestinations.BOOKINGS)
                         }
-                        ContentScreen.MAKE_BOOKING -> {
-                            val room = detailRoomUiState.room
-                            val roomId = room?.id ?: ""
-                            val date = detailRoomUiState.selectedDate ?: ""
-                            val windows = room?.matchingWindows.orEmpty()
-
-                            if (bookingsUiState.bookingCreatedSuccess) {
-                                LaunchedEffect(Unit) {
-                                    bookingsViewModel.consumeBookingCreatedSuccess()
-                                    viewModel.onDestinationChanged(AppDestinations.BOOKINGS)
-                                    homepageViewModel.resetToHome()
-                                }
-                            }
-
-                            MakeBookingScreen(
-                                roomId = roomId,
-                                selectedDate = date,
-                                availableWindows = windows,
-                                isLoadingSlots = detailRoomUiState.isLoadingAvailability,
-                                isCreating = bookingsUiState.isCreating,
-                                errorMessage = bookingsUiState.createError,
-                                onDateChanged = { newDate ->
-                                    detailRoomViewModel.onDateChange(newDate)
-                                },
-                                onBook = { request -> bookingsViewModel.onCreateBooking(request) }
-                            )
-                        }
-                        else -> { // Default to HomepageContent (SEARCH, FILTERS, RESULTS)
-                            HomepageContent(
-                                contentScreen = homepageState.contentScreen,
-                                isSearching = resultsUiState.isSearching,
-                                isUserLoggedIn = uiState.isLoggedIn,
-                                searchError = resultsUiState.errorMessage,
-                                rooms = resultsUiState.rooms,
-                                currentPage = resultsUiState.currentPage,
-                                totalPages = resultsUiState.totalPages,
-                                onSearchClick = { params ->
-                                    resultsViewModel.onSearchClick(
-                                        params = params,
-                                        isUserLoggedIn = uiState.isLoggedIn
-                                    )
-                                    homepageViewModel.onShowResults()
-                                },
-                                onFiltersOpened = { homepageViewModel.onFiltersOpened() },
-                                onRoomClick = { room ->
-                                    resultsViewModel.onRoomClick(room)
-                                    detailRoomViewModel.setRoom(
-                                        room = room,
-                                        selectedDate = resultsUiState.selectedSearchDate
-                                    )
-                                    homepageViewModel.onShowRoomDetailScreen()
-                                },
-                                onPrevPage = { resultsViewModel.onPreviousPage(isUserLoggedIn = uiState.isLoggedIn) },
-                                onNextPage = { resultsViewModel.onNextPage(isUserLoggedIn = uiState.isLoggedIn) }
-                            )
-                        }
-                    }
+                    )
                 }
 
                 AppDestinations.HISTORY -> HistoryScreen()
@@ -199,6 +166,7 @@ fun AndeSpaceApp(
                 AppDestinations.LOGIN -> LoginScreen(
                     onLoginSuccess = {
                         viewModel.onLogin()
+                        bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.checkScheduleStatus()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     },
@@ -210,6 +178,7 @@ fun AndeSpaceApp(
                 AppDestinations.REGISTER -> RegisterScreen(
                     onRegisterSuccess = {
                         viewModel.onLogin()
+                        bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.clearScheduleData()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     },
@@ -218,48 +187,28 @@ fun AndeSpaceApp(
                     }
                 )
 
-                AppDestinations.FAVORITES -> CookieScreen()
+                AppDestinations.FAVORITES -> Greeting("Work in progress ...")
 
                 AppDestinations.BOOKINGS -> {
-                    LaunchedEffect(uiState.currentDestination) {
-                        bookingsViewModel.loadBookings()
-                    }
-
-                    if (bookingsUiState.requiresLogin) {
-                        LaunchedEffect(bookingsUiState.requiresLogin) {
-                            viewModel.onDestinationChanged(AppDestinations.LOGIN)
-                        }
-                    } else when (bookingsUiState.contentScreen) {
-                        BookingsContentScreen.LIST -> MyBookingsScreen(
-                            bookings = bookingsUiState.bookings,
-                            isLoading = bookingsUiState.isLoading,
-                            errorMessage = bookingsUiState.errorMessage,
-                            onDeleteBooking = { bookingsViewModel.onDeleteBooking(it) },
-                            onEditBooking = { bookingsViewModel.onEditBooking(it) }
+                    if (uiState.isLoggedIn) {
+                        MainBookingsScreen(
+                            bookingsViewModel = bookingsViewModel,
+                            onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
                         )
-                        BookingsContentScreen.EDIT -> {
-                            bookingsUiState.selectedBooking?.let { booking ->
-                                EditBookingScreen(
-                                    booking = booking,
-                                    isSaving = bookingsUiState.isSaving,
-                                    onSave = { request, oldId ->
-                                        bookingsViewModel.onSaveBooking(request, oldId)
-                                    },
-                                    onCancel = { bookingsViewModel.onCancelEdit() }
-                                )
-                            }
-                        }
+                    } else {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
                     }
                 }
 
-                AppDestinations.SCHEDULE -> MainScheduleScreen(scheduleViewModel = scheduleViewModel)
-
-                else -> Greeting(
-                    name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
-                )
+                AppDestinations.SCHEDULE -> {
+                    if (uiState.isLoggedIn) {
+                        MainScheduleScreen(scheduleViewModel = scheduleViewModel)
+                    } else {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    }
+                }
             }
 
-            // OVERLAY MENU
             if (uiState.isUserMenuExpanded) {
                 Box(
                     modifier = Modifier
@@ -308,7 +257,7 @@ fun AssetIcon(
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
-            text = "Section: $name",
+            text = name,
             style = MaterialTheme.typography.headlineMedium
         )
     }

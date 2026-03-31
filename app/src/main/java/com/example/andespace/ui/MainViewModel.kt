@@ -16,7 +16,6 @@ class MainViewModel(
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
-
     init {
         loadUserData()
     }
@@ -27,6 +26,7 @@ class MainViewModel(
 
     fun onDestinationChanged(destination: AppDestinations) {
         _uiState.update { it.copy(currentDestination = destination, isUserMenuExpanded = false) }
+        logScreenChange(destination.name)
     }
 
     fun expandUserMenu() {
@@ -54,5 +54,21 @@ class MainViewModel(
 
     fun onLogin() {
         _uiState.update { it.copy(isLoggedIn = true) }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        _uiState.update { it.copy(themeMode = mode) }
+    }
+
+    fun setSensorDarkMode(isDark: Boolean) {
+        _uiState.update { it.copy(sensorDarkMode = isDark) }
+    }
+
+    private fun logScreenChange(screenName: String) {
+        viewModelScope.launch {
+            repository.trackScreensTime(
+                screenName = screenName
+            )
+        }
     }
 }

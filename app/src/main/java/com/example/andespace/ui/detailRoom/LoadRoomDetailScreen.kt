@@ -40,8 +40,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.andespace.data.model.dto.RoomDto
-import com.example.andespace.ui.theme.LightYellow
+import com.example.andespace.model.RoomUtility
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,7 +49,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoomDetailScreen(
+fun LoadRoomDetailScreen(
     room: RoomDto?,
     selectedDate: String?,
     isLoadingAvailability: Boolean,
@@ -88,7 +88,9 @@ fun RoomDetailScreen(
             )
         }
 
-    val utilities = room.utilities.ifEmpty {
+    val utilities = room.utilities
+        .map { RoomUtility.displayNameFromCode(it) }
+        .ifEmpty {
         listOf("Blackout", "Power Outlet", "Mobile Whiteboards")
     }
 
@@ -152,10 +154,10 @@ fun RoomDetailScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                /*Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SmallIconButton(icon = Icons.Default.ErrorOutline)
                     SmallIconButton(icon = Icons.Default.FavoriteBorder)
-                }
+                }*/
             }
         }
 
@@ -334,13 +336,14 @@ private fun SmallIconButton(icon: ImageVector) {
 private fun UtilityChip(text: String) {
     Box(
         modifier = Modifier
-            .background(LightYellow, RoundedCornerShape(14.dp))
-            .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
+            .border(1.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(14.dp))
             .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

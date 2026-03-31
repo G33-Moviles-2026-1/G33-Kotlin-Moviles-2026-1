@@ -41,7 +41,7 @@ class ScheduleViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Could not verify schedule status"
+                        errorMessage = error.message ?: "Something went wrong. Please try again."
                     )
                 }
             }
@@ -60,7 +60,7 @@ class ScheduleViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Failed to upload file"
+                        errorMessage = error.message ?: "The file could not be uploaded. Please try again."
                     )
                 }
             }
@@ -82,7 +82,7 @@ class ScheduleViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message)
+                        errorMessage = error.message ?: "Could not load your schedule. Please try again.")
                 }
             }
         }

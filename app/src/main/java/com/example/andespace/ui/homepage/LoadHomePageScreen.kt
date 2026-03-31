@@ -2,6 +2,10 @@
 
 package com.example.andespace.ui.homepage
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,10 +40,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
@@ -51,52 +55,63 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import com.example.andespace.AssetIcon
-import com.example.andespace.data.model.HomeSearchParams
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
+import com.example.andespace.AssetIcon
+import com.example.andespace.data.location.GeoLocation
+import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.model.RoomUtility
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.results.ResultsScreen
 import com.example.andespace.ui.theme.PrimaryYellow
-import com.example.andespace.data.model.dto.RoomDto
 import java.text.SimpleDateFormat
 import java.util.Locale
-
-private val UTILITIES_OPTIONS = mapOf(
-    "Blackout" to "blackout",
-    "Power Outlet" to "power_outlet",
-    "Television" to "television",
-    "Interactive Classroom" to "interactive_classroom",
-    "Mobile WhiteBoards" to "mobile_whiteboards     ",
-    "Computer" to "computer",
-    "Videobeam" to "videobeam"
-)
+import java.util.TimeZone
 
 @Composable
-fun HomepageContent(
+fun LoadHomePageScreen(
     contentScreen: ContentScreen,
     isSearching: Boolean,
     isUserLoggedIn: Boolean,
+    hasUploadedSchedule: Boolean,
+    closeToMe: Boolean,
+    isLocating: Boolean,
+    locationError: Boolean,
+    userLocation: GeoLocation?,
     searchError: String?,
     rooms: List<RoomDto>,
     currentPage: Int,
     totalPages: Int,
     onSearchClick: (HomeSearchParams) -> Unit,
     onFiltersOpened: () -> Unit,
+    onRequestCurrentLocation: () -> Unit,
+    onLocationPermissionDenied: () -> Unit,
+    onCloseToMeDisabled: () -> Unit,
+    onClearLocationError: () -> Unit,
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (contentScreen) {
-        ContentScreen.HOME -> HomePageScreen(
+        ContentScreen.HOME -> LoadHomeSearchScreen(
             modifier = modifier,
             isSearching = isSearching,
             searchError = searchError,
             onSearchClick = onSearchClick,
+            closeToMe = closeToMe,
+            isLocating = isLocating,
+            locationError = locationError,
+            userLocation = userLocation,
+            onRequestCurrentLocation = onRequestCurrentLocation,
+            onLocationPermissionDenied = onLocationPermissionDenied,
+            onCloseToMeDisabled = onCloseToMeDisabled,
+            onClearLocationError = onClearLocationError,
             onFiltersOpened = onFiltersOpened
         )
 
@@ -104,6 +119,7 @@ fun HomepageContent(
             rooms = rooms,
             isSearching = isSearching,
             isUserLoggedIn = isUserLoggedIn,
+            hasUploadedSchedule = hasUploadedSchedule,
             errorMessage = searchError,
             currentPage = currentPage,
             totalPages = totalPages,
@@ -113,17 +129,25 @@ fun HomepageContent(
             modifier = modifier
         )
 
-        ContentScreen.ROOM_DETAIL -> Unit
-        else -> {}
+        ContentScreen.ROOM_DETAIL,
+        ContentScreen.MAKE_BOOKING -> Unit
     }
 }
 
 @Composable
-fun HomePageScreen(
+private fun LoadHomeSearchScreen(
     modifier: Modifier = Modifier,
     isSearching: Boolean = false,
     searchError: String? = null,
     onSearchClick: (HomeSearchParams) -> Unit = {},
+    closeToMe: Boolean,
+    isLocating: Boolean,
+    locationError: Boolean,
+    userLocation: GeoLocation?,
+    onRequestCurrentLocation: () -> Unit,
+    onLocationPermissionDenied: () -> Unit,
+    onCloseToMeDisabled: () -> Unit,
+    onClearLocationError: () -> Unit,
     onFiltersOpened: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
@@ -157,6 +181,14 @@ fun HomePageScreen(
             selectedUtilities = selectedUtilities,
             isSearching = isSearching,
             searchError = searchError,
+            closeToMe = closeToMe,
+            isLocating = isLocating,
+            locationError = locationError,
+            userLocation = userLocation,
+            onRequestCurrentLocation = onRequestCurrentLocation,
+            onLocationPermissionDenied = onLocationPermissionDenied,
+            onCloseToMeDisabled = onCloseToMeDisabled,
+            onClearLocationError = onClearLocationError,
             onFilterClick = {
                 onFiltersOpened()
                 showFilterSheet = true
@@ -169,7 +201,9 @@ fun HomePageScreen(
 private fun formatTime(hour: Int, minute: Int): String =
     "%02d:%02d".format(hour, minute)
 
-private val dateDisplayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+private val dateDisplayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+    timeZone = TimeZone.getTimeZone("UTC")
+}
 
 private fun formatDateMillis(millis: Long): String =
     dateDisplayFormat.format(millis)
@@ -179,18 +213,42 @@ private fun SearchCard(
     selectedUtilities: Set<String>,
     isSearching: Boolean = false,
     searchError: String? = null,
+    closeToMe: Boolean,
+    isLocating: Boolean,
+    locationError: Boolean,
+    userLocation: GeoLocation?,
+    onRequestCurrentLocation: () -> Unit,
+    onLocationPermissionDenied: () -> Unit,
+    onCloseToMeDisabled: () -> Unit,
+    onClearLocationError: () -> Unit,
     onFilterClick: () -> Unit,
     onSearchClick: (HomeSearchParams) -> Unit,
 ) {
+    val context = LocalContext.current
     var classroomInput by remember { mutableStateOf("") }
     val initialDateMillis = remember { System.currentTimeMillis() }
     var selectedDateMillis by remember { mutableStateOf(initialDateMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var closeToMe by remember { mutableStateOf(false) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            onRequestCurrentLocation()
+        } else {
+            onLocationPermissionDenied()
+        }
+    }
+
     var sinceHour by remember { mutableStateOf(8) }
     var sinceMinute by remember { mutableStateOf(0) }
     var untilHour by remember { mutableStateOf(18) }
     var untilMinute by remember { mutableStateOf(0) }
+    var sinceSet by remember { mutableStateOf(false) }
+    var untilSet by remember { mutableStateOf(false) }
+    var missingTimeError by remember { mutableStateOf<String?>(null) }
     var showSincePicker by remember { mutableStateOf(false) }
     var showUntilPicker by remember { mutableStateOf(false) }
 
@@ -202,6 +260,8 @@ private fun SearchCard(
             onConfirm = { h, m ->
                 sinceHour = h
                 sinceMinute = m
+                sinceSet = true
+                missingTimeError = null
                 showSincePicker = false
             }
         )
@@ -214,6 +274,8 @@ private fun SearchCard(
             onConfirm = { h, m ->
                 untilHour = h
                 untilMinute = m
+                untilSet = true
+                missingTimeError = null
                 showUntilPicker = false
             }
         )
@@ -260,7 +322,7 @@ private fun SearchCard(
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         ) {
@@ -271,151 +333,195 @@ private fun SearchCard(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 12.dp)
-                ) {
-                    BasicTextField(
-                        value = classroomInput,
-                        onValueChange = { classroomInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onBackground
-                        ),
-                        decorationBox = { innerTextField ->
-                            Box {
-                                if (classroomInput.isEmpty()) {
-                                    Text(
-                                        text = "Classroom ej. ML 201, ML 5, ML",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        }
-                    )
-                }
-                IconButton(onClick = onFilterClick) {
-                    AssetIcon(
-                        assetPath = "icons/filters.svg",
-                        contentDescription = "Filters",
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-                    .background(Color.White)
-                    .height(40.dp)
-                    .padding(horizontal = 12.dp)
-                    .clickable(onClick = { showDatePicker = true }),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
             ) {
-                Text(
-                    text = "Date",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                BasicTextField(
+                    value = classroomInput,
+                    onValueChange = { if (it.length <= 15) classroomInput = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onBackground
+                    ),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (classroomInput.isEmpty()) {
+                                Text(
+                                    text = "Classroom ej. ML 201, ML 5, ML",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
                 )
-                Text(
-                    text = formatDateMillis(selectedDateMillis),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+            }
+            IconButton(onClick = onFilterClick) {
                 AssetIcon(
-                    assetPath = "icons/schedule.svg",
-                    contentDescription = "Calendar",
-                    modifier = Modifier.size(18.dp)
+                    assetPath = "icons/filters.svg",
+                    contentDescription = "Filters",
+                    modifier = Modifier.size(20.dp)
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                TimePickerPill(
-                    label = "Since",
-                    timeText = formatTime(sinceHour, sinceMinute),
-                    onClick = { showSincePicker = true },
-                    modifier = Modifier.weight(1f)
-                )
-                TimePickerPill(
-                    label = "Until",
-                    timeText = formatTime(untilHour, untilMinute),
-                    onClick = { showUntilPicker = true },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .height(40.dp)
+                .padding(horizontal = 12.dp)
+                .clickable(onClick = { showDatePicker = true }),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Date",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = formatDateMillis(selectedDateMillis),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            AssetIcon(
+                assetPath = "icons/schedule.svg",
+                contentDescription = "Calendar",
+                modifier = Modifier.size(18.dp)
+            )
+        }
 
-            Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                AssetIcon(
-                    assetPath = "icons/location.svg",
-                    contentDescription = "Location",
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Close to me",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Checkbox(
-                    checked = closeToMe,
-                    onCheckedChange = { closeToMe = it }
-                )
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            TimePickerPill(
+                label = "Since",
+                timeText = if (sinceSet) formatTime(sinceHour, sinceMinute) else "--:--",
+                onClick = { showSincePicker = true },
+                modifier = Modifier.weight(1f)
+            )
+            TimePickerPill(
+                label = "Until",
+                timeText = if (untilSet) formatTime(untilHour, untilMinute) else "--:--",
+                onClick = { showUntilPicker = true },
+                modifier = Modifier.weight(1f)
+            )
+        }
 
-            Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-            if (searchError != null) {
-                Text(
-                    text = searchError,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            CustomYellowButton(
-                text = if (isSearching) "Searching..." else "Search",
-                onClick = {
-                    if (!isSearching) {
-                        val params = HomeSearchParams(
-                            classroom = classroomInput,
-                            date = formatDateMillis(selectedDateMillis),
-                            since = formatTime(sinceHour, sinceMinute),
-                            until = formatTime(untilHour, untilMinute),
-                            closeToMe = closeToMe,
-                            utilities = selectedUtilities.mapNotNull { UTILITIES_OPTIONS[it] }
-                        )
-                        onSearchClick(params)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            AssetIcon(
+                assetPath = "icons/location.svg",
+                contentDescription = "Location",
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = "Close to me",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Checkbox(
+                checked = closeToMe,
+                onCheckedChange = { checked ->
+                    onClearLocationError()
+                    if (checked) {
+                        val alreadyGranted =
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        if (alreadyGranted) {
+                            onRequestCurrentLocation()
+                        } else {
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        }
+                    } else {
+                        onCloseToMeDisabled()
                     }
                 }
             )
+        }
+
+        if (isLocating) {
+            Text(
+                text = "Getting your location...",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+        if (locationError) {
+            Text(
+                text = "Could not get your location. Enable GPS and try again.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        val displayedError = missingTimeError ?: searchError
+        if (displayedError != null) {
+            Text(
+                text = displayedError,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        CustomYellowButton(
+            text = if (isSearching) "Searching..." else "Search",
+            onClick = {
+                if (!isSearching) {
+                    if (!sinceSet || !untilSet) {
+                        missingTimeError = "You must select both times (Since and Until) to search."
+                        return@CustomYellowButton
+                    }
+                    missingTimeError = null
+                    val params = HomeSearchParams(
+                        classroom = classroomInput,
+                        date = formatDateMillis(selectedDateMillis),
+                        since = if (sinceSet) formatTime(sinceHour, sinceMinute) else null,
+                        until = if (untilSet) formatTime(untilHour, untilMinute) else null,
+                        closeToMe = closeToMe,
+                        utilities = selectedUtilities.mapNotNull { RoomUtility.codeFromDisplayName(it) },
+                        userLatitude = if (closeToMe) userLocation?.latitude else null,
+                        userLongitude = if (closeToMe) userLocation?.longitude else null
+                    )
+                    onSearchClick(params)
+                }
+            }
+        )
     }
 }
 
@@ -429,8 +535,8 @@ private fun TimePickerPill(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-            .background(Color.White)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .height(40.dp)
             .padding(horizontal = 12.dp)
             .clickable(onClick = onClick),
@@ -447,7 +553,7 @@ private fun TimePickerPill(
             modifier = Modifier
                 .height(18.dp)
                 .width(1.dp),
-            color = Color(0xFFE8E8E8)
+            color = MaterialTheme.colorScheme.outline
         )
         Spacer(modifier = Modifier.width(8.dp))
         AssetIcon(
@@ -474,7 +580,7 @@ private fun TimePickerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -540,7 +646,7 @@ private fun UtilitiesFilterSheet(
                 Text(
                     text = "Utilities",
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(
@@ -548,7 +654,7 @@ private fun UtilitiesFilterSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                UTILITIES_OPTIONS.keys.forEach { option ->
+                RoomUtility.displayNames.forEach { option ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -567,7 +673,7 @@ private fun UtilitiesFilterSheet(
                         Text(
                             text = option,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

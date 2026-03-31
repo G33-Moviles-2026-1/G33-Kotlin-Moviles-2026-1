@@ -2,7 +2,7 @@ package com.example.andespace.ui.detailRoom
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,12 +70,19 @@ class DetailRoomViewModel(
                         _uiState.update {
                             it.copy(
                                 isLoadingAvailability = false,
-                                availabilityError = error.message ?: "Could not load availability"
+                                availabilityError = friendlyAvailabilityError(error.message)
                             )
                         }
                     }
                 )
         }
+    }
+
+    private fun friendlyAvailabilityError(raw: String?): String = when {
+        raw == null -> "Could not load the room's availability. Please try again."
+        raw.startsWith("No internet connection") -> "No internet connection. Please check your network and try again."
+        raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
+        else -> "Could not load the room's availability. Please try again."
     }
 
     private fun currentDateApiValue(): String {

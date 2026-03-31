@@ -2,8 +2,8 @@ package com.example.andespace.ui.bookings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.model.dto.BookingDto
-import com.example.andespace.data.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.BookingDto
+import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +33,7 @@ class BookingsViewModel(
                         it.copy(
                             isLoading = false,
                             requiresLogin = isSessionExpired,
-                            errorMessage = if (isSessionExpired) null else error.message
+                            errorMessage = if (isSessionExpired) null else friendlyError(error.message)
                         )
                     }
                 }
@@ -61,9 +61,9 @@ class BookingsViewModel(
                         )
                     }
                 }
-                .onFailure { error ->
+                .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = error.message)
+                        it.copy(isLoading = false, errorMessage = "Could not delete the booking. Please try again.")
                     }
                 }
         }
@@ -74,9 +74,9 @@ class BookingsViewModel(
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
 
             repository.deleteBooking(oldBookingId)
-                .onFailure { error ->
+                .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isSaving = false, errorMessage = "Delete failed: ${error.message}")
+                        it.copy(isSaving = false, errorMessage = "Could not delete the booking. Please try again.")
                     }
                     return@launch
                 }
@@ -92,9 +92,9 @@ class BookingsViewModel(
                     }
                     loadBookings()
                 }
-                .onFailure { error ->
+                .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isSaving = false, errorMessage = "Create failed: ${error.message}")
+                        it.copy(isSaving = false, errorMessage = "Could not save the booking. Please try again.")
                     }
                     loadBookings()
                 }
@@ -121,7 +121,7 @@ class BookingsViewModel(
                 }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(isCreating = false, createError = error.message)
+                        it.copy(isCreating = false, createError = friendlyError(error.message))
                     }
                 }
         }
@@ -133,5 +133,17 @@ class BookingsViewModel(
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null, createError = null) }
+    }
+
+    fun resetRequiresLogin() {
+        _uiState.update { it.copy(requiresLogin = false) }
+    }
+
+    private fun friendlyError(raw: String?): String = when {
+        raw == null -> "Something went wrong. Please try again."
+        raw.startsWith("No internet connection") -> "No internet connection. Please check your network and try again."
+        raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
+        raw.matches(Regex("Error \\d+.*")) -> "Something went wrong. Please try again."
+        else -> "Something went wrong. Please try again."
     }
 }

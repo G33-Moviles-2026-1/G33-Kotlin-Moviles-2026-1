@@ -1,6 +1,6 @@
 package com.example.andespace.ui.schedule
 
-import com.example.andespace.data.model.schedule.WeeklyScheduleOut
+import com.example.andespace.model.schedule.WeeklyScheduleOut
 
 data class ScheduleUiState(
     val isLoading: Boolean = false,

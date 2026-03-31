@@ -3,10 +3,10 @@ package com.example.andespace.ui.results
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.model.HomeSearchParams
-import com.example.andespace.data.model.dto.RoomDto
-import com.example.andespace.data.model.dto.RoomTimeWindowDto
-import com.example.andespace.data.model.dto.windowsForDate
+import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomTimeWindowDto
+import com.example.andespace.model.dto.windowsForDate
 import com.example.andespace.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -75,6 +75,23 @@ class ResultsViewModel(
 
             if (trackEvent) {
                 repository.trackHomeEvent("home_search_submitted")
+                repository.trackAppliedFilters(
+                    placeUsed = params.classroom.isNotBlank(),
+                    timeUsed = params.since != null || params.until != null,
+                    utilitiesUsed = params.utilities.isNotEmpty(),
+                    closeToMeUsed = params.closeToMe
+                )
+
+                val hasGapAndUtilities =
+                    params.since != null && params.until != null && params.utilities.isNotEmpty()
+                if (hasGapAndUtilities) {
+                    repository.trackRoomGapSearch(
+                        dateValue = params.date,
+                        gapStart = params.since,
+                        gapEnd = params.until,
+                        utilities = params.utilities
+                    )
+                }
             }
 
             repository.searchRooms(params, limit = pageSize, offset = offset)
@@ -82,18 +99,19 @@ class ResultsViewModel(
                     onSuccess = { response ->
                         val totalItems = response.total ?: (offset + response.rooms.size)
                         val pages = calculateTotalPages(totalItems = totalItems, pageSize = pageSize)
-                        val comparedRooms = enrichRoomsWithUserSchedule(
+                        val enrichmentResult = enrichRoomsWithUserSchedule(
                             rooms = response.rooms,
                             dateValue = params.date,
-                            searchSince = params.since,
-                            searchUntil = params.until,
+                            searchSince = params.since ?: "00:00",
+                            searchUntil = params.until ?: "23:59",
                             isUserLoggedIn = isUserLoggedIn
                         )
 
                         _uiState.update {
                             it.copy(
                                 isSearching = false,
-                                rooms = comparedRooms,
+                                rooms = enrichmentResult.rooms,
+                                hasUploadedSchedule = enrichmentResult.hasUploadedSchedule,
                                 selectedSearchDate = params.date,
                                 currentPage = page,
                                 totalPages = pages,
@@ -105,7 +123,7 @@ class ResultsViewModel(
                         _uiState.update {
                             it.copy(
                                 isSearching = false,
-                                errorMessage = error.message ?: "Search error"
+                                errorMessage = friendlyError(error.message)
                             )
                         }
                     }
@@ -113,14 +131,43 @@ class ResultsViewModel(
         }
     }
 
+    private fun friendlyError(raw: String?): String = when {
+        raw == null -> "Something went wrong. Please try again."
+        raw.startsWith("No internet connection") -> "No internet connection. Please check your network and try again."
+        raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
+        raw.matches(Regex("Error \\d+.*")) -> "Could not load results. Please try again."
+        else -> "Something went wrong. Please try again."
+    }
+
+    private data class ScheduleEnrichmentResult(
+        val rooms: List<RoomDto>,
+        val hasUploadedSchedule: Boolean
+    )
+
     private suspend fun enrichRoomsWithUserSchedule(
         rooms: List<RoomDto>,
         dateValue: String,
         searchSince: String,
         searchUntil: String,
         isUserLoggedIn: Boolean
-    ): List<RoomDto> {
-        if (!isUserLoggedIn || rooms.isEmpty()) return rooms
+    ): ScheduleEnrichmentResult {
+        if (!isUserLoggedIn || rooms.isEmpty()) {
+            return ScheduleEnrichmentResult(
+                rooms = rooms,
+                hasUploadedSchedule = false
+            )
+        }
+
+        val hasSchedule = repository.checkIfScheduleExists().getOrElse { error ->
+            Log.w(TAG, "Could not verify user schedule existence: ${error.message}")
+            false
+        }
+        if (!hasSchedule) {
+            return ScheduleEnrichmentResult(
+                rooms = rooms,
+                hasUploadedSchedule = false
+            )
+        }
 
         val searchWindow = RoomTimeWindowDto(
             start = normalizeToHhMmSs(searchSince),
@@ -130,10 +177,13 @@ class ResultsViewModel(
         val userFreeSlots = repository.getUserFreeSlots(dateValue)
             .getOrElse { error ->
                 Log.w(TAG, "Could not load user free slots: ${error.message}")
-                return rooms
+                return ScheduleEnrichmentResult(
+                    rooms = rooms,
+                    hasUploadedSchedule = false
+                )
             }
 
-        return rooms.map { room ->
+        val enrichedRooms = rooms.map { room ->
             val roomWindows = room.windowsForDate(dateValue).ifEmpty {
                 listOfNotNull(
                     room.availableSince?.let { since ->
@@ -156,6 +206,11 @@ class ResultsViewModel(
                 matchingWindows = overlapWindow?.let { listOf(it) } ?: room.matchingWindows
             )
         }
+
+        return ScheduleEnrichmentResult(
+            rooms = enrichedRooms,
+            hasUploadedSchedule = true
+        )
     }
 
     private fun prioritizedOverlapWindow(

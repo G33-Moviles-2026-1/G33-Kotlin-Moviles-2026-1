@@ -6,7 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,9 +17,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -27,15 +35,19 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -47,17 +59,251 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.andespace.AssetIcon
-import com.example.andespace.data.model.dto.BookingDto
-import com.example.andespace.data.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.BookingDto
+import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.ui.theme.LightYellow
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
+
+@Composable
+fun LoadBookingsScreen(
+    uiState: BookingsUIState,
+    onLoadBookings: () -> Unit,
+    onRequireLogin: () -> Unit,
+    onDeleteBooking: (BookingDto) -> Unit,
+    onEditBooking: (BookingDto) -> Unit,
+    onSaveBooking: (CreateBookingRequest, String) -> Unit,
+    onCancelEdit: () -> Unit
+) {
+    LaunchedEffect(Unit) {
+        onLoadBookings()
+    }
+
+    LaunchedEffect(uiState.requiresLogin) {
+        if (uiState.requiresLogin) {
+            onRequireLogin()
+        }
+    }
+
+    if (uiState.requiresLogin) return
+
+    when (uiState.contentScreen) {
+        BookingsContentScreen.LIST -> MyBookingsScreen(
+            bookings = uiState.bookings,
+            isLoading = uiState.isLoading,
+            errorMessage = uiState.errorMessage,
+            onDeleteBooking = onDeleteBooking,
+            onEditBooking = onEditBooking
+        )
+
+        BookingsContentScreen.EDIT -> {
+            uiState.selectedBooking?.let { booking ->
+                EditBookingScreen(
+                    booking = booking,
+                    isSaving = uiState.isSaving,
+                    onSave = onSaveBooking,
+                    onCancel = onCancelEdit
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MyBookingsScreen(
+    bookings: List<BookingDto>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    modifier: Modifier = Modifier,
+    onDeleteBooking: (BookingDto) -> Unit = {},
+    onEditBooking: (BookingDto) -> Unit = {}
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "My Bookings",
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
+            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+        )
+
+        if (isLoading && bookings.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            return
+        }
+
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = Color(0xFFD32F2F),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
+
+        if (bookings.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "You don't have any bookings yet.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            return
+        }
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            itemsIndexed(bookings, key = { _, b -> b.id }) { index, booking ->
+                BookingCard(
+                    booking = booking,
+                    cardIndex = index,
+                    onDelete = { onDeleteBooking(booking) },
+                    onEdit = { onEditBooking(booking) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookingCard(
+    booking: BookingDto,
+    cardIndex: Int,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isActive = booking.status.equals("active", ignoreCase = true)
+    val statusColor = if (isActive) Color(0xFF4C9654) else Color(0xFFD8A327)
+    val headerColor = if (isActive) Color(0xFFD9E8D9) else Color(0xFFEFE5D4)
+    val statusLabel = booking.status.replaceFirstChar { it.uppercase() }
+
+    val startDisplay = booking.startTime.take(5)
+    val endDisplay = booking.endTime.take(5)
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(18.dp)),
+        shadowElevation = 10.dp,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = booking.roomId,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Row {
+                    IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = "Edit booking",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(2.dp))
+                    IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = "Delete booking",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Date: ${booking.date}",
+                style = MaterialTheme.typography.bodyLarge
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(headerColor, RoundedCornerShape(12.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = "Time",
+                    tint = statusColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = statusLabel,
+                        color = statusColor,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "From $startDisplay to $endDisplay",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PurposeChip(text = booking.purpose.replaceFirstChar { it.uppercase() })
+            }
+        }
+    }
+}
+
+@Composable
+private fun PurposeChip(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .background(LightYellow, RoundedCornerShape(20.dp))
+            .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(20.dp))
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSecondary
+        )
+    }
+}
 
 private fun formatTime(hour: Int, minute: Int): String =
     "%02d:%02d".format(hour, minute)
@@ -84,7 +330,7 @@ private fun parseTimeMinute(timeStr: String): Int =
     timeStr.split(":").getOrNull(1)?.toIntOrNull() ?: 0
 
 @Composable
-fun EditBookingScreen(
+private fun EditBookingScreen(
     booking: BookingDto,
     isSaving: Boolean,
     onSave: (CreateBookingRequest, String) -> Unit,
@@ -196,8 +442,8 @@ fun EditBookingScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-                .background(Color.White)
+                .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .height(40.dp)
                 .padding(horizontal = 12.dp)
                 .clickable(onClick = { showDatePicker = true }),
@@ -264,15 +510,15 @@ fun EditBookingScreen(
                     selected = purpose == value,
                     onClick = { purpose = value },
                     colors = RadioButtonDefaults.colors(
-                        selectedColor = Color.Black,
-                        unselectedColor = Color.Black
+                        selectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = label,
                     fontSize = 15.sp,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -290,15 +536,15 @@ fun EditBookingScreen(
                 enabled = !isSaving,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFE57373),
-                    contentColor = Color.White
+                    contentColor = Color.Black
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
-                    .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp))
             ) {
-                Text("Cancel", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Cancel", color = Color.Black, fontWeight = FontWeight.Bold)
             }
 
             Button(
@@ -330,12 +576,12 @@ fun EditBookingScreen(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
-                    .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp))
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -357,7 +603,7 @@ private fun TimePickerPill(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .height(40.dp)
             .padding(horizontal = 12.dp)
             .clickable(onClick = onClick),

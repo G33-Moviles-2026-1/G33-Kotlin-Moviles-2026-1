@@ -28,14 +28,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.andespace.data.model.dto.RoomDto
-import com.example.andespace.ui.theme.LightYellow
+import com.example.andespace.model.RoomUtility
+import com.example.andespace.model.dto.RoomDto
 
 @Composable
 fun RoomCard(
     room: RoomDto,
     cardIndex: Int,
-    isUserLoggedIn: Boolean,
+    showScheduleLabel: Boolean,
     onClick: () -> Unit = {}
 ) {
     val availability = room.availabilityStatus ?: "available_after"
@@ -51,7 +51,7 @@ fun RoomCard(
     } else {
         if (isFreeNow) "No schedule match found" else "No availability window"
     }
-    val extraUtilities = room.utilities
+    val extraUtilities = room.utilities.map { RoomUtility.displayNameFromCode(it) }
     val roomId = room.id
     val roomName = room.name ?: "Unnamed"
     val buildingText = room.building ?: "Unnamed"
@@ -61,11 +61,11 @@ fun RoomCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 6.dp)
-            .border(1.dp, Color.Black, RoundedCornerShape(18.dp))
+            .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(18.dp))
             .clickable(onClick = onClick),
         shadowElevation = 10.dp,
         shape = RoundedCornerShape(18.dp),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier
@@ -84,7 +84,7 @@ fun RoomCard(
                 )
                 Box(
                     modifier = Modifier
-                        .border(1.dp, Color.Black, RoundedCornerShape(10.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(10.dp))
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
@@ -99,17 +99,17 @@ fun RoomCard(
             Text(
                 text = "Bldg. $buildingText • Room $roomName",
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFF555555)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if (isUserLoggedIn) {
+            if (showScheduleLabel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(headerColor, RoundedCornerShape(12.dp))
-                        .border(1.dp, Color.Black.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -131,7 +131,7 @@ fun RoomCard(
                             text = scheduleText,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -144,8 +144,8 @@ fun RoomCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FeatureChip(
                     text = "Cap: ${room.capacity ?: 0}",
-                    background = LightYellow,
-                    borderColor = Color(0xFF8F8A30)
+                    background = MaterialTheme.colorScheme.surface,
+                    borderColor = MaterialTheme.colorScheme.onSurface
                 )
                 extraUtilities.take(2).forEach { utility ->
                     FeatureChip(text = utility)

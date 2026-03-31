@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,12 +51,46 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.andespace.AssetIcon
-import com.example.andespace.data.model.dto.CreateBookingRequest
-import com.example.andespace.data.model.dto.RoomTimeWindowDto
+import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.RoomTimeWindowDto
+import com.example.andespace.ui.detailRoom.DetailRoomUiState
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+@Composable
+fun LoadMakeBookingScreen(
+    detailRoomUiState: DetailRoomUiState,
+    bookingsUiState: BookingsUIState,
+    onDateChange: (String) -> Unit,
+    onCreateBooking: (CreateBookingRequest) -> Unit,
+    onBookingCreatedConsumed: () -> Unit,
+    onBookingCreatedNavigate: () -> Unit
+) {
+    val room = detailRoomUiState.room
+    val roomId = room?.id ?: ""
+    val date = detailRoomUiState.selectedDate ?: ""
+    val windows = room?.matchingWindows.orEmpty()
+
+    if (bookingsUiState.bookingCreatedSuccess) {
+        LaunchedEffect(Unit) {
+            onBookingCreatedConsumed()
+            onBookingCreatedNavigate()
+        }
+    }
+
+    LoadMakeBookingContent(
+        roomId = roomId,
+        selectedDate = date,
+        availableWindows = windows,
+        isLoadingSlots = detailRoomUiState.isLoadingAvailability,
+        isCreating = bookingsUiState.isCreating,
+        errorMessage = bookingsUiState.createError,
+        onDateChanged = onDateChange,
+        onBook = onCreateBooking
+    )
+}
 
 private fun formatSlotLabel(window: RoomTimeWindowDto): String {
     val start = window.start?.take(5) ?: "?"
@@ -77,7 +112,7 @@ private fun millisToApiDate(millis: Long): String {
 }
 
 @Composable
-fun MakeBookingScreen(
+private fun LoadMakeBookingContent(
     roomId: String,
     selectedDate: String,
     availableWindows: List<RoomTimeWindowDto>,
@@ -166,8 +201,8 @@ fun MakeBookingScreen(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-                    .background(Color.White)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .height(40.dp)
                     .padding(horizontal = 12.dp)
                     .clickable { showDatePicker = true },
@@ -177,7 +212,7 @@ fun MakeBookingScreen(
                 Text(
                     text = selectedDate,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 AssetIcon(
                     assetPath = "icons/schedule.svg",
@@ -191,8 +226,8 @@ fun MakeBookingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .border(1.dp, Color(0xFFE8E8E8), RoundedCornerShape(10.dp))
-                        .background(Color.White)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .height(40.dp)
                         .padding(horizontal = 12.dp)
                         .clickable(enabled = availableWindows.isNotEmpty() && !isLoadingSlots) {
@@ -209,7 +244,7 @@ fun MakeBookingScreen(
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (availableWindows.isEmpty() && !isLoadingSlots)
-                            Color(0xFF999999)
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         else
                             MaterialTheme.colorScheme.onBackground
                     )
@@ -266,15 +301,15 @@ fun MakeBookingScreen(
                     selected = purpose == value,
                     onClick = { purpose = value },
                     colors = RadioButtonDefaults.colors(
-                        selectedColor = Color.Black,
-                        unselectedColor = Color.Black
+                        selectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = label,
                     fontSize = 15.sp,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -297,7 +332,7 @@ fun MakeBookingScreen(
                     peopleCount = value
                 }
             },
-            placeholder = { Text("Min. 1 – Max. 30") },
+            placeholder = { Text("Min. 1 - Max. 30") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             shape = RoundedCornerShape(8.dp),

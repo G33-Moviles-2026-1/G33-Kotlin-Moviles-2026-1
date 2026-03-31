@@ -39,7 +39,7 @@ class AuthViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Unknown authentication error"
+                        errorMessage = error.message ?: "Something went wrong. Please try again."
                     )
                 }
             }
@@ -62,7 +62,7 @@ class AuthViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Unknown registration error"
+                        errorMessage = error.message ?: "Something went wrong. Please try again."
                     )
                 }
             }

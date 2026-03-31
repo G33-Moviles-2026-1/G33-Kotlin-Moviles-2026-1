@@ -1,10 +1,11 @@
 package com.example.andespace.ui.results
 
-import com.example.andespace.data.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomDto
 
 data class ResultsUiState(
     val isSearching: Boolean = false,
     val rooms: List<RoomDto> = emptyList(),
+    val hasUploadedSchedule: Boolean = false,
     val errorMessage: String? = null,
     val selectedSearchDate: String? = null,
     val selectedRoom: RoomDto? = null,

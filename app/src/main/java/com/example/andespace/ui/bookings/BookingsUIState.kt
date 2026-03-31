@@ -1,6 +1,6 @@
 package com.example.andespace.ui.bookings
 
-import com.example.andespace.data.model.dto.BookingDto
+import com.example.andespace.model.dto.BookingDto
 
 enum class BookingsContentScreen {
     LIST,

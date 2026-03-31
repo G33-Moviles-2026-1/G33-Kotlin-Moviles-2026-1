@@ -16,6 +16,5 @@ enum class AppDestinations(
     SCHEDULE("My Schedule", assetIconPath = "icons/schedule.svg"),
     HISTORY("History", assetIconPath = "icons/history.svg"),
     LOGIN("Log In", icon = Icons.Default.Lock),
-    REGISTER("Register", icon = Icons.Default.PersonAdd),
-    HOME("Home", icon = Icons.Default.PersonAdd)
+    REGISTER("Register", icon = Icons.Default.PersonAdd)
 }
