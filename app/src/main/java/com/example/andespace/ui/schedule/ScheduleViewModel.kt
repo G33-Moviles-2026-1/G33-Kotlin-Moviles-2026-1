@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AppRepository
+import com.example.andespace.model.schedule.ManualClassIn
+import com.example.andespace.model.schedule.ManualScheduleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -90,5 +92,71 @@ class ScheduleViewModel(
 
     fun clearScheduleData() {
         _uiState.update { ScheduleUiState() }
+    }
+
+    fun onClassTitleChange(title: String) {
+        _uiState.update { it.copy(classTitle = title) }
+    }
+
+    fun onClassRoomChange(room: String) {
+        _uiState.update { it.copy(classRoom = room) }
+    }
+
+
+    fun onStartDateChange(date: String) { _uiState.update { it.copy(startDate = date) } }
+    fun onEndDateChange(date: String) { _uiState.update { it.copy(endDate = date) } }
+    fun onStartTimeChange(time: String) { _uiState.update { it.copy(startTime = time) } }
+    fun onEndTimeChange(time: String) { _uiState.update { it.copy(endTime = time) } }
+
+    fun toggleWeekday(day: String) {
+        _uiState.update { currentState ->
+            val currentDays = currentState.selectedDays.toMutableSet()
+            if (currentDays.contains(day)) {
+                currentDays.remove(day)
+            } else {
+                currentDays.add(day)
+            }
+            currentState.copy(selectedDays = currentDays)
+        }
+    }
+
+
+    fun uploadManualSchedule(onSuccess: () -> Unit) {
+        val state = _uiState.value
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val manualClass = ManualClassIn(
+                title = state.classTitle,
+                room_id = state.classRoom.ifBlank { null },
+                start_date = state.startDate.ifBlank { "2026-03-16" },
+                end_date = state.endDate.ifBlank { "2026-06-16" },
+                start_time = state.startTime.ifBlank { "08:00" },
+                end_time = state.endTime.ifBlank { "09:30" },
+                weekdays = state.selectedDays.toList()
+            )
+
+            val payload = ManualScheduleIn(classes = listOf(manualClass))
+
+
+            try {
+
+                //val result = repository.uploadManualSchedule(payload)
+
+                _uiState.update { it.copy(isLoading = false, hasSchedule = true) }
+                onSuccess()
+
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to add class") }
+            }
+        }
+    }
+
+    fun showAddClassScreen() {
+        _uiState.update { it.copy(isAddingManualClass = true) }
+    }
+
+    fun hideAddClassScreen() {
+        _uiState.update { it.copy(isAddingManualClass = false) }
     }
 }

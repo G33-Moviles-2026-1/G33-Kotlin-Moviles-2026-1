@@ -9,6 +9,7 @@ import com.example.andespace.model.dto.RoomAvailabilityResponse
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.UserFreeSlotsResponse
+import com.example.andespace.model.schedule.ManualScheduleIn
 import com.example.andespace.model.schedule.WeeklyScheduleOut
 import okhttp3.MultipartBody
 import retrofit2.Response
@@ -86,4 +87,8 @@ interface ApiService {
     suspend fun getWeeklySchedule(
         @Query("date") date: String? = null
     ): Response<WeeklyScheduleOut>
+
+    @POST("schedule/upload/manual")
+    suspend fun uploadManualSchedule(@Body payload: ManualScheduleIn): Response<Any>
 }
+

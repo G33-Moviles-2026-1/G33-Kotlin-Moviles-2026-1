@@ -25,6 +25,19 @@ fun MainScheduleScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
 
+            uiState.isAddingManualClass -> {
+                AddClassScreen(
+                    viewModel = scheduleViewModel,
+                    onBackClick = {
+                        scheduleViewModel.hideAddClassScreen()
+                    },
+                    onClassAdded = {
+                        scheduleViewModel.hideAddClassScreen()
+                        scheduleViewModel.loadSchedule()
+                    }
+                )
+            }
+
             uiState.hasSchedule -> {
                 ViewScheduleScreen(viewModel = scheduleViewModel)
             }
@@ -34,6 +47,9 @@ fun MainScheduleScreen(
                     viewModel = scheduleViewModel,
                     onScheduleLoaded = {
                         scheduleViewModel.loadSchedule()
+                    } ,
+                    onLoadManuallyClick = {
+                        scheduleViewModel.showAddClassScreen()
                     }
                 )
             }

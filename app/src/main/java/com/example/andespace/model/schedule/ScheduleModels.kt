@@ -16,3 +16,16 @@ data class ScheduleClassOccurrenceOut(
     val start_time: String,
     val end_time: String
 )
+
+data class ManualClassIn(
+    val title: String,
+    val room_id: String?,
+    val start_date: String,
+    val end_date: String,
+    val start_time: String,
+    val end_time: String,
+    val weekdays: List<String>
+)
+data class ManualScheduleIn(
+    val classes: List<ManualClassIn>
+)
