@@ -46,6 +46,10 @@ fun MainClassroomsScreen(
         }
     }
 
+    val onDetailFavoriteClick: (() -> Unit)? = detailRoomUiState.room?.let { room ->
+        { if (isUserLoggedIn) favoritesViewModel.toggleFavorite(room) else onRequireLogin() }
+    }
+
     LoadClassroomsScreen(
         contentScreen = homepageState.contentScreen,
         isUserLoggedIn = isUserLoggedIn,
@@ -55,6 +59,7 @@ fun MainClassroomsScreen(
         bookingsUiState = bookingsUiState,
         favoriteIds = favoritesUiState.favoriteIds,
         onFavoriteClick = onFavoriteClick,
+        onDetailFavoriteClick = onDetailFavoriteClick,
         onSearchClick = { params ->
             resultsViewModel.onSearchClick(
                 params = params,

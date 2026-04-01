@@ -17,9 +17,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -37,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.andespace.model.RoomUtility
@@ -54,6 +54,8 @@ fun LoadRoomDetailScreen(
     selectedDate: String?,
     isLoadingAvailability: Boolean,
     availabilityError: String?,
+    isFavorite: Boolean = false,
+    onFavoriteClick: (() -> Unit)? = null,
     onDateChange: (String) -> Unit,
     onBookRoom: () -> Unit = {},
 ) {
@@ -154,10 +156,12 @@ fun LoadRoomDetailScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
-                /*Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SmallIconButton(icon = Icons.Default.ErrorOutline)
-                    SmallIconButton(icon = Icons.Default.FavoriteBorder)
-                }*/
+                if (onFavoriteClick != null) {
+                    SmallIconButton(
+                        isFavorite = isFavorite,
+                        onClick = onFavoriteClick
+                    )
+                }
             }
         }
 
@@ -318,17 +322,23 @@ fun LoadRoomDetailScreen(
 }
 
 @Composable
-private fun SmallIconButton(icon: ImageVector) {
+private fun SmallIconButton(
+    isFavorite: Boolean,
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .size(48.dp)
-            .border(1.dp, Color.Black, RoundedCornerShape(12.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null
-        )
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 

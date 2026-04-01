@@ -63,6 +63,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation(libs.play.services.basement)
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation(libs.androidx.ui.graphics)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

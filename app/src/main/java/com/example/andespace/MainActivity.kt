@@ -173,6 +173,7 @@ fun AndeSpaceApp(
                         viewModel.onLogin()
                         bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.checkScheduleStatus()
+                        favoritesViewModel.refreshFromBackend()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     },
                     onNavigateToRegister = {
@@ -185,6 +186,7 @@ fun AndeSpaceApp(
                         viewModel.onLogin()
                         bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.clearScheduleData()
+                        favoritesViewModel.refreshFromBackend()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     },
                     onNavigateToLogin = {

@@ -1,8 +1,10 @@
 package com.example.andespace.data.network
 
+import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.GetFavoritesResponse
 import com.example.andespace.model.dto.MyBookingsResponse
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.example.andespace.model.dto.RoomAvailabilityResponse
@@ -86,4 +88,13 @@ interface ApiService {
     suspend fun getWeeklySchedule(
         @Query("date") date: String? = null
     ): Response<WeeklyScheduleOut>
+
+    @POST("favorites/")
+    suspend fun addFavorite(@Body request: AddFavoriteRequest): Response<Unit>
+
+    @GET("favorites/mine")
+    suspend fun getMyFavorites(): Response<GetFavoritesResponse>
+
+    @DELETE("favorites/{roomId}")
+    suspend fun deleteFavorite(@Path("roomId") roomId: String): Response<Unit>
 }
