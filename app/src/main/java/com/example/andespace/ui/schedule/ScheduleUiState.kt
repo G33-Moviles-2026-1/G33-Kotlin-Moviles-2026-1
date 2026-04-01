@@ -1,5 +1,6 @@
 package com.example.andespace.ui.schedule
 
+import com.example.andespace.model.schedule.DayRoomRecommendationsOut
 import com.example.andespace.model.schedule.WeeklyScheduleOut
 
 data class ScheduleUiState(
@@ -15,4 +16,6 @@ data class ScheduleUiState(
     val endTime: String = "",
     val selectedDays: Set<String> = emptySet(),
     val isAddingManualClass: Boolean = false,
+    val isShowingRecommendations: Boolean = false,
+    val recommendationsData: DayRoomRecommendationsOut? = null
 )

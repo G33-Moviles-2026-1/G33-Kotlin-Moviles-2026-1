@@ -12,7 +12,7 @@ object NetworkModule {
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("https://g33-backend-moviles-2026-1.onrender.com")
+        .baseUrl("http://192.168.20.33:8000")
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()

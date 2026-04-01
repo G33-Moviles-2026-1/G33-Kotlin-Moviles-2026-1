@@ -38,8 +38,20 @@ fun MainScheduleScreen(
                 )
             }
 
+            uiState.isShowingRecommendations -> {
+                RecommendedRoomsScreen(
+                    viewModel = scheduleViewModel,
+                    onBackClick = { scheduleViewModel.hideRecommendations() }
+                )
+            }
+
             uiState.hasSchedule -> {
-                ViewScheduleScreen(viewModel = scheduleViewModel)
+                ViewScheduleScreen(viewModel = scheduleViewModel,
+                    onManuallyAddClick = {
+                        scheduleViewModel.showAddClassScreen()
+                    },
+                    onDeleteScheduleClick = {scheduleViewModel.deleteSchedule()}
+                )
             }
 
             else -> {

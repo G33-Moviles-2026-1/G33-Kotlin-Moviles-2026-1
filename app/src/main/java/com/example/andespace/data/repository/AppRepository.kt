@@ -18,6 +18,8 @@ import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.LoginRequest
 import com.example.andespace.data.network.NetworkModule
 import com.example.andespace.data.network.RegisterRequest
+import com.example.andespace.model.schedule.ManualScheduleIn
+import com.example.andespace.model.schedule.ScheduleClassesOut
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -26,6 +28,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.example.andespace.model.schedule.DayRoomRecommendationsOut
 
 class AppRepository {
     private val apiService: ApiService = NetworkModule.apiService
@@ -47,7 +50,7 @@ class AppRepository {
                     extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
@@ -62,7 +65,7 @@ class AppRepository {
                     extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
@@ -78,7 +81,7 @@ class AppRepository {
                     extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
@@ -88,7 +91,7 @@ class AppRepository {
             apiService.logout()
             NetworkModule.cookieJar.clearCookies()
             Result.success(true)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             NetworkModule.cookieJar.clearCookies()
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
@@ -103,7 +106,7 @@ class AppRepository {
                     jsonObject.has("message") -> jsonObject.getString("message")
                     else -> httpErrorMessage(defaultCode)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 httpErrorMessage(defaultCode)
             }
         }
@@ -251,7 +254,7 @@ class AppRepository {
                 screen = screenName
             )
             apiService.trackAnalyticsEvent(payload)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
         }
     }
 
@@ -267,7 +270,7 @@ class AppRepository {
             } else {
                 Result.failure(Exception(httpErrorMessage(response.code())))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
@@ -292,7 +295,7 @@ class AppRepository {
                 } else {
                     Result.failure(Exception(httpErrorMessage(response.code())))
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 Result.failure(Exception("No internet connection. Please check your network and try again."))
             }
         }
@@ -343,21 +346,13 @@ class AppRepository {
         }
     }
 
-    suspend fun getWeeklySchedule(): Result<WeeklyScheduleOut> {
-        return try {
-            val response = apiService.getWeeklySchedule()
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
-            } else {
-                val backendMessage =
-                    extractErrorMessage(response.errorBody()?.string(), response.code())
-                Result.failure(ApiException(backendMessage))
-            }
-        } catch (e: Exception) {
-            Result.failure(ApiException("No internet connection. Could not load the schedule."))
+    suspend fun getWeeklySchedule(date: String? = null): WeeklyScheduleOut {
+        val response = apiService.getWeeklySchedule(date)
+        if (!response.isSuccessful) {
+            throw Exception("Error ${response.code()}: Failed to fetch schedule")
         }
+        return response.body() ?: throw Exception("Empty schedule body")
     }
-
     suspend fun deleteBooking(bookingId: String): Result<Boolean> =
         withContext(Dispatchers.IO) {
             try {
@@ -387,7 +382,7 @@ class AppRepository {
                     extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.failure(ApiException("No internet connection. Please check your network and try again."))
         }
     }
@@ -415,9 +410,47 @@ class AppRepository {
                     extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.failure(ApiException("No internet connection. Could not upload the file."))
         }
+    }
+    suspend fun uploadManualSchedule(payload: ManualScheduleIn) {
+        val response = apiService.uploadManualSchedule(payload)
+        if (!response.isSuccessful) {
+            throw Exception("Error ${response.code()}: Failed to upload schedule")
+        }
+    }
+
+    suspend fun getScheduleClasses(): ScheduleClassesOut {
+        val response = apiService.getScheduleClasses()
+        if (response.isSuccessful) {
+            return response.body() ?: ScheduleClassesOut(emptyList())
+        }
+        return ScheduleClassesOut(emptyList())
+    }
+
+    suspend fun deleteSchedule() {
+        val response = apiService.deleteSchedule()
+        if (!response.isSuccessful) {
+            throw Exception("Error ${response.code()}: Failed to delete schedule")
+        }
+    }
+
+    suspend fun deleteClass(classId: String) {
+        val response = apiService.deleteClass(classId)
+        if (!response.isSuccessful) {
+            val errorDetails = response.errorBody()?.string()
+            println("FASTAPI DELETE CLASS ERROR: $errorDetails")
+            throw Exception("Error ${response.code()}: Failed to delete class")
+        }
+    }
+
+    suspend fun getRoomRecommendationsForDay(date: String): DayRoomRecommendationsOut {
+        val response = apiService.getRoomRecommendationsForDay(date)
+        if (!response.isSuccessful) {
+            throw Exception("Error ${response.code()}: Failed to fetch recommendations")
+        }
+        return response.body() ?: throw Exception("Empty recommendations body")
     }
 }
 

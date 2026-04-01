@@ -72,7 +72,7 @@ fun LoadScheduleScreen(
                 text = "Upload ICS",
                 iconResId = R.drawable.ic_file,
                 iconPosition = IconPosition.START,
-                onClick = {filePickerLauncher.launch("*/*")}
+                onClick = {filePickerLauncher.launch("text/calendar")}
             )
 
             Spacer(modifier = Modifier.height(16.dp))

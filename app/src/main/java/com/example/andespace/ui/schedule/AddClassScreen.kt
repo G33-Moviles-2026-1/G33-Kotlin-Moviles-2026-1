@@ -19,11 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.andespace.R
 import com.example.andespace.ui.components.CustomYellowButton
 import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -122,7 +124,7 @@ fun AddClassScreen(
                         DatePickerDialog(
                             context,
                             { _, year, month, dayOfMonth ->
-                                val dateStr = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)
+                                val dateStr = String.format(Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth)
                                 viewModel.onStartDateChange(dateStr)
                             },
                             calendar.get(Calendar.YEAR),
@@ -157,7 +159,7 @@ fun AddClassScreen(
                         DatePickerDialog(
                             context,
                             { _, year, month, dayOfMonth ->
-                                val dateStr = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)
+                                val dateStr = String.format(Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth)
                                 viewModel.onEndDateChange(dateStr)
                             },
                             calendar.get(Calendar.YEAR),
@@ -203,7 +205,7 @@ fun AddClassScreen(
                         TimePickerDialog(
                             context,
                             { _, hourOfDay, minute ->
-                                val timeStr = String.format("%02d:%02d", hourOfDay, minute)
+                                val timeStr = String.format(Locale.US, "%02d:%02d", hourOfDay, minute)
                                 viewModel.onStartTimeChange(timeStr)
                             },
                             calendar.get(Calendar.HOUR_OF_DAY),
@@ -238,7 +240,7 @@ fun AddClassScreen(
                         TimePickerDialog(
                             context,
                             { _, hourOfDay, minute ->
-                                val timeStr = String.format("%02d:%02d", hourOfDay, minute)
+                                val timeStr = String.format(Locale.US, "%02d:%02d", hourOfDay, minute)
                                 viewModel.onEndTimeChange(timeStr)
                             },
                             calendar.get(Calendar.HOUR_OF_DAY),
@@ -306,6 +308,18 @@ fun AddClassScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            if (uiState.errorMessage != null) {
+                Text(
+                    text = uiState.errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                )
+            }
 
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
