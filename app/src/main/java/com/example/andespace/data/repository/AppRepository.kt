@@ -4,10 +4,12 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.UserLocation
 import com.example.andespace.model.dto.RoomSearchResponse
@@ -384,6 +386,73 @@ class AppRepository {
             }
         } catch (_: Exception) {
             Result.failure(ApiException("No internet connection. Please check your network and try again."))
+        }
+    }
+
+    suspend fun getMyFavorites(): Result<List<RoomDto>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "getMyFavorites -> fetching from backend")
+                val response = apiService.getMyFavorites()
+                Log.d(TAG, "getMyFavorites code=${response.code()}, ok=${response.isSuccessful}")
+                if (response.isSuccessful) {
+                    val items = response.body()?.items ?: emptyList()
+                    val rooms = items.mapNotNull { it.toRoomDto() }
+                    Log.d(TAG, "getMyFavorites -> parsed ${rooms.size} rooms: ${rooms.map { it.id }}")
+                    Result.success(rooms)
+                } else {
+                    val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
+                    Log.e(TAG, "getMyFavorites failed: $msg")
+                    Result.failure<List<RoomDto>>(ApiException(msg))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "getMyFavorites exception: ${e.message}", e)
+                Result.failure<List<RoomDto>>(Exception("No internet connection. Please check your network and try again."))
+            }
+        }
+    }
+
+    suspend fun addFavorite(room: RoomDto): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val request = AddFavoriteRequest(
+                roomId = room.id,
+                name = room.name,
+                building = room.building,
+                buildingCode = room.buildingCode,
+                capacity = room.capacity,
+                utilities = room.utilities
+            )
+            Log.d(TAG, "addFavorite -> roomId=${room.id}, url=${NetworkModule.apiService}")
+            val response = apiService.addFavorite(request)
+            Log.d(TAG, "addFavorite response code=${response.code()}, successful=${response.isSuccessful}")
+            if (response.isSuccessful || response.code() == 201) {
+                Result.success(true)
+            } else {
+                val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
+                Log.e(TAG, "addFavorite failed: $msg")
+                Result.failure(ApiException(msg))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "addFavorite exception: ${e.message}", e)
+            Result.failure(Exception("No internet connection. Please check your network and try again."))
+        }
+    }
+
+    suspend fun deleteFavorite(roomId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "deleteFavorite -> roomId=$roomId")
+            val response = apiService.deleteFavorite(roomId)
+            Log.d(TAG, "deleteFavorite response code=${response.code()}, successful=${response.isSuccessful}")
+            if (response.isSuccessful || response.code() == 204) {
+                Result.success(true)
+            } else {
+                val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
+                Log.e(TAG, "deleteFavorite failed: $msg")
+                Result.failure(ApiException(msg))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteFavorite exception: ${e.message}", e)
+            Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
 
