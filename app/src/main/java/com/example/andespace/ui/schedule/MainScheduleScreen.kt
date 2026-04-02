@@ -9,10 +9,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.andespace.model.schedule.RecommendedRoomOut
 
 @Composable
 fun MainScheduleScreen(
-    scheduleViewModel: ScheduleViewModel
+    scheduleViewModel: ScheduleViewModel,
+    onNavigateToRoomDetail: (RecommendedRoomOut) -> Unit
 ) {
     val uiState by scheduleViewModel.uiState.collectAsState()
 
@@ -41,7 +43,8 @@ fun MainScheduleScreen(
             uiState.isShowingRecommendations -> {
                 RecommendedRoomsScreen(
                     viewModel = scheduleViewModel,
-                    onBackClick = { scheduleViewModel.hideRecommendations() }
+                    onBackClick = { scheduleViewModel.hideRecommendations()},
+                    onRoomClick =  onNavigateToRoomDetail
                 )
             }
 
