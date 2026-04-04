@@ -9,10 +9,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.andespace.model.schedule.RecommendedRoomOut
 
 @Composable
 fun MainScheduleScreen(
-    scheduleViewModel: ScheduleViewModel
+    scheduleViewModel: ScheduleViewModel,
+    onNavigateToRoomDetail: (RecommendedRoomOut) -> Unit
 ) {
     val uiState by scheduleViewModel.uiState.collectAsState()
 
@@ -25,8 +27,34 @@ fun MainScheduleScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
 
+            uiState.isAddingManualClass -> {
+                AddClassScreen(
+                    viewModel = scheduleViewModel,
+                    onBackClick = {
+                        scheduleViewModel.hideAddClassScreen()
+                    },
+                    onClassAdded = {
+                        scheduleViewModel.hideAddClassScreen()
+                        scheduleViewModel.loadSchedule()
+                    }
+                )
+            }
+
+            uiState.isShowingRecommendations -> {
+                RecommendedRoomsScreen(
+                    viewModel = scheduleViewModel,
+                    onBackClick = { scheduleViewModel.hideRecommendations()},
+                    onRoomClick =  onNavigateToRoomDetail
+                )
+            }
+
             uiState.hasSchedule -> {
-                ViewScheduleScreen(viewModel = scheduleViewModel)
+                ViewScheduleScreen(viewModel = scheduleViewModel,
+                    onManuallyAddClick = {
+                        scheduleViewModel.showAddClassScreen()
+                    },
+                    onDeleteScheduleClick = {scheduleViewModel.deleteSchedule()}
+                )
             }
 
             else -> {
@@ -34,6 +62,9 @@ fun MainScheduleScreen(
                     viewModel = scheduleViewModel,
                     onScheduleLoaded = {
                         scheduleViewModel.loadSchedule()
+                    } ,
+                    onLoadManuallyClick = {
+                        scheduleViewModel.showAddClassScreen()
                     }
                 )
             }

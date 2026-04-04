@@ -24,7 +24,8 @@ import com.example.andespace.ui.components.IconPosition
 @Composable
 fun LoadScheduleScreen(
     viewModel: ScheduleViewModel,
-    onScheduleLoaded: () -> Unit = {}
+    onScheduleLoaded: () -> Unit = {},
+    onLoadManuallyClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -68,10 +69,19 @@ fun LoadScheduleScreen(
         }
         else{
             CustomIconButton(
-                text = ".ics File",
+                text = "Upload ICS",
                 iconResId = R.drawable.ic_file,
                 iconPosition = IconPosition.START,
-                onClick = {filePickerLauncher.launch("*/*")}
+                onClick = {filePickerLauncher.launch("text/calendar")}
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            CustomIconButton(
+                text = "Upload Manually",
+                iconResId = R.drawable.ic_manual,
+                iconPosition = IconPosition.START,
+                onClick = onLoadManuallyClick
             )
 
             Spacer(modifier = Modifier.height(16.dp))

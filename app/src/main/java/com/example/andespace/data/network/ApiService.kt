@@ -11,6 +11,9 @@ import com.example.andespace.model.dto.RoomAvailabilityResponse
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.UserFreeSlotsResponse
+import com.example.andespace.model.schedule.DayRoomRecommendationsOut
+import com.example.andespace.model.schedule.ManualScheduleIn
+import com.example.andespace.model.schedule.ScheduleClassesOut
 import com.example.andespace.model.schedule.WeeklyScheduleOut
 import okhttp3.MultipartBody
 import retrofit2.Response
@@ -78,7 +81,7 @@ interface ApiService {
     @DELETE("bookings/{bookingId}")
     suspend fun deleteBooking(@Path("bookingId") bookingId: String): Response<Unit>
     @GET("schedule/classes")
-    suspend fun getScheduleClasses(): Response<Any>
+    suspend fun getScheduleClasses(): Response<ScheduleClassesOut>
 
     @Multipart
     @POST("schedule/upload/ics")
@@ -89,6 +92,24 @@ interface ApiService {
         @Query("date") date: String? = null
     ): Response<WeeklyScheduleOut>
 
+    @POST("schedule/upload/manual")
+    suspend fun uploadManualSchedule(
+        @Body payload: ManualScheduleIn
+    ): Response<Any>
+
+    @DELETE("schedule/")
+    suspend fun deleteSchedule(): Response<Any>
+
+    @DELETE("schedule/class/{class_id}")
+    suspend fun deleteClass(
+        @Path("class_id") classId: String
+    ): Response<Any>
+
+    @GET("schedule/recommendations/day")
+    suspend fun getRoomRecommendationsForDay(
+        @Query("date") date: String
+    ): Response<DayRoomRecommendationsOut>
+
     @POST("favorites/")
     suspend fun addFavorite(@Body request: AddFavoriteRequest): Response<Unit>
 
@@ -98,3 +119,4 @@ interface ApiService {
     @DELETE("favorites/{roomId}")
     suspend fun deleteFavorite(@Path("roomId") roomId: String): Response<Unit>
 }
+

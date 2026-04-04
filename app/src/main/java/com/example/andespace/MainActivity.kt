@@ -36,6 +36,7 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.andespace.model.AppDestinations
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.MainViewModel
 import com.example.andespace.ui.ThemeMode
 import com.example.andespace.ui.auth.LoginScreen
@@ -222,7 +223,26 @@ fun AndeSpaceApp(
 
                 AppDestinations.SCHEDULE -> {
                     if (uiState.isLoggedIn) {
-                        MainScheduleScreen(scheduleViewModel = scheduleViewModel)
+                        MainScheduleScreen(
+                            scheduleViewModel = scheduleViewModel,
+                            onNavigateToRoomDetail = { recommendedRoom ->
+                                val mappedRoom = RoomDto(
+                                    id = recommendedRoom.room_id,
+                                    name = recommendedRoom.room_id,
+                                    building = recommendedRoom.building_name,
+                                    capacity = recommendedRoom.capacity,
+                                    utilities = emptyList(),
+                                    availableSince = null,
+                                    availableUntil = null,
+                                    waitSeconds = null,
+                                    matchingWindows = emptyList(),
+                                    availabilityStatus = null
+                                )
+                                detailRoomViewModel.setRoom(mappedRoom)
+                                homepageViewModel.onShowRoomDetailScreen()
+                                viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                            }
+                        )
                     } else {
                         viewModel.onDestinationChanged(AppDestinations.LOGIN)
                     }
