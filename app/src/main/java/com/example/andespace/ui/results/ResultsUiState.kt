@@ -11,5 +11,6 @@ data class ResultsUiState(
     val selectedRoom: RoomDto? = null,
     val resultsPageSize: Int = 20,
     val currentPage: Int = 1,
-    val totalPages: Int = 1
+    val totalPages: Int = 1,
+    val showingCachedResults: Boolean = false
 )

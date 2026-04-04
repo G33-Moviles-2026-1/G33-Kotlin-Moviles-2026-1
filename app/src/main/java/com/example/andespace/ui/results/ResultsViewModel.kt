@@ -23,8 +23,21 @@ class ResultsViewModel(
 
     private var lastSearchParams: HomeSearchParams? = null
 
+    private var cachedParams: HomeSearchParams? = null
+    private var cachedTotalPages: Int = 1
+    private var cachedHasUploadedSchedule: Boolean = false
+    private val cachedPages = mutableMapOf<Int, List<RoomDto>>()
+
+    private fun clearCache() {
+        cachedParams = null
+        cachedTotalPages = 1
+        cachedHasUploadedSchedule = false
+        cachedPages.clear()
+    }
+
     fun onSearchClick(params: HomeSearchParams, isUserLoggedIn: Boolean) {
         lastSearchParams = params
+        clearCache()
         requestSearchPage(params = params, page = 1, isUserLoggedIn = isUserLoggedIn, trackEvent = true)
     }
 
@@ -107,6 +120,12 @@ class ResultsViewModel(
                             isUserLoggedIn = isUserLoggedIn
                         )
 
+                        cachedParams = params
+                        cachedTotalPages = pages
+                        cachedHasUploadedSchedule = enrichmentResult.hasUploadedSchedule
+                        cachedPages[page] = enrichmentResult.rooms
+                        Log.d(TAG, "requestSearchPage -> cached page $page (${enrichmentResult.rooms.size} rooms, total cached pages: ${cachedPages.size})")
+
                         _uiState.update {
                             it.copy(
                                 isSearching = false,
@@ -115,16 +134,35 @@ class ResultsViewModel(
                                 selectedSearchDate = params.date,
                                 currentPage = page,
                                 totalPages = pages,
-                                errorMessage = null
+                                errorMessage = null,
+                                showingCachedResults = false
                             )
                         }
                     },
                     onFailure = { error ->
-                        _uiState.update {
-                            it.copy(
-                                isSearching = false,
-                                errorMessage = friendlyError(error.message)
-                            )
+                        val cachedRooms = cachedPages[page]
+                        if (cachedRooms != null && cachedParams == params) {
+                            Log.d(TAG, "requestSearchPage -> no network, serving page $page from cache (${cachedRooms.size} rooms)")
+                            _uiState.update {
+                                it.copy(
+                                    isSearching = false,
+                                    rooms = cachedRooms,
+                                    hasUploadedSchedule = cachedHasUploadedSchedule,
+                                    selectedSearchDate = params.date,
+                                    currentPage = page,
+                                    totalPages = cachedTotalPages,
+                                    errorMessage = null,
+                                    showingCachedResults = true
+                                )
+                            }
+                        } else {
+                            _uiState.update {
+                                it.copy(
+                                    isSearching = false,
+                                    errorMessage = friendlyError(error.message),
+                                    showingCachedResults = false
+                                )
+                            }
                         }
                     }
                 )

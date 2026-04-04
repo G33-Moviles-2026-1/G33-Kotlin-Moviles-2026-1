@@ -18,8 +18,6 @@ fun MainFavoritesScreen(
 ) {
     val uiState by favoritesViewModel.uiState.collectAsState()
 
-    // Refresh from backend every time the user opens this screen.
-    // Shows DataStore cache immediately, then updates with the backend result.
     LaunchedEffect(Unit) {
         favoritesViewModel.refreshFromBackend()
     }
