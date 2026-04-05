@@ -43,15 +43,8 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    /**
-     * Fetches the authoritative list from the backend.
-     * - Shows DataStore cache immediately so the user sees something while the request is in flight.
-     * - On success: merges backend IDs with local full room data, updates state and DataStore.
-     * - On failure (no internet, etc.): keeps showing the DataStore cache.
-     */
     fun refreshFromBackend() {
         viewModelScope.launch {
-            // Show cached data right away so the screen is never blank while waiting
             val localRooms = readFromDataStore()
             Log.d(TAG, "refreshFromBackend -> local cache has ${localRooms.size} rooms")
             if (localRooms.isNotEmpty() && _uiState.value.favoriteRooms.isEmpty()) {
@@ -66,8 +59,6 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
             repository.getMyFavorites().fold(
                 onSuccess = { backendRooms ->
                     Log.d(TAG, "refreshFromBackend -> backend returned ${backendRooms.size} rooms: ${backendRooms.map { it.id }}")
-                    // For each ID from the backend, prefer the locally cached version
-                    // (which has full room data: name, building, etc.)
                     val localById = localRooms.associateBy { it.id }
                     val merged = backendRooms.map { backendRoom ->
                         localById[backendRoom.id] ?: backendRoom
@@ -82,7 +73,6 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
                 },
                 onFailure = { e ->
                     Log.e(TAG, "refreshFromBackend -> backend failed: ${e.message}")
-                    // Keep the DataStore cache already shown above; just ensure loading is off
                     _uiState.update { it.copy(isLoading = false) }
                 }
             )
@@ -93,7 +83,6 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
         val wasAlreadyFavorite = room.id in _uiState.value.favoriteIds
         Log.d(TAG, "toggleFavorite -> roomId=${room.id}, wasAlreadyFavorite=$wasAlreadyFavorite")
 
-        // Optimistic update: update UI and local cache immediately
         _uiState.update { state ->
             if (wasAlreadyFavorite) {
                 state.copy(
@@ -109,7 +98,6 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
         }
         persistFavorites()
 
-        // Sync change to backend in background
         viewModelScope.launch {
             if (wasAlreadyFavorite) {
                 repository.deleteFavorite(room.id)
@@ -123,11 +111,6 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    /**
-     * Called on logout. Clears in-memory state but keeps DataStore cache
-     * so the user sees their favorites instantly on the next login
-     * before refreshFromBackend() completes.
-     */
     fun clearFavorites() {
         Log.d(TAG, "clearFavorites -> clearing memory state")
         _uiState.value = FavoritesUiState(isLoading = false)

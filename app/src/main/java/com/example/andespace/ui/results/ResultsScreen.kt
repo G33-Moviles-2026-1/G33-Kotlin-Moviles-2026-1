@@ -31,6 +31,7 @@ fun ResultsScreen(
     errorMessage: String?,
     currentPage: Int,
     totalPages: Int,
+    showingCachedResults: Boolean = false,
     favoriteIds: Set<String> = emptySet(),
     onFavoriteClick: ((RoomDto) -> Unit)? = null,
     onRoomClick: (RoomDto) -> Unit,
