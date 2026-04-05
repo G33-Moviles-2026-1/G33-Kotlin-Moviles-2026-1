@@ -7,6 +7,7 @@ import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.BookingDto
+import com.example.andespace.data.repository.AnalyticsEventQueue
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.example.andespace.model.dto.RoomDto
@@ -38,6 +39,7 @@ class AppRepository {
 
     companion object {
         private const val TAG = "AppRepository"
+        private const val ANALYTICS_QUEUE_TAG = "AnalyticsQueue"
     }
 
 
@@ -179,15 +181,15 @@ class AppRepository {
 
     suspend fun trackHomeEvent(eventName: String) {
         withContext(Dispatchers.IO) {
+            val request = AnalyticsEventRequest(
+                sessionId = sessionId,
+                eventName = eventName,
+                screen = "home"
+            )
             try {
-                apiService.trackAnalyticsEvent(
-                    AnalyticsEventRequest(
-                        sessionId = sessionId,
-                        eventName = eventName,
-                        screen = "home"
-                    )
-                )
+                apiService.trackAnalyticsEvent(request)
             } catch (_: Exception) {
+                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
             }
         }
     }
@@ -199,22 +201,21 @@ class AppRepository {
         closeToMeUsed: Boolean
     ): Boolean {
         return withContext(Dispatchers.IO) {
-            try {
-                val response = apiService.trackAnalyticsEvent(
-                    AnalyticsEventRequest(
-                        sessionId = sessionId,
-                        eventName = "home_filters_opened",
-                        screen = "home",
-                        propsJson = mapOf(
-                            "place" to placeUsed,
-                            "time" to timeUsed,
-                            "utilities" to utilitiesUsed,
-                            "close_to_me" to closeToMeUsed
-                        )
-                    )
+            val request = AnalyticsEventRequest(
+                sessionId = sessionId,
+                eventName = "home_filters_opened",
+                screen = "home",
+                propsJson = mapOf(
+                    "place" to placeUsed,
+                    "time" to timeUsed,
+                    "utilities" to utilitiesUsed,
+                    "close_to_me" to closeToMeUsed
                 )
-                response.isSuccessful
+            )
+            try {
+                apiService.trackAnalyticsEvent(request).isSuccessful
             } catch (_: Exception) {
+                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
                 false
             }
         }
@@ -229,34 +230,66 @@ class AppRepository {
         if (utilities.isEmpty()) return false
 
         return withContext(Dispatchers.IO) {
+            val request = RoomGapSearchAnalyticsRequest(
+                sessionId = sessionId,
+                dateValue = dateValue,
+                gapStart = gapStart.toHhMmSs(),
+                gapEnd = gapEnd.toHhMmSs(),
+                utilities = utilities
+            )
             try {
-                val response = apiService.trackRoomGapSearch(
-                    RoomGapSearchAnalyticsRequest(
-                        sessionId = sessionId,
-                        dateValue = dateValue,
-                        gapStart = gapStart.toHhMmSs(),
-                        gapEnd = gapEnd.toHhMmSs(),
-                        utilities = utilities
-                    )
-                )
-                response.isSuccessful
+                apiService.trackRoomGapSearch(request).isSuccessful
             } catch (_: Exception) {
+                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.RoomGapSearch(request))
                 false
             }
         }
     }
 
-    suspend fun trackScreensTime(
-        screenName: String,
-    ) {
-        try {
-            val payload = AnalyticsEventRequest(
+    suspend fun trackScreensTime(screenName: String) {
+        withContext(Dispatchers.IO) {
+            val request = AnalyticsEventRequest(
                 sessionId = sessionId,
                 eventName = "open_screen_timestamp",
                 screen = screenName
             )
-            apiService.trackAnalyticsEvent(payload)
-        } catch (_: Exception) {
+            try {
+                apiService.trackAnalyticsEvent(request)
+            } catch (_: Exception) {
+                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
+            }
+        }
+    }
+
+    suspend fun flushPendingAnalytics() {
+        val events = AnalyticsEventQueue.drainAll()
+        if (events.isEmpty()) {
+            Log.d(ANALYTICS_QUEUE_TAG, "FLUSH: cola vacía, nada que enviar")
+            return
+        }
+        Log.d(ANALYTICS_QUEUE_TAG, "FLUSH: intentando enviar ${events.size} evento(s) pendiente(s)")
+        val failed = mutableListOf<AnalyticsEventQueue.PendingEvent>()
+        for (event in events) {
+            try {
+                when (event) {
+                    is AnalyticsEventQueue.PendingEvent.Generic -> {
+                        val r = apiService.trackAnalyticsEvent(event.request)
+                        if (!r.isSuccessful) failed.add(event)
+                    }
+                    is AnalyticsEventQueue.PendingEvent.RoomGapSearch -> {
+                        val r = apiService.trackRoomGapSearch(event.request)
+                        if (!r.isSuccessful) failed.add(event)
+                    }
+                }
+            } catch (_: Exception) {
+                failed.add(event)
+            }
+        }
+        val ok = events.size - failed.size
+        if (ok > 0) Log.d(ANALYTICS_QUEUE_TAG, "FLUSH: enviados OK al backend: $ok")
+        if (failed.isNotEmpty()) {
+            Log.w(ANALYTICS_QUEUE_TAG, "FLUSH: fallaron ${failed.size}, se vuelven a encolar")
+            failed.forEach { AnalyticsEventQueue.enqueue(it) }
         }
     }
 

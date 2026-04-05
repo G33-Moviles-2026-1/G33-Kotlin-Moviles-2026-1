@@ -54,11 +54,13 @@ import com.example.andespace.ui.schedule.ScheduleViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
 import com.example.andespace.ui.screen.HistoryScreen
+import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.ui.theme.AndeSpaceTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NetworkMonitor.register(applicationContext)
         enableEdgeToEdge()
         setContent {
             val mainViewModel: MainViewModel = viewModel()
