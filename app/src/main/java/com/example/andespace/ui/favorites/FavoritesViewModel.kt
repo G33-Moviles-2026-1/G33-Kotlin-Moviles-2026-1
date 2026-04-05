@@ -101,11 +101,17 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             if (wasAlreadyFavorite) {
                 repository.deleteFavorite(room.id)
-                    .onSuccess { Log.d(TAG, "deleteFavorite backend success: ${room.id}") }
+                    .onSuccess {
+                        Log.d(TAG, "deleteFavorite backend success: ${room.id}")
+                        repository.trackFavoriteEvent(room, added = false)
+                    }
                     .onFailure { Log.e(TAG, "deleteFavorite backend failed: ${room.id} -> ${it.message}") }
             } else {
                 repository.addFavorite(room)
-                    .onSuccess { Log.d(TAG, "addFavorite backend success: ${room.id}") }
+                    .onSuccess {
+                        Log.d(TAG, "addFavorite backend success: ${room.id}")
+                        repository.trackFavoriteEvent(room, added = true)
+                    }
                     .onFailure { Log.e(TAG, "addFavorite backend failed: ${room.id} -> ${it.message}") }
             }
         }

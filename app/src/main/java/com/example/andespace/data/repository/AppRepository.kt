@@ -40,6 +40,7 @@ class AppRepository {
     companion object {
         private const val TAG = "AppRepository"
         private const val ANALYTICS_QUEUE_TAG = "AnalyticsQueue"
+        const val ANALYTICS_EVENT_FAVORITE_SUBMITTED = "favorite_submitted"
     }
 
 
@@ -255,6 +256,31 @@ class AppRepository {
             )
             try {
                 apiService.trackAnalyticsEvent(request)
+            } catch (_: Exception) {
+                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
+            }
+        }
+    }
+
+    suspend fun trackFavoriteEvent(room: RoomDto, added: Boolean) {
+        withContext(Dispatchers.IO) {
+            val request = AnalyticsEventRequest(
+                sessionId = sessionId,
+                eventName = ANALYTICS_EVENT_FAVORITE_SUBMITTED,
+                screen = "favorites",
+                propsJson = mapOf(
+                    "room_id" to room.id,
+                    "room_name" to (room.name ?: ""),
+                    "building" to (room.building ?: ""),
+                    "building_code" to (room.buildingCode ?: ""),
+                    "action" to if (added) "add" else "remove"
+                )
+            )
+            try {
+                val r = apiService.trackAnalyticsEvent(request)
+                if (!r.isSuccessful) {
+                    AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
+                }
             } catch (_: Exception) {
                 AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
             }
