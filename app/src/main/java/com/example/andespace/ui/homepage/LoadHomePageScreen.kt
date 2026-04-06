@@ -69,9 +69,11 @@ import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.results.ResultsScreen
 import com.example.andespace.ui.theme.PrimaryYellow
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.Locale
-import java.util.TimeZone
 
 @Composable
 fun LoadHomePageScreen(
@@ -207,12 +209,9 @@ private fun LoadHomeSearchScreen(
 private fun formatTime(hour: Int, minute: Int): String =
     "%02d:%02d".format(hour, minute)
 
-private val dateDisplayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
-    timeZone = TimeZone.getTimeZone("UTC")
-}
-
+/** Material3 date millis are [LocalDate] at start-of-day in UTC (see CalendarModelImpl). */
 private fun formatDateMillis(millis: Long): String =
-    dateDisplayFormat.format(millis)
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
 
 @Composable
 private fun SearchCard(
@@ -232,7 +231,12 @@ private fun SearchCard(
 ) {
     val context = LocalContext.current
     var classroomInput by remember { mutableStateOf("") }
-    val initialDateMillis = remember { System.currentTimeMillis() }
+    val initialDateMillis = remember {
+        LocalDate.now(ZoneId.systemDefault())
+            .atStartOfDay(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli()
+    }
     var selectedDateMillis by remember { mutableStateOf(initialDateMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -287,26 +291,23 @@ private fun SearchCard(
         )
     }
     if (showDatePicker) {
-        val todayMillis = remember {
-            val cal = java.util.Calendar.getInstance()
-            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
-            cal.set(java.util.Calendar.MINUTE, 0)
-            cal.set(java.util.Calendar.SECOND, 0)
-            cal.set(java.util.Calendar.MILLISECOND, 0)
-            cal.timeInMillis
+        val (firstSelectable, lastSelectable) = remember(showDatePicker) {
+            val start = LocalDate.now(ZoneId.systemDefault())
+            start to start.plusDays(7)
         }
-        val maxDateMillis = remember { todayMillis + 7L * 24 * 60 * 60 * 1000 }
 
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = selectedDateMillis,
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                    return utcTimeMillis in todayMillis..maxDateMillis
+                    val picked = Instant.ofEpochMilli(utcTimeMillis)
+                        .atZone(ZoneOffset.UTC)
+                        .toLocalDate()
+                    return !picked.isBefore(firstSelectable) && !picked.isAfter(lastSelectable)
                 }
 
                 override fun isSelectableYear(year: Int): Boolean {
-                    val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-                    return year == currentYear
+                    return year in firstSelectable.year..lastSelectable.year
                 }
             }
         )
