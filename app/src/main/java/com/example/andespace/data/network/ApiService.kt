@@ -1,9 +1,30 @@
 package com.example.andespace.data.network
 
+import com.example.andespace.model.dto.AddFavoriteRequest
+import com.example.andespace.model.dto.AnalyticsEventRequest
+import com.example.andespace.model.dto.BookingDto
+import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.GetFavoritesResponse
+import com.example.andespace.model.dto.MyBookingsResponse
+import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
+import com.example.andespace.model.dto.RoomAvailabilityResponse
+import com.example.andespace.model.dto.RoomSearchRequest
+import com.example.andespace.model.dto.RoomSearchResponse
+import com.example.andespace.model.dto.UserFreeSlotsResponse
+import com.example.andespace.model.schedule.DayRoomRecommendationsOut
+import com.example.andespace.model.schedule.ManualScheduleIn
+import com.example.andespace.model.schedule.ScheduleClassesOut
+import com.example.andespace.model.schedule.WeeklyScheduleOut
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 data class LoginRequest(
     val email: String,
@@ -30,4 +51,72 @@ interface ApiService {
 
     @POST("logout/")
     suspend fun logout(): Response<Unit>
+
+    @POST("rooms/search")
+    suspend fun searchRooms(@Body body: RoomSearchRequest): Response<RoomSearchResponse>
+
+    @POST("analytics/events")
+    suspend fun trackAnalyticsEvent(@Body body: AnalyticsEventRequest): Response<Unit>
+
+    @POST("analytics/room-gap-search")
+    suspend fun trackRoomGapSearch(@Body body: RoomGapSearchAnalyticsRequest): Response<Unit>
+
+    @GET("rooms/{roomId}/availability")
+    suspend fun getRoomAvailability(
+        @Path("roomId") roomId: String,
+        @Query("date_value") dateValue: String
+    ): Response<RoomAvailabilityResponse>
+
+    @GET("schedule/free-slots")
+    suspend fun getUserFreeSlots(
+        @Query("date") date: String
+    ): Response<UserFreeSlotsResponse>
+
+    @GET("bookings/mine")
+    suspend fun getMyBookings(): Response<MyBookingsResponse>
+
+    @POST("bookings/")
+    suspend fun createBooking(@Body request: CreateBookingRequest): Response<BookingDto>
+
+    @DELETE("bookings/{bookingId}")
+    suspend fun deleteBooking(@Path("bookingId") bookingId: String): Response<Unit>
+    @GET("schedule/classes")
+    suspend fun getScheduleClasses(): Response<ScheduleClassesOut>
+
+    @Multipart
+    @POST("schedule/upload/ics")
+    suspend fun uploadIcsFile(@Part file: MultipartBody.Part): Response<Any>
+
+    @GET("schedule/week")
+    suspend fun getWeeklySchedule(
+        @Query("date") date: String? = null
+    ): Response<WeeklyScheduleOut>
+
+    @POST("schedule/upload/manual")
+    suspend fun uploadManualSchedule(
+        @Body payload: ManualScheduleIn
+    ): Response<Any>
+
+    @DELETE("schedule/")
+    suspend fun deleteSchedule(): Response<Any>
+
+    @DELETE("schedule/class/{class_id}")
+    suspend fun deleteClass(
+        @Path("class_id") classId: String
+    ): Response<Any>
+
+    @GET("schedule/recommendations/day")
+    suspend fun getRoomRecommendationsForDay(
+        @Query("date") date: String
+    ): Response<DayRoomRecommendationsOut>
+
+    @POST("favorites/")
+    suspend fun addFavorite(@Body request: AddFavoriteRequest): Response<Unit>
+
+    @GET("favorites/mine")
+    suspend fun getMyFavorites(): Response<GetFavoritesResponse>
+
+    @DELETE("favorites/{roomId}")
+    suspend fun deleteFavorite(@Path("roomId") roomId: String): Response<Unit>
 }
+

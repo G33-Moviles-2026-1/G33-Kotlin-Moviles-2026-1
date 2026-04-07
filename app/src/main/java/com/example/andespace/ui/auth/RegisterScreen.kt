@@ -22,7 +22,8 @@ import com.example.andespace.ui.components.CustomYellowButton
 @Composable
 fun RegisterScreen(
     authViewModel: AuthViewModel = viewModel(),
-    onRegisterSuccess: () -> Unit
+    onRegisterSuccess: () -> Unit,
+    onNavigateToLogin: () -> Unit = {}
 ) {
     val uiState by authViewModel.uiState.collectAsState()
     Column(

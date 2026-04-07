@@ -1,5 +1,10 @@
 package com.example.andespace
 
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,15 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,36 +36,88 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.andespace.model.AppDestinations
-import com.example.andespace.ui.components.AndeSpaceBottomBar
-import com.example.andespace.ui.components.AndeSpaceTopBar
-import com.example.andespace.ui.theme.AndeSpaceTheme
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.MainViewModel
+import com.example.andespace.ui.ThemeMode
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
-import com.example.andespace.ui.cookie.CookieScreen
+import com.example.andespace.ui.bookings.MainBookingsScreen
+import com.example.andespace.ui.bookings.BookingsViewModel
+import com.example.andespace.ui.components.AndeSpaceBottomBar
+import com.example.andespace.ui.components.AndeSpaceTopBar
+import com.example.andespace.ui.detailRoom.DetailRoomViewModel
+import com.example.andespace.ui.homepage.MainClassroomsScreen
+import com.example.andespace.ui.homepage.HomepageViewModel
+import com.example.andespace.ui.results.ResultsViewModel
+import com.example.andespace.ui.schedule.MainScheduleScreen
+import com.example.andespace.ui.schedule.ScheduleViewModel
+import com.example.andespace.ui.favorites.FavoritesViewModel
+import com.example.andespace.ui.favorites.MainFavoritesScreen
+import com.example.andespace.ui.screen.HistoryScreen
+import com.example.andespace.data.network.NetworkMonitor
+import com.example.andespace.ui.theme.AndeSpaceTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NetworkMonitor.register(applicationContext)
         enableEdgeToEdge()
         setContent {
-            AndeSpaceTheme {
-                AndeSpaceApp()
+            val mainViewModel: MainViewModel = viewModel()
+            val mainUiState by mainViewModel.uiState.collectAsState()
+            val isSystemDark = isSystemInDarkTheme()
+            val isDarkMode = when (mainUiState.themeMode) {
+                ThemeMode.AUTOMATIC -> mainUiState.sensorDarkMode
+                ThemeMode.SYSTEM    -> isSystemDark
+                ThemeMode.LIGHT     -> false
+                ThemeMode.DARK      -> true
+            }
+            AndeSpaceTheme(darkTheme = isDarkMode) {
+                AndeSpaceApp(viewModel = mainViewModel)
             }
         }
     }
 }
 
 @Composable
-fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
+fun AndeSpaceApp(
+    viewModel: MainViewModel = viewModel(),
+    homepageViewModel: HomepageViewModel = viewModel(),
+    scheduleViewModel: ScheduleViewModel = viewModel(),
+    favoritesViewModel: FavoritesViewModel = viewModel()
+) {
     val uiState by viewModel.uiState.collectAsState()
-    var displayMenu by rememberSaveable { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val lux = event.values[0]
+                val sensorDark = viewModel.uiState.value.sensorDarkMode
+                when {
+                    lux < 25f && !sensorDark -> viewModel.setSensorDarkMode(true)
+                    lux > 35f && sensorDark  -> viewModel.setSensorDarkMode(false)
+                }
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+        sensorManager.registerListener(listener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
+        onDispose { sensorManager.unregisterListener(listener) }
+    }
+
+    val resultsViewModel: ResultsViewModel = viewModel()
+    val detailRoomViewModel: DetailRoomViewModel = viewModel()
+    val bookingsViewModel: BookingsViewModel = viewModel()
     Scaffold(
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
                 isMenuExpanded = uiState.isUserMenuExpanded,
+                themeMode = uiState.themeMode,
+                onThemeModeChange = { viewModel.setThemeMode(it) },
                 onAccountClick = { viewModel.expandUserMenu() },
                 onDismissMenu = { viewModel.closeUserMenu() },
                 onLoginClick = {
@@ -71,42 +126,132 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                 onRegisterClick = {
                     viewModel.onDestinationChanged(AppDestinations.REGISTER)
                 },
-                onHistoryClick = { viewModel.onHistoryClick() },
                 onLogOut = {
                     viewModel.onLogOut()
+                    scheduleViewModel.clearScheduleData()
+                    favoritesViewModel.clearFavorites()
                 }
             )
         },
         bottomBar = {
             AndeSpaceBottomBar(
                 currentDestination = uiState.currentDestination,
-                onDestinationChanged = { viewModel.onDestinationChanged(it) }
+                onDestinationChanged = { destination ->
+                    viewModel.onDestinationChanged(destination)
+                    if (destination == AppDestinations.CLASSROOMS) {
+                        homepageViewModel.resetToHome()
+                    }
+                }
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
 
             when (uiState.currentDestination) {
+
+                AppDestinations.CLASSROOMS -> {
+                    MainClassroomsScreen(
+                        homepageViewModel = homepageViewModel,
+                        resultsViewModel = resultsViewModel,
+                        detailRoomViewModel = detailRoomViewModel,
+                        bookingsViewModel = bookingsViewModel,
+                        favoritesViewModel = favoritesViewModel,
+                        isUserLoggedIn = uiState.isLoggedIn,
+                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) },
+                        onBookingCreatedNavigate = {
+                            viewModel.onDestinationChanged(AppDestinations.BOOKINGS)
+                        }
+                    )
+                }
+
                 AppDestinations.HISTORY -> HistoryScreen()
+
                 AppDestinations.LOGIN -> LoginScreen(
                     onLoginSuccess = {
                         viewModel.onLogin()
+                        bookingsViewModel.resetRequiresLogin()
+                        scheduleViewModel.checkScheduleStatus()
+                        favoritesViewModel.refreshFromBackend()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                    },
+                    onNavigateToRegister = {
+                        viewModel.onDestinationChanged(AppDestinations.REGISTER)
                     }
                 )
+
                 AppDestinations.REGISTER -> RegisterScreen(
                     onRegisterSuccess = {
                         viewModel.onLogin()
+                        bookingsViewModel.resetRequiresLogin()
+                        scheduleViewModel.clearScheduleData()
+                        favoritesViewModel.refreshFromBackend()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                    },
+                    onNavigateToLogin = {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
                     }
                 )
-                AppDestinations.FAVORITES -> CookieScreen()
-                else -> Greeting(
-                    name = if (uiState.isLoading) "Loading..." else uiState.currentDestination.label
-                )
+
+                AppDestinations.FAVORITES -> {
+                    if (uiState.isLoggedIn) {
+                        MainFavoritesScreen(
+                            favoritesViewModel = favoritesViewModel,
+                            onRoomClick = { room ->
+                                detailRoomViewModel.setRoom(room = room)
+                                homepageViewModel.onShowRoomDetailScreen()
+                                viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                            }
+                        )
+                    } else {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    }
+                }
+
+                AppDestinations.BOOKINGS -> {
+                    if (uiState.isLoggedIn) {
+                        MainBookingsScreen(
+                            bookingsViewModel = bookingsViewModel,
+                            onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
+                        )
+                    } else {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    }
+                }
+
+                AppDestinations.SCHEDULE -> {
+                    if (uiState.isLoggedIn) {
+                        MainScheduleScreen(
+                            scheduleViewModel = scheduleViewModel,
+                            onNavigateToRoomDetail = { recommendedRoom ->
+                                val mappedRoom = RoomDto(
+                                    id = recommendedRoom.room_id,
+                                    name = recommendedRoom.room_id,
+                                    building = recommendedRoom.building_name,
+                                    capacity = recommendedRoom.capacity,
+                                    utilities = emptyList(),
+                                    availableSince = null,
+                                    availableUntil = null,
+                                    waitSeconds = null,
+                                    matchingWindows = emptyList(),
+                                    availabilityStatus = null
+                                )
+                                detailRoomViewModel.setRoom(mappedRoom)
+                                homepageViewModel.onShowRoomDetailScreen()
+                                viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                            }
+                        )
+                    } else {
+                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
+                    }
+                }
             }
 
-            if (displayMenu) {
+            if (uiState.isUserMenuExpanded) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -114,21 +259,9 @@ fun AndeSpaceApp(viewModel: MainViewModel = viewModel()) {
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { displayMenu = false }
+                        ) { viewModel.closeUserMenu() }
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun HistoryScreen(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text("History Screen Content")
         }
     }
 }
@@ -166,7 +299,7 @@ fun AssetIcon(
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
-            text = "Section: $name",
+            text = name,
             style = MaterialTheme.typography.headlineMedium
         )
     }

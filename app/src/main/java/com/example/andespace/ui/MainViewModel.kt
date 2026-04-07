@@ -12,11 +12,10 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val repository: AppRepository = AppRepository()
-): ViewModel() {
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
-
     init {
         loadUserData()
     }
@@ -27,10 +26,15 @@ class MainViewModel(
 
     fun onDestinationChanged(destination: AppDestinations) {
         _uiState.update { it.copy(currentDestination = destination, isUserMenuExpanded = false) }
+        logScreenChange(destination.name)
     }
 
-    fun onHistoryClick() {
-        _uiState.update { it.copy(currentDestination = AppDestinations.HISTORY) }
+    fun expandUserMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = true) }
+    }
+
+    fun closeUserMenu() {
+        _uiState.update { it.copy(isUserMenuExpanded = false) }
     }
 
     fun onLogOut() {
@@ -42,7 +46,7 @@ class MainViewModel(
                     isLoggedIn = false,
                     isUserMenuExpanded = false,
                     isLoading = false,
-                    currentDestination = AppDestinations.CLASSROOMS
+                    currentDestination = AppDestinations.LOGIN
                 )
             }
         }
@@ -52,13 +56,19 @@ class MainViewModel(
         _uiState.update { it.copy(isLoggedIn = true) }
     }
 
-    fun expandUserMenu() {
-        _uiState.update { it.copy(isUserMenuExpanded = true) }
+    fun setThemeMode(mode: ThemeMode) {
+        _uiState.update { it.copy(themeMode = mode) }
     }
 
-    fun closeUserMenu() {
-        _uiState.update { it.copy(isUserMenuExpanded = false) }
+    fun setSensorDarkMode(isDark: Boolean) {
+        _uiState.update { it.copy(sensorDarkMode = isDark) }
     }
 
-
+    private fun logScreenChange(screenName: String) {
+        viewModelScope.launch {
+            repository.trackScreensTime(
+                screenName = screenName
+            )
+        }
+    }
 }
