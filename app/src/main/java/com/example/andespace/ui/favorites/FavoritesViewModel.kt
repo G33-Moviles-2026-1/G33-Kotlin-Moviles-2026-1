@@ -19,8 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class FavoritesViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = AppRepository()
+    private val repository: AppRepository = AppRepository(application)
     private val gson = Gson()
     private val roomListType = object : TypeToken<List<RoomDto>>() {}.type
 

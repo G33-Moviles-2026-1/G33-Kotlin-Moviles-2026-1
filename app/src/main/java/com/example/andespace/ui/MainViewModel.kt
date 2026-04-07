@@ -1,6 +1,7 @@
 package com.example.andespace.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AppRepository
 import com.example.andespace.model.AppDestinations
@@ -10,18 +11,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class MainViewModel(
-    private val repository: AppRepository = AppRepository()
-) : ViewModel() {
-
+class MainViewModel(application: Application) : AndroidViewModel(application){
+    private val repository: AppRepository = AppRepository(application)
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
     init {
-        loadUserData()
+        checkExistingSession()
     }
 
-    private fun loadUserData() {
-        viewModelScope.launch {}
+    private fun checkExistingSession() {
+        viewModelScope.launch {
+            val result = repository.getMeData()
+
+            if (result.isSuccess) {
+                _uiState.update { it.copy(isLoggedIn = true) }
+            } else {
+                _uiState.update { it.copy(isLoggedIn = false) }
+            }
+        }
     }
 
     fun onDestinationChanged(destination: AppDestinations) {

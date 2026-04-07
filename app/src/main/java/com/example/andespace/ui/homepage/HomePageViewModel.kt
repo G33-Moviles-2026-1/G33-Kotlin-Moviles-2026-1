@@ -1,6 +1,7 @@
 package com.example.andespace.ui.homepage
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.location.LocationSensor
 import com.example.andespace.data.repository.AppRepository
@@ -10,10 +11,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class HomepageViewModel(
-    private val repository: AppRepository = AppRepository()
-) : ViewModel() {
-
+class HomepageViewModel(application: Application): AndroidViewModel(application) {
+    private val repository: AppRepository = AppRepository(application)
     private val _uiState = MutableStateFlow(HomepageUiState())
     val uiState: StateFlow<HomepageUiState> = _uiState.asStateFlow()
 

@@ -53,7 +53,6 @@ import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
-import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.ui.theme.AndeSpaceTheme
 
@@ -168,8 +167,6 @@ fun AndeSpaceApp(
                         }
                     )
                 }
-
-                AppDestinations.HISTORY -> HistoryScreen()
 
                 AppDestinations.LOGIN -> LoginScreen(
                     onLoginSuccess = {
