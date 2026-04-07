@@ -36,7 +36,9 @@ object NetworkMonitor {
                 Log.d(TAG, "Network available, flushing analytics queue")
                 scope.launch {
                     try {
-                        AppRepository().flushPendingAnalytics()
+                        AppRepository(context.applicationContext).flushPendingAnalytics()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error flushing analytics: ${e.message}", e)
                     } finally {
                         flushing = false
                     }

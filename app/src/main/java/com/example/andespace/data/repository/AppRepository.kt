@@ -7,7 +7,6 @@ import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.BookingDto
-import com.example.andespace.data.repository.AnalyticsEventQueue
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.example.andespace.model.dto.RoomDto
@@ -21,6 +20,7 @@ import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.LoginRequest
 import com.example.andespace.data.network.NetworkModule
 import com.example.andespace.data.network.RegisterRequest
+import com.example.andespace.data.network.SessionCookieJar
 import com.example.andespace.model.schedule.ManualScheduleIn
 import com.example.andespace.model.schedule.ScheduleClassesOut
 import kotlinx.coroutines.Dispatchers
@@ -33,8 +33,8 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import com.example.andespace.model.schedule.DayRoomRecommendationsOut
 
-class AppRepository {
-    private val apiService: ApiService = NetworkModule.apiService
+class AppRepository(private val context: Context) {
+    private val apiService: ApiService = NetworkModule.getApiService(context)
     private val sessionId = AnalyticsSessionManager.currentSessionId
 
     companion object {
@@ -94,10 +94,11 @@ class AppRepository {
     suspend fun logout(): Result<Boolean> {
         return try {
             apiService.logout()
-            NetworkModule.cookieJar.clearCookies()
+            SessionCookieJar(context).clearCookies()
+
             Result.success(true)
         } catch (_: Exception) {
-            NetworkModule.cookieJar.clearCookies()
+            SessionCookieJar(context).clearCookies()
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
@@ -462,11 +463,11 @@ class AppRepository {
                 } else {
                     val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
                     Log.e(TAG, "getMyFavorites failed: $msg")
-                    Result.failure<List<RoomDto>>(ApiException(msg))
+                    Result.failure(ApiException(msg))
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "getMyFavorites exception: ${e.message}", e)
-                Result.failure<List<RoomDto>>(Exception("No internet connection. Please check your network and try again."))
+                Result.failure(Exception("No internet connection. Please check your network and try again."))
             }
         }
     }
@@ -481,7 +482,9 @@ class AppRepository {
                 capacity = room.capacity,
                 utilities = room.utilities
             )
-            Log.d(TAG, "addFavorite -> roomId=${room.id}, url=${NetworkModule.apiService}")
+
+            Log.d(TAG, "addFavorite -> roomId=${room.id}")
+
             val response = apiService.addFavorite(request)
             Log.d(TAG, "addFavorite response code=${response.code()}, successful=${response.isSuccessful}")
             if (response.isSuccessful || response.code() == 201) {
@@ -515,19 +518,16 @@ class AppRepository {
         }
     }
 
-    suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> {
-        return try {
+    suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
             val contentResolver = context.contentResolver
-            val inputStream = contentResolver.openInputStream(fileUri)
-                ?: return Result.failure(Exception("Could not open the selected file"))
-
-            val fileBytes = inputStream.readBytes()
-            inputStream.close()
+            val fileBytes = contentResolver.openInputStream(fileUri)?.use { inputStream ->
+                inputStream.readBytes()
+            } ?: return@withContext Result.failure(Exception("Could not open the selected file"))
 
             val requestBody = fileBytes.toRequestBody("text/calendar".toMediaTypeOrNull())
 
-            val multipartPart =
-                MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
+            val multipartPart = MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
 
             val response = apiService.uploadIcsFile(multipartPart)
 

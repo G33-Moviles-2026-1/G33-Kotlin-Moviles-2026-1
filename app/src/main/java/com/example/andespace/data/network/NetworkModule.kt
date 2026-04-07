@@ -1,22 +1,38 @@
 package com.example.andespace.data.network
 
+import android.content.Context
 import com.example.andespace.BuildConfig
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object NetworkModule {
-    val cookieJar = SessionCookieJar()
+    @Volatile
+    private var INSTANCE: ApiService? = null
+    private fun provideOkHttpClient(context: Context): OkHttpClient {
+        val cookieJar = SessionCookieJar(context.applicationContext)
+        return OkHttpClient.Builder()
+            .cookieJar(cookieJar)
+            .build()
+    }
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .cookieJar(cookieJar)
-        .build()
+    fun getApiService(context: Context): ApiService {
 
-    private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(BuildConfig.API_BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+        return INSTANCE ?: synchronized(this) {
 
-    val apiService: ApiService = retrofit.create(ApiService::class.java)
+            val okHttpClient = provideOkHttpClient(context)
+
+            val retrofit = Retrofit.Builder()
+                .baseUrl(BuildConfig.API_BASE_URL)
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+
+            val service = retrofit.create(ApiService::class.java)
+
+            INSTANCE = service
+
+            service
+        }
+    }
 }

@@ -1,8 +1,9 @@
 package com.example.andespace.ui.schedule
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AppRepository
 import com.example.andespace.model.schedule.ManualClassIn
@@ -15,9 +16,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class ScheduleViewModel(
-    private val repository: AppRepository = AppRepository()
-) : ViewModel() {
+class ScheduleViewModel(application: Application): AndroidViewModel(application){
+    private val repository: AppRepository = AppRepository(application)
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
