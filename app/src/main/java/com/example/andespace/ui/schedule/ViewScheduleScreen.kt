@@ -1,6 +1,4 @@
 package com.example.andespace.ui.schedule
-
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,11 +27,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -60,31 +57,15 @@ fun ViewScheduleScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedFilterDate by remember { mutableStateOf<LocalDate?>(null) }
 
-
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButtonPosition = FabPosition.Center,
-        floatingActionButton = {
-            if (selectedFilterDate != null) {
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                        viewModel.loadRecommendations(dateStr)
-                    },
-                    icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
-                    text = { Text("Filter from schedule") },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    ) { paddingValues ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(top = 20.dp)
+    ) {
 
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             item {
@@ -113,7 +94,14 @@ fun ViewScheduleScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                 contentDescription = "Previous Week",
-                                tint = MaterialTheme.colorScheme.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.
+                                    clip(RoundedCornerShape(12.dp))
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
                             )
                         }
                         Text(
@@ -126,7 +114,14 @@ fun ViewScheduleScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = "Next Week",
-                                tint = MaterialTheme.colorScheme.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.
+                                clip(RoundedCornerShape(12.dp))
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
                             )
                         }
                     }
@@ -146,21 +141,45 @@ fun ViewScheduleScreen(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Manually Add Class",
-                            tint = MaterialTheme.colorScheme.onBackground
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = RoundedCornerShape(7.dp)
+                                    )
+                                .padding(2.dp)
                         )
                     }
                     IconButton(onClick = { viewModel.resetToCurrentWeek() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Reload Schedule",
-                            tint = MaterialTheme.colorScheme.onBackground
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = RoundedCornerShape(7.dp)
+                                )
+                                .padding(2.dp)
                         )
                     }
                     IconButton(onClick = onDeleteScheduleClick) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Schedule",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = RoundedCornerShape(7.dp)
+                                )
+                                .padding(2.dp)
                         )
                     }
                 }
@@ -169,7 +188,9 @@ fun ViewScheduleScreen(
             if (uiState.isLoading || uiState.errorMessage != null) {
                 item {
                     Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         if (uiState.isLoading) {
@@ -213,12 +234,29 @@ fun ViewScheduleScreen(
                                 viewModel = viewModel,
                                 isSelected = (selectedFilterDate == currentDate),
                                 onDayClick = {
-                                    selectedFilterDate = if (selectedFilterDate == currentDate) null else currentDate                                }
+                                    selectedFilterDate = if (selectedFilterDate == currentDate) null else currentDate
+                                }
                             )
                         }
                     }
                 }
             }
+        }
+
+        if (selectedFilterDate != null) {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    viewModel.loadRecommendations(dateStr)
+                },
+                icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
+                text = { Text("Filter from schedule") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+            )
         }
     }
 }
@@ -329,7 +367,15 @@ fun ClassCard(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete this class",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .size(30.dp)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outline,
+                            shape = RoundedCornerShape(7.dp)
+                        )
+                        .padding(2.dp)
                 )
             }
         }

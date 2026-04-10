@@ -3,14 +3,11 @@ package com.example.andespace.data.network
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
-
-private val Context.dataStore by preferencesDataStore(name = "cookie_prefs")
 
 class SessionCookieJar(private val context: Context) : CookieJar {
 
