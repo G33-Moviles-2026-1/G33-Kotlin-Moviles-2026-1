@@ -15,7 +15,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"http://10.51.168.42:8000/\"")
+        buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.6:8000/\"")
     }
 
     buildTypes {
@@ -70,6 +70,8 @@ dependencies {
     implementation(libs.androidx.room3.common.jvm)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

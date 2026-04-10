@@ -20,6 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +58,10 @@ import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.ui.theme.AndeSpaceTheme
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.runtime.LaunchedEffect
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,8 +93,21 @@ fun AndeSpaceApp(
     favoritesViewModel: FavoritesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
     val context = LocalContext.current
+    val resultsViewModel: ResultsViewModel = viewModel()
+    val detailRoomViewModel: DetailRoomViewModel = viewModel()
+    val bookingsViewModel: BookingsViewModel = viewModel()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvent.collect { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Long
+            )
+        }
+    }
+
     DisposableEffect(Unit) {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
@@ -107,10 +127,65 @@ fun AndeSpaceApp(
         onDispose { sensorManager.unregisterListener(listener) }
     }
 
-    val resultsViewModel: ResultsViewModel = viewModel()
-    val detailRoomViewModel: DetailRoomViewModel = viewModel()
-    val bookingsViewModel: BookingsViewModel = viewModel()
+    if (uiState.showLoginRequiredDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissLoginRequiredDialog(navigateToLogin = false) },
+            title = {
+                Text(
+                    text = "Login Required",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text = {
+                Text(text = "You're trying to access a feature that requires an account. Please log in to continue.",
+                    style = MaterialTheme.typography.bodyMedium)
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissLoginRequiredDialog(navigateToLogin = true)}
+                ) {
+                    Text("Log in",
+                        style = MaterialTheme.typography.bodyMedium)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.dismissLoginRequiredDialog(navigateToLogin = false) }
+                ) {
+                    Text("Return to homepage",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        )
+    }
+
+    if (uiState.showSessionExpiredDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissSessionExpiredDialog() },
+            title = {
+                Text(
+                    text = "Session Expired",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text = {
+                Text("For security reasons, please log in again.",
+                    style = MaterialTheme.typography.bodyMedium)
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissSessionExpiredDialog() }
+                ) {
+                    Text("Got it",
+                        style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        )
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
@@ -195,56 +270,44 @@ fun AndeSpaceApp(
                 )
 
                 AppDestinations.FAVORITES -> {
-                    if (uiState.isLoggedIn) {
-                        MainFavoritesScreen(
-                            favoritesViewModel = favoritesViewModel,
-                            onRoomClick = { room ->
-                                detailRoomViewModel.setRoom(room = room)
-                                homepageViewModel.onShowRoomDetailScreen()
-                                viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
-                            }
-                        )
-                    } else {
-                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
-                    }
+                    MainFavoritesScreen(
+                        favoritesViewModel = favoritesViewModel,
+                        onRoomClick = { room ->
+                            detailRoomViewModel.setRoom(room = room)
+                            homepageViewModel.onShowRoomDetailScreen()
+                            viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                        }
+                    )
                 }
 
                 AppDestinations.BOOKINGS -> {
-                    if (uiState.isLoggedIn) {
-                        MainBookingsScreen(
-                            bookingsViewModel = bookingsViewModel,
-                            onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
-                        )
-                    } else {
-                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
-                    }
+                    MainBookingsScreen(
+                        bookingsViewModel = bookingsViewModel,
+                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
+                    )
                 }
 
                 AppDestinations.SCHEDULE -> {
-                    if (uiState.isLoggedIn) {
-                        MainScheduleScreen(
-                            scheduleViewModel = scheduleViewModel,
-                            onNavigateToRoomDetail = { recommendedRoom ->
-                                val mappedRoom = RoomDto(
-                                    id = recommendedRoom.room_id,
-                                    name = recommendedRoom.room_id,
-                                    building = recommendedRoom.building_name,
-                                    capacity = recommendedRoom.capacity,
-                                    utilities = emptyList(),
-                                    availableSince = null,
-                                    availableUntil = null,
-                                    waitSeconds = null,
-                                    matchingWindows = emptyList(),
-                                    availabilityStatus = null
-                                )
-                                detailRoomViewModel.setRoom(mappedRoom)
-                                homepageViewModel.onShowRoomDetailScreen()
-                                viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
-                            }
-                        )
-                    } else {
-                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
-                    }
+                    MainScheduleScreen(
+                        scheduleViewModel = scheduleViewModel,
+                        onNavigateToRoomDetail = { recommendedRoom ->
+                            val mappedRoom = RoomDto(
+                                id = recommendedRoom.room_id,
+                                name = recommendedRoom.room_id,
+                                building = recommendedRoom.building_name,
+                                capacity = recommendedRoom.capacity,
+                                utilities = emptyList(),
+                                availableSince = null,
+                                availableUntil = null,
+                                waitSeconds = null,
+                                matchingWindows = emptyList(),
+                                availabilityStatus = null
+                            )
+                            detailRoomViewModel.setRoom(mappedRoom)
+                            homepageViewModel.onShowRoomDetailScreen()
+                            viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
+                        }
+                    )
                 }
             }
 

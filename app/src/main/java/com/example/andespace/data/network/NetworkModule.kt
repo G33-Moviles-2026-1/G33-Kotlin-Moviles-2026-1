@@ -10,9 +10,11 @@ object NetworkModule {
     @Volatile
     private var INSTANCE: ApiService? = null
     private fun provideOkHttpClient(context: Context): OkHttpClient {
-        val cookieJar = SessionCookieJar(context.applicationContext)
+        val sessionCookieJar = SessionCookieJar(context.applicationContext)
+        val authInterceptor = AuthInterceptor(sessionCookieJar)
         return OkHttpClient.Builder()
-            .cookieJar(cookieJar)
+            .cookieJar(sessionCookieJar)
+            .addInterceptor(authInterceptor)
             .build()
     }
 
