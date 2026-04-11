@@ -24,10 +24,8 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
     private var currentWeekDate: LocalDate = LocalDate.now()
 
     init {
-        checkScheduleStatus()
-        if (uiState.value.hasSchedule){
-            loadSchedule()
-        }
+        _uiState.update { it.copy(hasSchedule = repository.hasAnyCachedSchedule()) }
+        loadSchedule()
     }
 
     fun checkScheduleStatus() {
@@ -88,9 +86,14 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
                         scheduleData = schedule
                     )
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Failed to load schedule.")
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Please check your internet connection.",
+                        scheduleData = null,
+                        hasSchedule = repository.hasAnyCachedSchedule() || it.hasSchedule
+                    )
                 }
             }
         }

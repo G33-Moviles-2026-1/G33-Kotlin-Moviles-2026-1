@@ -3,6 +3,8 @@ package com.example.andespace.data.repository
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.datastore.preferences.core.stringPreferencesKey
+import com.example.andespace.data.network.dataStore
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
@@ -21,6 +23,7 @@ import com.example.andespace.data.network.LoginRequest
 import com.example.andespace.data.network.NetworkModule
 import com.example.andespace.data.network.RegisterRequest
 import com.example.andespace.data.network.SessionCookieJar
+import com.example.andespace.data.network.SessionExpiredException
 import com.example.andespace.model.schedule.ManualScheduleIn
 import com.example.andespace.model.schedule.ScheduleClassesOut
 import kotlinx.coroutines.Dispatchers
@@ -32,15 +35,52 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Locale
 import com.example.andespace.model.schedule.DayRoomRecommendationsOut
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.withTimeoutOrNull
+import java.io.File
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+
 
 class AppRepository(private val context: Context) {
     private val apiService: ApiService = NetworkModule.getApiService(context)
     private val sessionId = AnalyticsSessionManager.currentSessionId
+    private val gson = Gson()
+    private val SCHEDULE_FILE_NAME = "offline_schedule_cache.json"
 
     companion object {
         private const val TAG = "AppRepository"
         private const val ANALYTICS_QUEUE_TAG = "AnalyticsQueue"
         const val ANALYTICS_EVENT_FAVORITE_SUBMITTED = "favorite_submitted"
+        private var isCurrentlyOffline = false
+        private val _networkStateEvent = Channel<Boolean>(Channel.CONFLATED)
+        val networkStateEvent = _networkStateEvent.receiveAsFlow()
+
+        fun reportNetworkSuccess() {
+            if (isCurrentlyOffline) {
+                isCurrentlyOffline = false
+                _networkStateEvent.trySend(true)
+            }
+        }
+
+        fun reportNetworkError() {
+            if (!isCurrentlyOffline) {
+                isCurrentlyOffline = true
+                _networkStateEvent.trySend(false)
+            }
+        }
+    }
+
+    fun observeSessionState(): Flow<Boolean> {
+        val cookieKey = stringPreferencesKey("session_cookie")
+        return context.dataStore.data.map { preferences ->
+            val cookie = preferences[cookieKey]
+            !cookie.isNullOrEmpty()
+        }
     }
 
 
@@ -59,6 +99,7 @@ class AppRepository(private val context: Context) {
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
+
 
     suspend fun login(email: String, password: String): Result<Boolean> {
         return try {
@@ -86,7 +127,8 @@ class AppRepository(private val context: Context) {
                     extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "getMeData offline error: ${e.message}", e)
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
@@ -409,11 +451,26 @@ class AppRepository(private val context: Context) {
     }
 
     suspend fun getWeeklySchedule(date: String? = null): WeeklyScheduleOut {
-        val response = apiService.getWeeklySchedule(date)
-        if (!response.isSuccessful) {
-            throw Exception("Error ${response.code()}: Failed to fetch schedule")
+        val cacheKey = date ?: "current"
+
+        return try {
+            val response = withTimeoutOrNull(3000L) {
+                apiService.getWeeklySchedule(date)
+            }
+
+            if (response != null && response.isSuccessful) {
+                val schedule = response.body() ?: throw Exception("Empty schedule body")
+                saveScheduleLocally(cacheKey, schedule)
+                schedule
+            } else {
+                getScheduleFromCache(cacheKey)
+            }
+        } catch (e: Exception) {
+            if (e is SessionExpiredException) {
+                throw e
+            }
+            getScheduleFromCache(cacheKey)
         }
-        return response.body() ?: throw Exception("Empty schedule body")
     }
     suspend fun deleteBooking(bookingId: String): Result<Boolean> =
         withContext(Dispatchers.IO) {
@@ -469,6 +526,16 @@ class AppRepository(private val context: Context) {
                 Log.e(TAG, "getMyFavorites exception: ${e.message}", e)
                 Result.failure(Exception("No internet connection. Please check your network and try again."))
             }
+        }
+    }
+
+    suspend fun hasLocalSession(): Boolean {
+        return try {
+            val cookieKey = stringPreferencesKey("session_cookie")
+            val savedCookieString = context.dataStore.data.first()[cookieKey]
+            !savedCookieString.isNullOrEmpty()
+        } catch (e: Exception) {
+            false
         }
     }
 
@@ -579,6 +646,63 @@ class AppRepository(private val context: Context) {
             throw Exception("Error ${response.code()}: Failed to fetch recommendations")
         }
         return response.body() ?: throw Exception("Empty recommendations body")
+    }
+
+    private fun getLocalScheduleCache(): MutableMap<String, WeeklyScheduleOut> {
+        return try {
+            val file = File(context.filesDir, SCHEDULE_FILE_NAME)
+            if (file.exists()) {
+                val jsonString = file.readText()
+                // Tell Gson exactly how to reconstruct the Map
+                val type = object : TypeToken<MutableMap<String, WeeklyScheduleOut>>() {}.type
+                gson.fromJson(jsonString, type) ?: mutableMapOf()
+            } else {
+                mutableMapOf()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read local schedule cache", e)
+            mutableMapOf()
+        }
+    }
+
+    private fun saveScheduleLocally(date: String?, schedule: WeeklyScheduleOut) {
+        try {
+            val cache = getLocalScheduleCache()
+
+            val cacheKey = date ?: "current"
+
+            cache[cacheKey] = schedule
+
+            if (cache.size > 3) {
+                val oldestKey = cache.keys.first()
+                cache.remove(oldestKey)
+            }
+
+            val file = File(context.filesDir, SCHEDULE_FILE_NAME)
+            val jsonString = gson.toJson(cache)
+            file.writeText(jsonString)
+
+            Log.d(TAG, "Saved schedule for $cacheKey. Total cached weeks: ${cache.size}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save schedule locally", e)
+        }
+    }
+
+    fun hasAnyCachedSchedule(): Boolean {
+        return getLocalScheduleCache().isNotEmpty()
+    }
+
+
+    private fun getScheduleFromCache(cacheKey: String): WeeklyScheduleOut {
+        val cache = getLocalScheduleCache()
+
+        cache[cacheKey]?.let { return it }
+        cache["current"]?.let { return it }
+
+        if (cache.isNotEmpty()) {
+            return cache.values.last()
+        }
+        throw Exception("Please check your internet connection.")
     }
 }
 
