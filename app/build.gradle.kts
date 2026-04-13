@@ -15,7 +15,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
+        buildConfigField("String", "API_BASE_URL", "\"http://192.168.20.33:8000/\"")
     }
 
     buildTypes {
@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation(libs.play.services.basement)
     implementation("com.google.android.gms:play-services-location:21.3.0")
@@ -69,6 +70,8 @@ dependencies {
     implementation(libs.androidx.room3.common.jvm)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

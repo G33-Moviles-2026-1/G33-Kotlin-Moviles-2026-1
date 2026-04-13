@@ -1,8 +1,9 @@
 package com.example.andespace.ui.schedule
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AppRepository
 import com.example.andespace.model.schedule.ManualClassIn
@@ -15,19 +16,16 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class ScheduleViewModel(
-    private val repository: AppRepository = AppRepository()
-) : ViewModel() {
+class ScheduleViewModel(application: Application): AndroidViewModel(application){
+    private val repository: AppRepository = AppRepository(application)
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
     private var currentWeekDate: LocalDate = LocalDate.now()
 
     init {
-        checkScheduleStatus()
-        if (uiState.value.hasSchedule){
-            loadSchedule()
-        }
+        _uiState.update { it.copy(hasSchedule = repository.hasAnyCachedSchedule()) }
+        loadSchedule()
     }
 
     fun checkScheduleStatus() {
@@ -88,9 +86,14 @@ class ScheduleViewModel(
                         scheduleData = schedule
                     )
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Failed to load schedule.")
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Please check your internet connection.",
+                        scheduleData = null,
+                        hasSchedule = repository.hasAnyCachedSchedule() || it.hasSchedule
+                    )
                 }
             }
         }
