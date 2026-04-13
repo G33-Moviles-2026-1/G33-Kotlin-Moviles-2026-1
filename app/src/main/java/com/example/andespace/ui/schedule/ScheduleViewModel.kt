@@ -15,13 +15,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.DayOfWeek
+import java.time.temporal.TemporalAdjusters
+
 
 class ScheduleViewModel(application: Application): AndroidViewModel(application){
     private val repository: AppRepository = AppRepository(application)
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
-    private var currentWeekDate: LocalDate = LocalDate.now()
 
     init {
         _uiState.update { it.copy(hasSchedule = repository.hasAnyCachedSchedule()) }
@@ -50,6 +52,22 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
             }
         }
     }
+    private fun syncTriadCache() {
+        viewModelScope.launch {
+            try {
+                val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
+                val currentMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+
+                repository.getWeeklySchedule(currentMonday.format(formatter)) // Current
+                repository.getWeeklySchedule(currentMonday.minusDays(7).format(formatter)) // Previous
+                repository.getWeeklySchedule(currentMonday.plusDays(7).format(formatter)) // Next
+
+                loadSchedule()
+            } catch (e: Exception) {
+            }
+        }
+    }
+
     fun uploadIcsFile(context: Context, uri: Uri, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
@@ -58,6 +76,7 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
 
             result.onSuccess {
                 _uiState.update { it.copy(isLoading = false, hasSchedule = true) }
+                syncTriadCache()
                 onSuccess()
             }.onFailure { error ->
                 _uiState.update {
@@ -72,27 +91,45 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
 
     fun loadSchedule() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, scheduleData = null) }
 
             try {
                 val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-                val dateString = currentWeekDate.format(formatter)
+                val requestedDate = _uiState.value.currentWeekDate
+                val dateString = requestedDate.format(formatter)
+
                 val schedule = repository.getWeeklySchedule(dateString)
 
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        hasSchedule = true,
-                        scheduleData = schedule
-                    )
+                val expectedMonday = requestedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+
+                val returnedMonday = try {
+                    LocalDate.parse(schedule.week_start)
+                } catch(e: Exception) {
+                    null
+                }
+
+
+                if (expectedMonday == returnedMonday) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            hasSchedule = true,
+                            scheduleData = schedule
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            scheduleData = null
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = e.message ?: "Please check your internet connection.",
-                        scheduleData = null,
-                        hasSchedule = repository.hasAnyCachedSchedule() || it.hasSchedule
+                        scheduleData = null
                     )
                 }
             }
@@ -100,12 +137,21 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
     }
 
     fun loadNextWeek() {
-        currentWeekDate = currentWeekDate.plusDays(7)
+        _uiState.update { it.copy(currentWeekDate = it.currentWeekDate.plusDays(7)) }
         loadSchedule()
     }
 
     fun loadPreviousWeek() {
-        currentWeekDate = currentWeekDate.minusDays(7)
+        _uiState.update { it.copy(currentWeekDate = it.currentWeekDate.minusDays(7)) }
+        loadSchedule()
+    }
+
+    fun resetToCurrentWeek() {
+        _uiState.update {
+            it.copy(
+                currentWeekDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            )
+        }
         loadSchedule()
     }
 
@@ -212,6 +258,7 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
                         endTime = "", selectedDays = emptySet()
                     )
                 }
+                syncTriadCache()
                 onSuccess()
 
             } catch (_: Exception) {
@@ -255,11 +302,6 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
 
     fun hideAddClassScreen() {
         _uiState.update { it.copy(isAddingManualClass = false) }
-    }
-
-    fun resetToCurrentWeek() {
-        currentWeekDate = LocalDate.now()
-        loadSchedule()
     }
 
     fun deleteClass(classId: String) {

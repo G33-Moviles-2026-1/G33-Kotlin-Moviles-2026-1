@@ -44,6 +44,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
+import java.time.LocalDate
+import java.time.DayOfWeek
+import java.time.temporal.TemporalAdjusters
+import java.time.format.DateTimeFormatter
 
 
 class AppRepository(private val context: Context) {
@@ -82,7 +86,6 @@ class AppRepository(private val context: Context) {
             !cookie.isNullOrEmpty()
         }
     }
-
 
 
     suspend fun register(email: String, password: String, semester: String): Result<Boolean> {
@@ -345,6 +348,7 @@ class AppRepository(private val context: Context) {
                         val r = apiService.trackAnalyticsEvent(event.request)
                         if (!r.isSuccessful) failed.add(event)
                     }
+
                     is AnalyticsEventQueue.PendingEvent.RoomGapSearch -> {
                         val r = apiService.trackRoomGapSearch(event.request)
                         if (!r.isSuccessful) failed.add(event)
@@ -426,7 +430,13 @@ class AppRepository(private val context: Context) {
                 Result.success(response.body()?.items.orEmpty())
             } else {
                 val code = response.code()
-                Result.failure(ApiException(if (code == 401) "SESSION_EXPIRED" else httpErrorMessage(code)))
+                Result.failure(
+                    ApiException(
+                        if (code == 401) "SESSION_EXPIRED" else httpErrorMessage(
+                            code
+                        )
+                    )
+                )
             }
         } catch (e: Exception) {
             Log.e(TAG, "getMyBookings exception=${e.message}", e)
@@ -446,9 +456,9 @@ class AppRepository(private val context: Context) {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "createBooking exception=${e.message}", e)
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
+                Result.failure(Exception("No internet connection. Please check your network and try again."))
+            }
         }
-    }
 
     suspend fun getWeeklySchedule(date: String? = null): WeeklyScheduleOut {
         val cacheKey = date ?: "current"
@@ -472,6 +482,7 @@ class AppRepository(private val context: Context) {
             getScheduleFromCache(cacheKey)
         }
     }
+
     suspend fun deleteBooking(bookingId: String): Result<Boolean> =
         withContext(Dispatchers.IO) {
             try {
@@ -515,7 +526,10 @@ class AppRepository(private val context: Context) {
                 if (response.isSuccessful) {
                     val items = response.body()?.items ?: emptyList()
                     val rooms = items.mapNotNull { it.toRoomDto() }
-                    Log.d(TAG, "getMyFavorites -> parsed ${rooms.size} rooms: ${rooms.map { it.id }}")
+                    Log.d(
+                        TAG,
+                        "getMyFavorites -> parsed ${rooms.size} rooms: ${rooms.map { it.id }}"
+                    )
                     Result.success(rooms)
                 } else {
                     val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
@@ -553,7 +567,10 @@ class AppRepository(private val context: Context) {
             Log.d(TAG, "addFavorite -> roomId=${room.id}")
 
             val response = apiService.addFavorite(request)
-            Log.d(TAG, "addFavorite response code=${response.code()}, successful=${response.isSuccessful}")
+            Log.d(
+                TAG,
+                "addFavorite response code=${response.code()}, successful=${response.isSuccessful}"
+            )
             if (response.isSuccessful || response.code() == 201) {
                 Result.success(true)
             } else {
@@ -571,7 +588,10 @@ class AppRepository(private val context: Context) {
         try {
             Log.d(TAG, "deleteFavorite -> roomId=$roomId")
             val response = apiService.deleteFavorite(roomId)
-            Log.d(TAG, "deleteFavorite response code=${response.code()}, successful=${response.isSuccessful}")
+            Log.d(
+                TAG,
+                "deleteFavorite response code=${response.code()}, successful=${response.isSuccessful}"
+            )
             if (response.isSuccessful || response.code() == 204) {
                 Result.success(true)
             } else {
@@ -585,30 +605,34 @@ class AppRepository(private val context: Context) {
         }
     }
 
-    suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            val contentResolver = context.contentResolver
-            val fileBytes = contentResolver.openInputStream(fileUri)?.use { inputStream ->
-                inputStream.readBytes()
-            } ?: return@withContext Result.failure(Exception("Could not open the selected file"))
+    suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            try {
+                val contentResolver = context.contentResolver
+                val fileBytes = contentResolver.openInputStream(fileUri)?.use { inputStream ->
+                    inputStream.readBytes()
+                }
+                    ?: return@withContext Result.failure(Exception("Could not open the selected file"))
 
-            val requestBody = fileBytes.toRequestBody("text/calendar".toMediaTypeOrNull())
+                val requestBody = fileBytes.toRequestBody("text/calendar".toMediaTypeOrNull())
 
-            val multipartPart = MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
+                val multipartPart =
+                    MultipartBody.Part.createFormData("file", "schedule.ics", requestBody)
 
-            val response = apiService.uploadIcsFile(multipartPart)
+                val response = apiService.uploadIcsFile(multipartPart)
 
-            if (response.isSuccessful) {
-                Result.success(true)
-            } else {
-                val backendMessage =
-                    extractErrorMessage(response.errorBody()?.string(), response.code())
-                Result.failure(ApiException(backendMessage))
+                if (response.isSuccessful) {
+                    Result.success(true)
+                } else {
+                    val backendMessage =
+                        extractErrorMessage(response.errorBody()?.string(), response.code())
+                    Result.failure(ApiException(backendMessage))
+                }
+            } catch (_: Exception) {
+                Result.failure(ApiException("No internet connection. Could not upload the file."))
             }
-        } catch (_: Exception) {
-            Result.failure(ApiException("No internet connection. Could not upload the file."))
         }
-    }
+
     suspend fun uploadManualSchedule(payload: ManualScheduleIn) {
         val response = apiService.uploadManualSchedule(payload)
         if (!response.isSuccessful) {
@@ -668,43 +692,38 @@ class AppRepository(private val context: Context) {
     private fun saveScheduleLocally(date: String?, schedule: WeeklyScheduleOut) {
         try {
             val cache = getLocalScheduleCache()
-
             val cacheKey = date ?: "current"
-
             cache[cacheKey] = schedule
-
-            if (cache.size > 3) {
-                val oldestKey = cache.keys.first()
-                cache.remove(oldestKey)
-            }
-
+            val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
+            val currentMonday =
+                LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            val validTriadKeys = setOf(
+                "current",
+                currentMonday.format(formatter),
+                currentMonday.minusDays(7).format(formatter),
+                currentMonday.plusDays(7).format(formatter)
+            )
+            cache.keys.retainAll(validTriadKeys)
             val file = File(context.filesDir, SCHEDULE_FILE_NAME)
             val jsonString = gson.toJson(cache)
             file.writeText(jsonString)
-
-            Log.d(TAG, "Saved schedule for $cacheKey. Total cached weeks: ${cache.size}")
+            Log.d(TAG, "Saved schedule. Strict Triad cache enforced. Total weeks: ${cache.size}")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save schedule locally", e)
         }
     }
 
+    private fun getScheduleFromCache(cacheKey: String): WeeklyScheduleOut {
+        val cache = getLocalScheduleCache()
+        return cache[cacheKey]
+            ?: throw Exception("Not found in cache. Please check your internet connection.")
+    }
+
     fun hasAnyCachedSchedule(): Boolean {
         return getLocalScheduleCache().isNotEmpty()
     }
-
-
-    private fun getScheduleFromCache(cacheKey: String): WeeklyScheduleOut {
-        val cache = getLocalScheduleCache()
-
-        cache[cacheKey]?.let { return it }
-        cache["current"]?.let { return it }
-
-        if (cache.isNotEmpty()) {
-            return cache.values.last()
-        }
-        throw Exception("Please check your internet connection.")
-    }
 }
+
 
 class ApiException(message: String) : Exception(message) {
     override val message: String

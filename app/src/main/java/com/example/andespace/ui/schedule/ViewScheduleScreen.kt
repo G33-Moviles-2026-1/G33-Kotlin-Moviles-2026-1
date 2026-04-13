@@ -44,8 +44,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.andespace.model.schedule.ScheduleClassOccurrenceOut
+import com.example.andespace.ui.components.NoConnectionPlaceholder
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 @Composable
@@ -75,16 +78,14 @@ fun ViewScheduleScreen(
                         .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val dateRangeText = uiState.scheduleData?.let { data ->
-                        try {
-                            val start = LocalDate.parse(data.week_start)
-                            val end = LocalDate.parse(data.week_end)
-                            val formatter = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
-                            "${start.format(formatter)} - ${end.format(formatter)}"
-                        } catch (_: Exception) {
-                            "Invalid Date Range"
-                        }
-                    } ?: "Loading..."
+                    val dateRangeText = try {
+                        val start = uiState.currentWeekDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                        val end = start.plusDays(6)
+                        val formatter = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
+                        "${start.format(formatter)} - ${end.format(formatter)}"
+                    } catch (_: Exception) {
+                        "Schedule"
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -95,8 +96,8 @@ fun ViewScheduleScreen(
                                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                 contentDescription = "Previous Week",
                                 tint = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.
-                                    clip(RoundedCornerShape(12.dp))
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
                                     .border(
                                         width = 1.dp,
                                         color = MaterialTheme.colorScheme.outline,
@@ -115,8 +116,8 @@ fun ViewScheduleScreen(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = "Next Week",
                                 tint = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.
-                                clip(RoundedCornerShape(12.dp))
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
                                     .border(
                                         width = 1.dp,
                                         color = MaterialTheme.colorScheme.outline,
@@ -148,7 +149,7 @@ fun ViewScheduleScreen(
                                     width = 1.dp,
                                     color = MaterialTheme.colorScheme.outline,
                                     shape = RoundedCornerShape(7.dp)
-                                    )
+                                )
                                 .padding(2.dp)
                         )
                     }
@@ -185,58 +186,62 @@ fun ViewScheduleScreen(
                 }
             }
 
-            if (uiState.isLoading || uiState.errorMessage != null) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (uiState.isLoading) {
+            when {
+                uiState.isLoading -> {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        } else {
-                            Text(
-                                text = uiState.errorMessage ?: "An unknown error occurred",
-                                color = MaterialTheme.colorScheme.error
-                            )
                         }
                     }
                 }
-            }
 
-            if (!uiState.isLoading && uiState.errorMessage == null && uiState.scheduleData != null) {
-                val scheduleData = uiState.scheduleData!!
-                val groupedClasses = scheduleData.occurrences.groupBy { backendDay ->
-                    backendDay.weekday.replaceFirstChar { it.uppercase() }
-                }
-
-                val weekStart = try {
-                    LocalDate.parse(scheduleData.week_start)
-                } catch (_: Exception) {
-                    LocalDate.now()
-                }
-
-                for (i in 0..5) {
-                    val currentDate = weekStart.plusDays(i.toLong())
-
-                    val dayName = currentDate.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
-                    val dayNumber = currentDate.dayOfMonth.toString()
-
-                    val classesForDay = groupedClasses[dayName] ?: emptyList()
-
+                uiState.scheduleData == null -> {
                     item {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            DayScheduleSection(
-                                dayName = dayName,
-                                dayNumber = dayNumber,
-                                classes = classesForDay,
-                                viewModel = viewModel,
-                                isSelected = (selectedFilterDate == currentDate),
-                                onDayClick = {
-                                    selectedFilterDate = if (selectedFilterDate == currentDate) null else currentDate
-                                }
-                            )
+                        Box(
+                            modifier = Modifier
+                                .fillParentMaxHeight(0.7f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            NoConnectionPlaceholder()
+                        }
+                    }
+                }
+
+                else -> {
+                    val scheduleData = uiState.scheduleData!!
+                    val groupedClasses = scheduleData.occurrences.groupBy { backendDay ->
+                        backendDay.weekday.replaceFirstChar { it.uppercase() }
+                    }
+
+                    val weekStart = try {
+                        LocalDate.parse(scheduleData.week_start)
+                    } catch (_: Exception) {
+                        uiState.currentWeekDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    }
+
+                    for (i in 0..5) {
+                        val currentDate = weekStart.plusDays(i.toLong())
+                        val dayName = currentDate.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+                        val dayNumber = currentDate.dayOfMonth.toString()
+                        val classesForDay = groupedClasses[dayName] ?: emptyList()
+
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                DayScheduleSection(
+                                    dayName = dayName,
+                                    dayNumber = dayNumber,
+                                    classes = classesForDay,
+                                    viewModel = viewModel,
+                                    isSelected = (selectedFilterDate == currentDate),
+                                    onDayClick = {
+                                        selectedFilterDate = if (selectedFilterDate == currentDate) null else currentDate
+                                    }
+                                )
+                            }
                         }
                     }
                 }
