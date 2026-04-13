@@ -45,7 +45,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
                 val message = if (isOnline) {
                     "Connection established."
                 } else {
-                    "No internet connection. Viewing stored information."
+                    "No internet connection. Viewing stored data."
                 }
                 _snackbarEvent.send(message)
             }

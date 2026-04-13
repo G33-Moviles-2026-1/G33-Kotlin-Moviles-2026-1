@@ -20,6 +20,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
@@ -61,7 +66,9 @@ import com.example.andespace.ui.theme.AndeSpaceTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,7 +110,8 @@ fun AndeSpaceApp(
         viewModel.snackbarEvent.collect { message ->
             snackbarHostState.showSnackbar(
                 message = message,
-                duration = SnackbarDuration.Long
+                actionLabel = "Got it",
+                duration = SnackbarDuration.Indefinite
             )
         }
     }
@@ -185,7 +193,46 @@ fun AndeSpaceApp(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    shape = RoundedCornerShape(4.dp),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                        .height(70.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = data.visuals.message,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 4.dp)
+                        )
+
+                        data.visuals.actionLabel?.let { actionLabel ->
+                            TextButton(
+                                onClick = { data.performAction() }
+                            ) {
+                                Text(
+                                    text = actionLabel,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
