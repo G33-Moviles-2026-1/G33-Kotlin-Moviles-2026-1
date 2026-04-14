@@ -25,7 +25,6 @@ class MainViewModel(
     }
 
     fun onDestinationChanged(destination: AppDestinations) {
-        if (destination == AppDestinations.FAVORITES) return
         _uiState.update { it.copy(currentDestination = destination, isUserMenuExpanded = false) }
         logScreenChange(destination.name)
     }
