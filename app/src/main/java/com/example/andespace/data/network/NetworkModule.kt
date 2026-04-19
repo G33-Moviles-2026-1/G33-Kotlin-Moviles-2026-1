@@ -10,12 +10,6 @@ object NetworkModule {
 
     private val okHttpClient = OkHttpClient.Builder()
         .cookieJar(cookieJar)
-        .addInterceptor(
-            LocalhostFallbackInterceptor(
-                primaryBaseUrl = BuildConfig.API_BASE_URL,
-                fallbackBaseUrl = BuildConfig.API_FALLBACK_BASE_URL
-            )
-        )
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
