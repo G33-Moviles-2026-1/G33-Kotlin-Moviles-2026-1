@@ -1,4 +1,4 @@
-package com.example.andespace.ui
+package com.example.andespace.ui.main
 
 import com.example.andespace.model.AppDestinations
 

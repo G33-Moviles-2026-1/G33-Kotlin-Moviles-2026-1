@@ -63,7 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.andespace.AssetIcon
+import com.example.andespace.ui.main.AssetIcon
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.ui.theme.LightYellow
@@ -173,7 +173,6 @@ private fun MyBookingsScreen(
             itemsIndexed(bookings, key = { _, b -> b.id }) { index, booking ->
                 BookingCard(
                     booking = booking,
-                    cardIndex = index,
                     onDelete = { onDeleteBooking(booking) },
                     onEdit = { onEditBooking(booking) }
                 )
@@ -185,7 +184,6 @@ private fun MyBookingsScreen(
 @Composable
 private fun BookingCard(
     booking: BookingDto,
-    cardIndex: Int,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier

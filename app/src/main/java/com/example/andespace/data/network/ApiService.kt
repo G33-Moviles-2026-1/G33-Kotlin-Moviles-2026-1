@@ -11,10 +11,10 @@ import com.example.andespace.model.dto.RoomAvailabilityResponse
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.UserFreeSlotsResponse
-import com.example.andespace.model.schedule.DayRoomRecommendationsOut
-import com.example.andespace.model.schedule.ManualScheduleIn
-import com.example.andespace.model.schedule.ScheduleClassesOut
-import com.example.andespace.model.schedule.WeeklyScheduleOut
+import com.example.andespace.model.dto.DayRoomRecommendationsOut
+import com.example.andespace.model.dto.ManualScheduleIn
+import com.example.andespace.model.dto.ScheduleClassesOut
+import com.example.andespace.model.dto.WeeklyScheduleOut
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body

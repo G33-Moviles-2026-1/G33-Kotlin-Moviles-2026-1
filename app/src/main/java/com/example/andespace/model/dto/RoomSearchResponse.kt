@@ -45,8 +45,7 @@ data class RoomWeeklyAvailabilityDto(
 )
 
 fun RoomDto.windowsForDate(dateValue: String): List<RoomTimeWindowDto> {
-    val selectedDate = parseApiDate(dateValue)
-    if (selectedDate == null) return matchingWindows
+    val selectedDate = parseApiDate(dateValue) ?: return matchingWindows
 
     val dayKey = dayNameEnglish(selectedDate)
     val weeklyWindows = weeklyAvailability

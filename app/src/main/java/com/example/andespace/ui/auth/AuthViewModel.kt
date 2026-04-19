@@ -1,17 +1,17 @@
 package com.example.andespace.ui.auth
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.repository.AppRepository
+import com.example.andespace.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class AuthViewModel(application: Application): AndroidViewModel(application){
-    private val repository: AppRepository = AppRepository(application)
+class AuthViewModel(
+    private val repository: AuthRepository
+): ViewModel(){
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 

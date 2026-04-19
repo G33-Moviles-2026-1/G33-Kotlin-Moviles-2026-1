@@ -43,7 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.andespace.model.schedule.ScheduleClassOccurrenceOut
+import com.example.andespace.model.dto.ScheduleClassOccurrenceOut
 import com.example.andespace.ui.components.NoConnectionPlaceholder
 import java.time.DayOfWeek
 import java.time.LocalDate

@@ -16,14 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.andespace.ui.AppViewModelProvider
 import com.example.andespace.ui.components.CustomTextField
 import com.example.andespace.ui.components.CustomYellowButton
 
 @Composable
 fun LoginScreen(
-    authViewModel: AuthViewModel = viewModel(),
-    onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit = {}
+    authViewModel: AuthViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    onLoginSuccess: () -> Unit
 ) {
     val uiState by authViewModel.uiState.collectAsState()
     Column(

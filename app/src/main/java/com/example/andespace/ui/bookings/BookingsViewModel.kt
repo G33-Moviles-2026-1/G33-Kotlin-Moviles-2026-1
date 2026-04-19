@@ -1,19 +1,17 @@
 package com.example.andespace.ui.bookings
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
-import com.example.andespace.data.repository.AppRepository
+import com.example.andespace.data.repository.BookingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class BookingsViewModel(application: Application): AndroidViewModel(application)  {
-    private val repository: AppRepository = AppRepository(application)
+class BookingsViewModel(private val repository: BookingRepository): ViewModel()  {
     private val _uiState = MutableStateFlow(BookingsUIState())
     val uiState: StateFlow<BookingsUIState> = _uiState.asStateFlow()
 

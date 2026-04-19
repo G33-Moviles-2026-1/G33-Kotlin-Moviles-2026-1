@@ -7,11 +7,14 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object NetworkModule {
+
     @Volatile
     private var INSTANCE: ApiService? = null
+
     private fun provideOkHttpClient(context: Context): OkHttpClient {
         val sessionCookieJar = SessionCookieJar(context.applicationContext)
         val authInterceptor = AuthInterceptor(sessionCookieJar)
+
         return OkHttpClient.Builder()
             .cookieJar(sessionCookieJar)
             .addInterceptor(authInterceptor)
@@ -22,19 +25,14 @@ object NetworkModule {
 
         return INSTANCE ?: synchronized(this) {
 
-            val okHttpClient = provideOkHttpClient(context)
-
             val retrofit = Retrofit.Builder()
                 .baseUrl(BuildConfig.API_BASE_URL)
-                .client(okHttpClient)
+                .client(provideOkHttpClient(context))
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
-
-            val service = retrofit.create(ApiService::class.java)
-
-            INSTANCE = service
-
-            service
+            val newInstance = retrofit.create(ApiService::class.java)
+            INSTANCE = newInstance
+            newInstance
         }
     }
 }

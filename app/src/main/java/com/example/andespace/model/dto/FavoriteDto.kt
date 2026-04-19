@@ -8,7 +8,7 @@ data class AddFavoriteRequest(
     @SerializedName("building_name") val building: String? = null,
     @SerializedName("building_code") val buildingCode: String? = null,
     @SerializedName("capacity") val capacity: Int? = null,
-    @SerializedName("utilities") val utilities: List<String> = emptyList()
+    @SerializedName("utilities") val utilities: List<String>? = emptyList()
 )
 
 data class GetFavoritesResponse(

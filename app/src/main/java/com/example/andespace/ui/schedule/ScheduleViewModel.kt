@@ -1,26 +1,26 @@
 package com.example.andespace.ui.schedule
 
-import android.app.Application
 import android.content.Context
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.repository.AppRepository
-import com.example.andespace.model.schedule.ManualClassIn
-import com.example.andespace.model.schedule.ManualScheduleIn
+import com.example.andespace.data.repository.ScheduleRepository
+import com.example.andespace.model.dto.ManualClassIn
+import com.example.andespace.model.dto.ManualScheduleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.DayOfWeek
 import java.time.temporal.TemporalAdjusters
 
 
-class ScheduleViewModel(application: Application): AndroidViewModel(application){
-    private val repository: AppRepository = AppRepository(application)
+class ScheduleViewModel(
+    private val repository: ScheduleRepository,
+): ViewModel(){
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
@@ -63,7 +63,7 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
                 repository.getWeeklySchedule(currentMonday.plusDays(7).format(formatter)) // Next
 
                 loadSchedule()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -104,7 +104,7 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
 
                 val returnedMonday = try {
                     LocalDate.parse(schedule.week_start)
-                } catch(e: Exception) {
+                } catch(_: Exception) {
                     null
                 }
 
@@ -125,7 +125,7 @@ class ScheduleViewModel(application: Application): AndroidViewModel(application)
                         )
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
