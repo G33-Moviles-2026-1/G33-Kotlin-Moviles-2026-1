@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.andespace.model.schedule.RecommendedRoomOut
+import com.example.andespace.model.dto.RecommendedRoomOut
 import com.example.andespace.ui.components.FeatureChip
 import java.util.Locale
 import kotlin.math.ceil

@@ -50,7 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.andespace.AssetIcon
+import com.example.andespace.ui.main.AssetIcon
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.RoomTimeWindowDto
 import com.example.andespace.ui.detailRoom.DetailRoomUiState

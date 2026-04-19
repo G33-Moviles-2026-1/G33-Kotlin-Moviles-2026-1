@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import com.example.andespace.ui.ThemeMode
+import com.example.andespace.ui.main.ThemeMode
 import com.example.andespace.ui.theme.PrimaryYellow
 
 @Composable

@@ -1,4 +1,4 @@
-package com.example.andespace.model.schedule
+package com.example.andespace.model.dto
 
 data class WeeklyScheduleOut(
     val week_start: String,
@@ -66,7 +66,6 @@ data class RecommendedRoomOut(
     val matches_frequent_floor: Boolean = false,
     val reasons: RoomRecommendationReasonOut
 )
-
 data class SlotRoomRecommendationsOut(
     val slot_start: String,
     val slot_end: String,

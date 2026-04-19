@@ -1,22 +1,22 @@
 package com.example.andespace.ui.results
 
-import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.RoomTimeWindowDto
 import com.example.andespace.model.dto.windowsForDate
-import com.example.andespace.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class ResultsViewModel(application: Application): AndroidViewModel(application){
-    private val repository: AppRepository = AppRepository(application)
+class ResultsViewModel(
+    private val repository: RoomRepository,
+): ViewModel(){
     private val _uiState = MutableStateFlow(ResultsUiState())
     val uiState: StateFlow<ResultsUiState> = _uiState.asStateFlow()
 

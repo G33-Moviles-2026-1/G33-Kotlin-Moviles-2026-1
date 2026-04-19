@@ -1,4 +1,4 @@
-package com.example.andespace
+package com.example.andespace.ui.main
 
 import android.content.Context
 import android.hardware.Sensor
@@ -9,24 +9,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -38,37 +36,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
+import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.model.dto.RoomDto
-import com.example.andespace.ui.MainViewModel
-import com.example.andespace.ui.ThemeMode
+import com.example.andespace.ui.AppViewModelProvider
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
-import com.example.andespace.ui.bookings.MainBookingsScreen
 import com.example.andespace.ui.bookings.BookingsViewModel
+import com.example.andespace.ui.bookings.MainBookingsScreen
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
-import com.example.andespace.ui.homepage.MainClassroomsScreen
+import com.example.andespace.ui.favorites.FavoritesViewModel
+import com.example.andespace.ui.favorites.MainFavoritesScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
+import com.example.andespace.ui.homepage.MainClassroomsScreen
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
-import com.example.andespace.ui.favorites.FavoritesViewModel
-import com.example.andespace.ui.favorites.MainFavoritesScreen
-import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.ui.theme.AndeSpaceTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.unit.dp
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,7 +70,7 @@ class MainActivity : ComponentActivity() {
         NetworkMonitor.register(applicationContext)
         enableEdgeToEdge()
         setContent {
-            val mainViewModel: MainViewModel = viewModel()
+            val mainViewModel: MainViewModel = viewModel(factory = AppViewModelProvider.Factory)
             val mainUiState by mainViewModel.uiState.collectAsState()
             val isSystemDark = isSystemInDarkTheme()
             val isDarkMode = when (mainUiState.themeMode) {
@@ -94,28 +88,17 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AndeSpaceApp(
-    viewModel: MainViewModel = viewModel(),
-    homepageViewModel: HomepageViewModel = viewModel(),
-    scheduleViewModel: ScheduleViewModel = viewModel(),
-    favoritesViewModel: FavoritesViewModel = viewModel()
+    viewModel: MainViewModel,
+    homepageViewModel: HomepageViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    scheduleViewModel: ScheduleViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    favoritesViewModel: FavoritesViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val resultsViewModel: ResultsViewModel = viewModel()
-    val detailRoomViewModel: DetailRoomViewModel = viewModel()
-    val bookingsViewModel: BookingsViewModel = viewModel()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(Unit) {
-        viewModel.snackbarEvent.collect { message ->
-            snackbarHostState.showSnackbar(
-                message = message,
-                actionLabel = "Got it",
-                duration = SnackbarDuration.Indefinite
-            )
-        }
-    }
-
+    val resultsViewModel: ResultsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val detailRoomViewModel: DetailRoomViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val isOnline by NetworkMonitor.isOnline.collectAsState()
     DisposableEffect(Unit) {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
@@ -128,7 +111,6 @@ fun AndeSpaceApp(
                     lux > 35f && sensorDark  -> viewModel.setSensorDarkMode(false)
                 }
             }
-
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         }
         sensorManager.registerListener(listener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
@@ -193,46 +175,6 @@ fun AndeSpaceApp(
     }
 
     Scaffold(
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState) { data ->
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    shape = RoundedCornerShape(4.dp),
-                    shadowElevation = 6.dp,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
-                        .height(70.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = data.visuals.message,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 4.dp)
-                        )
-
-                        data.visuals.actionLabel?.let { actionLabel ->
-                            TextButton(
-                                onClick = { data.performAction() }
-                            ) {
-                                Text(
-                                    text = actionLabel,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
@@ -255,15 +197,32 @@ fun AndeSpaceApp(
             )
         },
         bottomBar = {
-            AndeSpaceBottomBar(
-                currentDestination = uiState.currentDestination,
-                onDestinationChanged = { destination ->
-                    viewModel.onDestinationChanged(destination)
-                    if (destination == AppDestinations.CLASSROOMS) {
-                        homepageViewModel.resetToHome()
+            Column {
+                AnimatedVisibility(visible = !isOnline) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "You're offline",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 12.sp
+                        )
                     }
                 }
-            )
+                AndeSpaceBottomBar(
+                    currentDestination = uiState.currentDestination,
+                    onDestinationChanged = { destination ->
+                        viewModel.onDestinationChanged(destination)
+                        if (destination == AppDestinations.CLASSROOMS) {
+                            homepageViewModel.resetToHome()
+                        }
+                    }
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
@@ -297,9 +256,6 @@ fun AndeSpaceApp(
                         scheduleViewModel.checkScheduleStatus()
                         favoritesViewModel.refreshFromBackend()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
-                    },
-                    onNavigateToRegister = {
-                        viewModel.onDestinationChanged(AppDestinations.REGISTER)
                     }
                 )
 
@@ -310,9 +266,6 @@ fun AndeSpaceApp(
                         scheduleViewModel.clearScheduleData()
                         favoritesViewModel.refreshFromBackend()
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
-                    },
-                    onNavigateToLogin = {
-                        viewModel.onDestinationChanged(AppDestinations.LOGIN)
                     }
                 )
 

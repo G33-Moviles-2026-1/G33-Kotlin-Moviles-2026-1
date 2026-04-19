@@ -1,28 +1,26 @@
-package com.example.andespace.ui
+package com.example.andespace.ui.main
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.repository.AppRepository
+import com.example.andespace.data.repository.AnalyticsRepository
+import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.model.AppDestinations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
 
-class MainViewModel(application: Application) : AndroidViewModel(application){
-    private val repository: AppRepository = AppRepository(application)
+class MainViewModel(
+    private val authRepository: AuthRepository,
+    private val analyticsRepository: AnalyticsRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState())
-    private val _snackbarEvent = Channel<String>()
-    val snackbarEvent = _snackbarEvent.receiveAsFlow()
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
     init {
         checkExistingSession()
         viewModelScope.launch {
-            repository.observeSessionState().collect { hasValidCookie ->
+            authRepository.observeSessionState().collect { hasValidCookie ->
                 if (!hasValidCookie && _uiState.value.isLoggedIn) {
                     _uiState.update {
                         it.copy(
@@ -34,32 +32,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
                         )
                     }
                     try {
-                        repository.logout()
+                        authRepository.logout()
                     } catch (_: Exception) {
                     }
                 }
             }
         }
+    }
+
+    private fun logScreenChange(screenName: String) {
         viewModelScope.launch {
-            AppRepository.networkStateEvent.collect { isOnline ->
-                val message = if (isOnline) {
-                    "Connection established."
-                } else {
-                    "No internet connection. Viewing stored data."
-                }
-                _snackbarEvent.send(message)
-            }
+            analyticsRepository.trackScreensTime(screenName = screenName)
         }
     }
 
     private fun checkExistingSession() {
         viewModelScope.launch {
-            val hasSessionLocally = repository.hasLocalSession()
+            val hasSessionLocally = authRepository.hasLocalSession()
             if (hasSessionLocally) {
                 _uiState.update { it.copy(isLoggedIn = true) }
             }
 
-            val result = repository.getMeData()
+            val result = authRepository.getMeData()
 
             if (result.isSuccess) {
                 _uiState.update { it.copy(isLoggedIn = true) }
@@ -70,7 +64,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
 
                 if (!isNetworkError) {
                     _uiState.update { it.copy(isLoggedIn = false) }
-                    repository.logout()
+                    authRepository.logout()
                 }
             }
         }
@@ -136,7 +130,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
             }
 
             try {
-                repository.logout()
+                authRepository.logout()
             } catch (_: Exception) {
 
             }
@@ -153,13 +147,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
 
     fun setSensorDarkMode(isDark: Boolean) {
         _uiState.update { it.copy(sensorDarkMode = isDark) }
-    }
-
-    private fun logScreenChange(screenName: String) {
-        viewModelScope.launch {
-            repository.trackScreensTime(
-                screenName = screenName
-            )
-        }
     }
 }
