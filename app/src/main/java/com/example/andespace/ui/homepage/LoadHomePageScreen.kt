@@ -69,6 +69,7 @@ import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.results.ResultsScreen
 import com.example.andespace.ui.theme.PrimaryYellow
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -213,6 +214,10 @@ private fun formatTime(hour: Int, minute: Int): String =
 private fun formatDateMillis(millis: Long): String =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
 
+private fun nextOpenDate(start: LocalDate): LocalDate {
+    return if (start.dayOfWeek == DayOfWeek.SUNDAY) start.plusDays(1) else start
+}
+
 @Composable
 private fun SearchCard(
     selectedUtilities: Set<String>,
@@ -232,7 +237,7 @@ private fun SearchCard(
     val context = LocalContext.current
     var classroomInput by remember { mutableStateOf("") }
     val initialDateMillis = remember {
-        LocalDate.now(ZoneId.systemDefault())
+        nextOpenDate(LocalDate.now(ZoneId.systemDefault()))
             .atStartOfDay(ZoneOffset.UTC)
             .toInstant()
             .toEpochMilli()
@@ -292,7 +297,7 @@ private fun SearchCard(
     }
     if (showDatePicker) {
         val (firstSelectable, lastSelectable) = remember(showDatePicker) {
-            val start = LocalDate.now(ZoneId.systemDefault())
+            val start = nextOpenDate(LocalDate.now(ZoneId.systemDefault()))
             start to start.plusDays(7)
         }
 
@@ -303,7 +308,9 @@ private fun SearchCard(
                     val picked = Instant.ofEpochMilli(utcTimeMillis)
                         .atZone(ZoneOffset.UTC)
                         .toLocalDate()
-                    return !picked.isBefore(firstSelectable) && !picked.isAfter(lastSelectable)
+                    return !picked.isBefore(firstSelectable) &&
+                        !picked.isAfter(lastSelectable) &&
+                        picked.dayOfWeek != DayOfWeek.SUNDAY
                 }
 
                 override fun isSelectableYear(year: Int): Boolean {
@@ -506,8 +513,14 @@ private fun SearchCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
+        val isSearchBlockedByLocation = closeToMe && isLocating
         CustomYellowButton(
-            text = if (isSearching) "Searching..." else "Search",
+            text = when {
+                isSearching -> "Searching..."
+                isSearchBlockedByLocation -> "Getting location..."
+                else -> "Search"
+            },
+            enabled = !isSearching && !isSearchBlockedByLocation,
             onClick = {
                 if (!isSearching) {
                     if (!sinceSet || !untilSet) {
