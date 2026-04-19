@@ -17,10 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -54,8 +51,6 @@ fun LoadRoomDetailScreen(
     selectedDate: String?,
     isLoadingAvailability: Boolean,
     availabilityError: String?,
-    isFavorite: Boolean = false,
-    onFavoriteClick: (() -> Unit)? = null,
     onDateChange: (String) -> Unit,
     onBookRoom: () -> Unit = {},
 ) {
@@ -154,12 +149,6 @@ fun LoadRoomDetailScreen(
                     Text(
                         text = "Capacity: ${room.capacity ?: 0} people",
                         style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-                if (onFavoriteClick != null) {
-                    SmallIconButton(
-                        isFavorite = isFavorite,
-                        onClick = onFavoriteClick
                     )
                 }
             }
@@ -317,27 +306,6 @@ fun LoadRoomDetailScreen(
                 )
             }
             Spacer(modifier = Modifier.height(18.dp))
-        }
-    }
-}
-
-@Composable
-private fun SmallIconButton(
-    isFavorite: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .border(1.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        IconButton(onClick = onClick) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                tint = MaterialTheme.colorScheme.onSurface
-            )
         }
     }
 }

@@ -18,9 +18,6 @@ fun LoadClassroomsScreen(
     resultsUiState: ResultsUiState,
     detailRoomUiState: DetailRoomUiState,
     bookingsUiState: BookingsUIState,
-    favoriteIds: Set<String> = emptySet(),
-    onFavoriteClick: ((RoomDto) -> Unit)? = null,
-    onDetailFavoriteClick: (() -> Unit)? = null,
     onSearchClick: (HomeSearchParams) -> Unit,
     onFiltersOpened: () -> Unit,
     onRoomClick: (RoomDto) -> Unit,
@@ -40,8 +37,6 @@ fun LoadClassroomsScreen(
         ContentScreen.ROOM_DETAIL -> {
             MainRoomDetailScreen(
                 uiState = detailRoomUiState,
-                isFavorite = detailRoomUiState.room?.id?.let { it in favoriteIds } ?: false,
-                onFavoriteClick = onDetailFavoriteClick,
                 onDateChange = onRoomDetailDateChange,
                 onBookRoom = onShowMakeBooking
             )
@@ -73,8 +68,6 @@ fun LoadClassroomsScreen(
                 currentPage = resultsUiState.currentPage,
                 totalPages = resultsUiState.totalPages,
                 showingCachedResults = resultsUiState.showingCachedResults,
-                favoriteIds = favoriteIds,
-                onFavoriteClick = onFavoriteClick,
                 onSearchClick = onSearchClick,
                 onFiltersOpened = onFiltersOpened,
                 onRequestCurrentLocation = onRequestCurrentLocation,

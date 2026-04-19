@@ -11,7 +11,6 @@ enum class AppDestinations(
     val icon: ImageVector? = null
 ) {
     CLASSROOMS("Classrooms", assetIconPath = "icons/rooms.svg"),
-    FAVORITES("Favorites", assetIconPath = "icons/favorites.svg"),
     BOOKINGS("Bookings", assetIconPath = "icons/bookings.svg"),
     SCHEDULE("My Schedule", assetIconPath = "icons/schedule.svg"),
     HISTORY("History", assetIconPath = "icons/history.svg"),

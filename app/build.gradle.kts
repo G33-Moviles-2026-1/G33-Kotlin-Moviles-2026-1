@@ -15,7 +15,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"https://g33-backend-moviles-2026-1.onrender.com/\"")
+        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
+        buildConfigField("String", "API_FALLBACK_BASE_URL", "\"https://g33-backend-moviles-2026-1.onrender.com/\"")
     }
 
     buildTypes {

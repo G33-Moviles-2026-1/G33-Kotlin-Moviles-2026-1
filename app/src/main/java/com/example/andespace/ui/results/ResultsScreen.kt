@@ -32,8 +32,6 @@ fun ResultsScreen(
     currentPage: Int,
     totalPages: Int,
     showingCachedResults: Boolean = false,
-    favoriteIds: Set<String> = emptySet(),
-    onFavoriteClick: ((RoomDto) -> Unit)? = null,
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
@@ -84,8 +82,6 @@ fun ResultsScreen(
                                 room = room,
                                 cardIndex = index,
                                 showScheduleLabel = isUserLoggedIn && hasUploadedSchedule,
-                                isFavorite = room.id in favoriteIds,
-                                onFavoriteClick = onFavoriteClick?.let { { it(room) } },
                                 onClick = { onRoomClick(room) }
                             )
                         }

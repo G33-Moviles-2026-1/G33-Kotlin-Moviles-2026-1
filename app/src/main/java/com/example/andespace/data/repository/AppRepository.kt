@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.example.andespace.model.HomeSearchParams
-import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
@@ -22,8 +21,6 @@ import com.example.andespace.data.network.NetworkModule
 import com.example.andespace.data.network.RegisterRequest
 import com.example.andespace.model.schedule.ManualScheduleIn
 import com.example.andespace.model.schedule.ScheduleClassesOut
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -132,63 +129,58 @@ class AppRepository {
         params: HomeSearchParams,
         limit: Int,
         offset: Int
-    ): Result<RoomSearchResponse> =
-        withContext(Dispatchers.IO) {
-            try {
-                val request = RoomSearchRequest(
-                    roomPrefix = params.classroom.ifBlank { null },
-                    date = params.date,
-                    since = "${params.since ?: "00:00"}:00",
-                    until = "${params.until ?: "23:59"}:00",
-                    utilities = params.utilities,
-                    nearMe = params.closeToMe,
-                    userLocation = if (params.closeToMe && params.userLatitude != null && params.userLongitude != null) {
-                        UserLocation(params.userLatitude, params.userLongitude)
-                    } else null,
-                    limit = limit,
-                    offset = offset
-                )
+    ): Result<RoomSearchResponse> = try {
+        val request = RoomSearchRequest(
+            roomPrefix = params.classroom.ifBlank { null },
+            date = params.date,
+            since = "${params.since ?: "00:00"}:00",
+            until = "${params.until ?: "23:59"}:00",
+            utilities = params.utilities,
+            nearMe = params.closeToMe,
+            userLocation = if (params.closeToMe && params.userLatitude != null && params.userLongitude != null) {
+                UserLocation(params.userLatitude, params.userLongitude)
+            } else null,
+            limit = limit,
+            offset = offset
+        )
+        Log.d(
+            TAG,
+            "searchRooms request -> roomPrefix=${request.roomPrefix}, date=${request.date}, since=${request.since}, until=${request.until}, nearMe=${request.nearMe}, limit=${request.limit}, offset=${request.offset}, utilities=${request.utilities}"
+        )
+        val response = apiService.searchRooms(request)
+        Log.d(
+            TAG,
+            "searchRooms response code=${response.code()}, successful=${response.isSuccessful}"
+        )
+        if (response.isSuccessful) {
+            val body = response.body() ?: RoomSearchResponse()
+            Log.d(TAG, "searchRooms parsed rooms=${body.rooms.size}, total=${body.total}")
+            body.rooms.take(3).forEachIndexed { index, room ->
                 Log.d(
                     TAG,
-                    "searchRooms request -> roomPrefix=${request.roomPrefix}, date=${request.date}, since=${request.since}, until=${request.until}, nearMe=${request.nearMe}, limit=${request.limit}, offset=${request.offset}, utilities=${request.utilities}"
+                    "room[$index] id=${room.id}, name=${room.name}, building=${room.building}, capacity=${room.capacity}"
                 )
-                val response = apiService.searchRooms(request)
-                Log.d(
-                    TAG,
-                    "searchRooms response code=${response.code()}, successful=${response.isSuccessful}"
-                )
-                if (response.isSuccessful) {
-                    val body = response.body() ?: RoomSearchResponse()
-                    Log.d(TAG, "searchRooms parsed rooms=${body.rooms.size}, total=${body.total}")
-                    body.rooms.take(3).forEachIndexed { index, room ->
-                        Log.d(
-                            TAG,
-                            "room[$index] id=${room.id}, name=${room.name}, building=${room.building}, capacity=${room.capacity}"
-                        )
-                    }
-                    Result.success(body)
-                } else {
-                    Log.e(TAG, "searchRooms error code=${response.code()}")
-                    Result.failure(Exception(httpErrorMessage(response.code())))
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "searchRooms exception=${e.message}", e)
-                Result.failure(Exception("No internet connection. Please check your network and try again."))
             }
+            Result.success(body)
+        } else {
+            Log.e(TAG, "searchRooms error code=${response.code()}")
+            Result.failure(Exception(httpErrorMessage(response.code())))
         }
+    } catch (e: Exception) {
+        Log.e(TAG, "searchRooms exception=${e.message}", e)
+        Result.failure(Exception("No internet connection. Please check your network and try again."))
+    }
 
     suspend fun trackHomeEvent(eventName: String) {
-        withContext(Dispatchers.IO) {
-            try {
-                apiService.trackAnalyticsEvent(
-                    AnalyticsEventRequest(
-                        sessionId = sessionId,
-                        eventName = eventName,
-                        screen = "home"
-                    )
+        try {
+            apiService.trackAnalyticsEvent(
+                AnalyticsEventRequest(
+                    sessionId = sessionId,
+                    eventName = eventName,
+                    screen = "home"
                 )
-            } catch (_: Exception) {
-            }
+            )
+        } catch (_: Exception) {
         }
     }
 
@@ -198,25 +190,23 @@ class AppRepository {
         utilitiesUsed: Boolean,
         closeToMeUsed: Boolean
     ): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = apiService.trackAnalyticsEvent(
-                    AnalyticsEventRequest(
-                        sessionId = sessionId,
-                        eventName = "home_filters_opened",
-                        screen = "home",
-                        propsJson = mapOf(
-                            "place" to placeUsed,
-                            "time" to timeUsed,
-                            "utilities" to utilitiesUsed,
-                            "close_to_me" to closeToMeUsed
-                        )
+        return try {
+            val response = apiService.trackAnalyticsEvent(
+                AnalyticsEventRequest(
+                    sessionId = sessionId,
+                    eventName = "home_filters_opened",
+                    screen = "home",
+                    propsJson = mapOf(
+                        "place" to placeUsed,
+                        "time" to timeUsed,
+                        "utilities" to utilitiesUsed,
+                        "close_to_me" to closeToMeUsed
                     )
                 )
-                response.isSuccessful
-            } catch (_: Exception) {
-                false
-            }
+            )
+            response.isSuccessful
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -228,21 +218,19 @@ class AppRepository {
     ): Boolean {
         if (utilities.isEmpty()) return false
 
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = apiService.trackRoomGapSearch(
-                    RoomGapSearchAnalyticsRequest(
-                        sessionId = sessionId,
-                        dateValue = dateValue,
-                        gapStart = gapStart.toHhMmSs(),
-                        gapEnd = gapEnd.toHhMmSs(),
-                        utilities = utilities
-                    )
+        return try {
+            val response = apiService.trackRoomGapSearch(
+                RoomGapSearchAnalyticsRequest(
+                    sessionId = sessionId,
+                    dateValue = dateValue,
+                    gapStart = gapStart.toHhMmSs(),
+                    gapEnd = gapEnd.toHhMmSs(),
+                    utilities = utilities
                 )
-                response.isSuccessful
-            } catch (_: Exception) {
-                false
-            }
+            )
+            response.isSuccessful
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -263,43 +251,39 @@ class AppRepository {
     suspend fun getRoomAvailability(
         roomId: String,
         dateValue: String
-    ): Result<List<RoomTimeWindowDto>> = withContext(Dispatchers.IO) {
+    ): Result<List<RoomTimeWindowDto>> = try {
+        val response = apiService.getRoomAvailability(roomId = roomId, dateValue = dateValue)
+        if (response.isSuccessful) {
+            val windows = response.body()?.toTimeWindows(dateValue).orEmpty()
+            Result.success(windows)
+        } else {
+            Result.failure(Exception(httpErrorMessage(response.code())))
+        }
+    } catch (_: Exception) {
+        Result.failure(Exception("No internet connection. Please check your network and try again."))
+    }
+
+    suspend fun getUserFreeSlots(dateValue: String): Result<List<RoomTimeWindowDto>> =
         try {
-            val response = apiService.getRoomAvailability(roomId = roomId, dateValue = dateValue)
+            val formattedDate = dateValue.toScheduleDateParam()
+            val response = apiService.getUserFreeSlots(date = formattedDate)
             if (response.isSuccessful) {
-                val windows = response.body()?.toTimeWindows(dateValue).orEmpty()
-                Result.success(windows)
+                val slots = response.body()?.freeSlots.orEmpty()
+                    .mapNotNull { slot ->
+                        val start = slot.startTime
+                        val end = slot.endTime
+                        if (start.isNullOrBlank() || end.isNullOrBlank()) {
+                            null
+                        } else {
+                            RoomTimeWindowDto(start = start, end = end)
+                        }
+                    }
+                Result.success(slots)
             } else {
                 Result.failure(Exception(httpErrorMessage(response.code())))
             }
         } catch (_: Exception) {
             Result.failure(Exception("No internet connection. Please check your network and try again."))
-        }
-    }
-
-    suspend fun getUserFreeSlots(dateValue: String): Result<List<RoomTimeWindowDto>> =
-        withContext(Dispatchers.IO) {
-            try {
-                val formattedDate = dateValue.toScheduleDateParam()
-                val response = apiService.getUserFreeSlots(date = formattedDate)
-                if (response.isSuccessful) {
-                    val slots = response.body()?.freeSlots.orEmpty()
-                        .mapNotNull { slot ->
-                            val start = slot.startTime
-                            val end = slot.endTime
-                            if (start.isNullOrBlank() || end.isNullOrBlank()) {
-                                null
-                            } else {
-                                RoomTimeWindowDto(start = start, end = end)
-                            }
-                        }
-                    Result.success(slots)
-                } else {
-                    Result.failure(Exception(httpErrorMessage(response.code())))
-                }
-            } catch (_: Exception) {
-                Result.failure(Exception("No internet connection. Please check your network and try again."))
-            }
         }
 
     private fun String.toScheduleDateParam(): String {
@@ -317,36 +301,32 @@ class AppRepository {
         return if (trimmed.count { it == ':' } == 1) "$trimmed:00" else trimmed
     }
 
-    suspend fun getMyBookings(): Result<List<BookingDto>> = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.getMyBookings()
-            if (response.isSuccessful) {
-                Result.success(response.body()?.items.orEmpty())
-            } else {
-                val code = response.code()
-                Result.failure(ApiException(if (code == 401) "SESSION_EXPIRED" else httpErrorMessage(code)))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "getMyBookings exception=${e.message}", e)
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
+    suspend fun getMyBookings(): Result<List<BookingDto>> = try {
+        val response = apiService.getMyBookings()
+        if (response.isSuccessful) {
+            Result.success(response.body()?.items.orEmpty())
+        } else {
+            val code = response.code()
+            Result.failure(ApiException(if (code == 401) "SESSION_EXPIRED" else httpErrorMessage(code)))
         }
+    } catch (e: Exception) {
+        Log.e(TAG, "getMyBookings exception=${e.message}", e)
+        Result.failure(Exception("No internet connection. Please check your network and try again."))
     }
 
     suspend fun createBooking(request: CreateBookingRequest): Result<BookingDto> =
-        withContext(Dispatchers.IO) {
-            try {
-                val response = apiService.createBooking(request)
-                if (response.isSuccessful) {
-                    response.body()?.let { Result.success(it) }
-                        ?: Result.failure(Exception("The booking could not be confirmed. Please try again."))
-                } else {
-                    Result.failure(ApiException(httpErrorMessage(response.code())))
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "createBooking exception=${e.message}", e)
+        try {
+            val response = apiService.createBooking(request)
+            if (response.isSuccessful) {
+                response.body()?.let { Result.success(it) }
+                    ?: Result.failure(Exception("The booking could not be confirmed. Please try again."))
+            } else {
+                Result.failure(ApiException(httpErrorMessage(response.code())))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "createBooking exception=${e.message}", e)
             Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
-    }
 
     suspend fun getWeeklySchedule(date: String? = null): WeeklyScheduleOut {
         val response = apiService.getWeeklySchedule(date)
@@ -356,19 +336,16 @@ class AppRepository {
         return response.body() ?: throw Exception("Empty schedule body")
     }
     suspend fun deleteBooking(bookingId: String): Result<Boolean> =
-        withContext(Dispatchers.IO) {
-            try {
-                val response = apiService.deleteBooking(bookingId)
-                if (response.isSuccessful || response.code() == 204) {
-                    Result.success(true)
-                } else {
-                    Result.failure(ApiException(httpErrorMessage(response.code())))
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "deleteBooking exception=${e.message}", e)
-                Result.failure(Exception("No internet connection. Please check your network and try again."))
-
+        try {
+            val response = apiService.deleteBooking(bookingId)
+            if (response.isSuccessful || response.code() == 204) {
+                Result.success(true)
+            } else {
+                Result.failure(ApiException(httpErrorMessage(response.code())))
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteBooking exception=${e.message}", e)
+            Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
 
     suspend fun checkIfScheduleExists(): Result<Boolean> {
@@ -386,73 +363,6 @@ class AppRepository {
             }
         } catch (_: Exception) {
             Result.failure(ApiException("No internet connection. Please check your network and try again."))
-        }
-    }
-
-    suspend fun getMyFavorites(): Result<List<RoomDto>> {
-        return withContext(Dispatchers.IO) {
-            try {
-                Log.d(TAG, "getMyFavorites -> fetching from backend")
-                val response = apiService.getMyFavorites()
-                Log.d(TAG, "getMyFavorites code=${response.code()}, ok=${response.isSuccessful}")
-                if (response.isSuccessful) {
-                    val items = response.body()?.items ?: emptyList()
-                    val rooms = items.mapNotNull { it.toRoomDto() }
-                    Log.d(TAG, "getMyFavorites -> parsed ${rooms.size} rooms: ${rooms.map { it.id }}")
-                    Result.success(rooms)
-                } else {
-                    val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
-                    Log.e(TAG, "getMyFavorites failed: $msg")
-                    Result.failure<List<RoomDto>>(ApiException(msg))
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "getMyFavorites exception: ${e.message}", e)
-                Result.failure<List<RoomDto>>(Exception("No internet connection. Please check your network and try again."))
-            }
-        }
-    }
-
-    suspend fun addFavorite(room: RoomDto): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            val request = AddFavoriteRequest(
-                roomId = room.id,
-                name = room.name,
-                building = room.building,
-                buildingCode = room.buildingCode,
-                capacity = room.capacity,
-                utilities = room.utilities
-            )
-            Log.d(TAG, "addFavorite -> roomId=${room.id}, url=${NetworkModule.apiService}")
-            val response = apiService.addFavorite(request)
-            Log.d(TAG, "addFavorite response code=${response.code()}, successful=${response.isSuccessful}")
-            if (response.isSuccessful || response.code() == 201) {
-                Result.success(true)
-            } else {
-                val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
-                Log.e(TAG, "addFavorite failed: $msg")
-                Result.failure(ApiException(msg))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "addFavorite exception: ${e.message}", e)
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
-        }
-    }
-
-    suspend fun deleteFavorite(roomId: String): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            Log.d(TAG, "deleteFavorite -> roomId=$roomId")
-            val response = apiService.deleteFavorite(roomId)
-            Log.d(TAG, "deleteFavorite response code=${response.code()}, successful=${response.isSuccessful}")
-            if (response.isSuccessful || response.code() == 204) {
-                Result.success(true)
-            } else {
-                val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
-                Log.e(TAG, "deleteFavorite failed: $msg")
-                Result.failure(ApiException(msg))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "deleteFavorite exception: ${e.message}", e)
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
         }
     }
 

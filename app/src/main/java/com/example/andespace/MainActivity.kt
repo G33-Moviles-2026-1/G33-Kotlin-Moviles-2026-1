@@ -45,7 +45,6 @@ import com.example.andespace.ui.bookings.MainBookingsScreen
 import com.example.andespace.ui.bookings.BookingsViewModel
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
-import com.example.andespace.ui.cookie.CookieScreen
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.homepage.MainClassroomsScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
@@ -188,8 +187,6 @@ fun AndeSpaceApp(
                         viewModel.onDestinationChanged(AppDestinations.LOGIN)
                     }
                 )
-
-                AppDestinations.FAVORITES ->  CookieScreen()
 
                 AppDestinations.BOOKINGS -> {
                     if (uiState.isLoggedIn) {
