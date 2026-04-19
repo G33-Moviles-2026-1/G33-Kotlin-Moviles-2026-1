@@ -35,27 +35,25 @@ import com.example.andespace.model.dto.RoomDto
 fun RoomCard(
     room: RoomDto,
     cardIndex: Int,
-    showScheduleLabel: Boolean,
     onClick: () -> Unit = {}
 ) {
-    val availability = room.availabilityStatus ?: "available_after"
-    val isFreeNow = availability.equals("free_in_schedule", ignoreCase = true)
+    val isFreeNow = true
     val headerColor = if (isFreeNow) Color(0xFFD9E8D9) else Color(0xFFEFE5D4)
     val statusColor = if (isFreeNow) Color(0xFF4C9654) else Color(0xFFD8A327)
-    val statusTitle = if (isFreeNow) "FREE IN YOUR SCHEDULE" else "AVAILABLE AFTER"
-    val firstMatch = room.matchingWindows.firstOrNull()
-    val matchSince = firstMatch?.start ?: room.availableSince
-    val matchUntil = firstMatch?.end ?: room.availableUntil
+    val statusTitle = if (isFreeNow) "FREE IN YOUR TIME" else "AVAILABLE AFTER"
+    val firstMatch = room.matchingWindows.orEmpty().firstOrNull()
+    val matchSince = firstMatch?.start
+    val matchUntil = firstMatch?.end
     val scheduleText = if (matchSince != null && matchUntil != null) {
         "From $matchSince to $matchUntil"
     } else {
         if (isFreeNow) "No schedule match found" else "No availability window"
     }
-    val extraUtilities = room.utilities.map { RoomUtility.displayNameFromCode(it) }
+    val extraUtilities = room.utilities.orEmpty().map { RoomUtility.displayNameFromCode(it) }
     val roomId = room.id
     val roomName = room.name ?: "Unnamed"
     val buildingText = room.building ?: "Unnamed"
-    val waitSeconds = room.waitSeconds ?: (16 + (cardIndex * 20))
+    val waitSeconds = room.distanceSeconds
 
     Surface(
         modifier = Modifier
@@ -83,17 +81,24 @@ fun RoomCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                Box(
-                    modifier = Modifier
-                        .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(10.dp))
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        text = "$waitSeconds Seconds",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                if (waitSeconds!=null){
+                    Box(
+                        modifier = Modifier
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                                RoundedCornerShape(10.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "$waitSeconds Seconds",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
+
             }
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -103,44 +108,46 @@ fun RoomCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if (showScheduleLabel) {
-                Spacer(modifier = Modifier.height(10.dp))
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(headerColor, RoundedCornerShape(12.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = if (isFreeNow) Icons.Default.CheckCircle else Icons.Default.Schedule,
-                        contentDescription = "Availability status",
-                        tint = statusColor,
-                        modifier = Modifier.size(20.dp)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(headerColor, RoundedCornerShape(12.dp))
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        RoundedCornerShape(12.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = statusTitle,
-                            color = statusColor,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = scheduleText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (isFreeNow) Icons.Default.CheckCircle else Icons.Default.Schedule,
+                    contentDescription = "Availability status",
+                    tint = statusColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = statusTitle,
+                        color = statusColor,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = scheduleText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-            } else {
-                Spacer(modifier = Modifier.height(10.dp))
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FeatureChip(

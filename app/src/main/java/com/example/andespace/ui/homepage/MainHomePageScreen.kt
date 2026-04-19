@@ -8,10 +8,10 @@ import com.example.andespace.model.dto.RoomDto
 
 @Composable
 fun MainHomePageScreen(
+    modifier: Modifier = Modifier,
     contentScreen: ContentScreen,
     isSearching: Boolean,
     isUserLoggedIn: Boolean,
-    hasUploadedSchedule: Boolean,
     closeToMe: Boolean,
     isLocating: Boolean,
     locationError: Boolean,
@@ -30,13 +30,12 @@ fun MainHomePageScreen(
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
-    modifier: Modifier = Modifier
 ) {
     LoadHomePageScreen(
+        modifier = modifier,
         contentScreen = contentScreen,
         isSearching = isSearching,
         isUserLoggedIn = isUserLoggedIn,
-        hasUploadedSchedule = hasUploadedSchedule,
         closeToMe = closeToMe,
         isLocating = isLocating,
         locationError = locationError,
@@ -45,7 +44,6 @@ fun MainHomePageScreen(
         rooms = rooms,
         currentPage = currentPage,
         totalPages = totalPages,
-        showingCachedResults = showingCachedResults,
         onSearchClick = onSearchClick,
         onFiltersOpened = onFiltersOpened,
         onRequestCurrentLocation = onRequestCurrentLocation,
@@ -54,7 +52,6 @@ fun MainHomePageScreen(
         onClearLocationError = onClearLocationError,
         onRoomClick = onRoomClick,
         onPrevPage = onPrevPage,
-        onNextPage = onNextPage,
-        modifier = modifier
+        onNextPage = onNextPage
     )
 }

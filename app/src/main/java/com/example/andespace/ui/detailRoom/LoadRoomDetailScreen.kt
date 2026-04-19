@@ -1,5 +1,6 @@
 package com.example.andespace.ui.detailRoom
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,22 +71,16 @@ fun LoadRoomDetailScreen(
 
     val displayDate = formatDisplayDate(selectedDateValue)
     val dayName = formatDisplayDay(selectedDateValue)
-    val windows = room.matchingWindows
-        .mapNotNull { window ->
-            val start = window.start ?: return@mapNotNull null
-            val end = window.end ?: return@mapNotNull null
-            "$start - $end"
-        }
-        .ifEmpty {
-            listOfNotNull(
-                room.availableSince?.let { since ->
-                    val until = room.availableUntil ?: ""
-                    "$since - $until".trim()
-                }
-            )
-        }
 
-    val utilities = room.utilities
+    val availableSlots = room.availableSlots.orEmpty().mapNotNull { slot ->
+        slot.start?.let { start ->
+            slot.end?.let { end ->
+                "$start - $end"
+            }
+        }
+    }
+
+    val utilities = room.utilities.orEmpty()
         .map { RoomUtility.displayNameFromCode(it) }
         .ifEmpty {
         listOf("Blackout", "Power Outlet", "Mobile Whiteboards")
@@ -236,7 +231,7 @@ fun LoadRoomDetailScreen(
                         )
                     }
 
-                    windows.isEmpty() -> {
+                    availableSlots.isEmpty() -> {
                         Text(
                             text = "No available time slots for this date.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -245,7 +240,7 @@ fun LoadRoomDetailScreen(
                     }
 
                     else -> {
-                        windows.forEach { windowText ->
+                        availableSlots.forEach { windowText ->
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()

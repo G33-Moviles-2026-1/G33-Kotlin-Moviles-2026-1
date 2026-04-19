@@ -1,5 +1,6 @@
 package com.example.andespace.ui.detailRoom
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.RoomDto
@@ -49,21 +50,13 @@ class DetailRoomViewModel(
         viewModelScope.launch {
             repository.getRoomAvailability(roomId = roomId, dateValue = dateValue)
                 .fold(
-                    onSuccess = { windows ->
-                        _uiState.update { state ->
-                            val currentRoom = state.room
-                            if (currentRoom == null || currentRoom.id != roomId) {
-                                state.copy(
-                                    isLoadingAvailability = false,
-                                    availabilityError = null
-                                )
-                            } else {
-                                state.copy(
-                                    room = currentRoom.copy(matchingWindows = windows),
-                                    isLoadingAvailability = false,
-                                    availabilityError = null
-                                )
-                            }
+                    onSuccess = { room ->
+                        _uiState.update {
+                            it.copy(
+                                room = room,
+                                isLoadingAvailability = false,
+                                availabilityError = null
+                            )
                         }
                     },
                     onFailure = { error ->

@@ -24,18 +24,15 @@ import com.example.andespace.ui.components.PaginationFooter
 
 @Composable
 fun ResultsScreen(
+    modifier: Modifier = Modifier,
     rooms: List<RoomDto>,
     isSearching: Boolean,
-    isUserLoggedIn: Boolean,
-    hasUploadedSchedule: Boolean,
     errorMessage: String?,
     currentPage: Int,
     totalPages: Int,
-    showingCachedResults: Boolean = false,
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
-    onNextPage: () -> Unit,
-    modifier: Modifier = Modifier
+    onNextPage: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -81,7 +78,6 @@ fun ResultsScreen(
                             RoomCard(
                                 room = room,
                                 cardIndex = index,
-                                showScheduleLabel = isUserLoggedIn && hasUploadedSchedule,
                                 onClick = { onRoomClick(room) }
                             )
                         }

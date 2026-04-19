@@ -13,12 +13,12 @@ import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.UserLocation
 import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.RoomTimeWindowDto
-import com.example.andespace.model.dto.toTimeWindows
 import com.example.andespace.model.schedule.WeeklyScheduleOut
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.LoginRequest
 import com.example.andespace.data.network.NetworkModule
 import com.example.andespace.data.network.RegisterRequest
+import com.example.andespace.model.dto.AvailabilitySlotDto
 import com.example.andespace.model.schedule.ManualScheduleIn
 import com.example.andespace.model.schedule.ScheduleClassesOut
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -158,7 +158,7 @@ class AppRepository {
             body.rooms.take(3).forEachIndexed { index, room ->
                 Log.d(
                     TAG,
-                    "room[$index] id=${room.id}, name=${room.name}, building=${room.building}, capacity=${room.capacity}"
+                    "room[$index] id=${room.id}, name=${room.name}, building=${room.building}, capacity=${room.capacity}, distanceSeconds=${room.distanceSeconds}"
                 )
             }
             Result.success(body)
@@ -210,29 +210,6 @@ class AppRepository {
         }
     }
 
-    suspend fun trackRoomGapSearch(
-        dateValue: String,
-        gapStart: String,
-        gapEnd: String,
-        utilities: List<String>
-    ): Boolean {
-        if (utilities.isEmpty()) return false
-
-        return try {
-            val response = apiService.trackRoomGapSearch(
-                RoomGapSearchAnalyticsRequest(
-                    sessionId = sessionId,
-                    dateValue = dateValue,
-                    gapStart = gapStart.toHhMmSs(),
-                    gapEnd = gapEnd.toHhMmSs(),
-                    utilities = utilities
-                )
-            )
-            response.isSuccessful
-        } catch (_: Exception) {
-            false
-        }
-    }
 
     suspend fun trackScreensTime(
         screenName: String,
@@ -251,40 +228,21 @@ class AppRepository {
     suspend fun getRoomAvailability(
         roomId: String,
         dateValue: String
-    ): Result<List<RoomTimeWindowDto>> = try {
+    ): Result<RoomDto> = try {
         val response = apiService.getRoomAvailability(roomId = roomId, dateValue = dateValue)
         if (response.isSuccessful) {
-            val windows = response.body()?.toTimeWindows(dateValue).orEmpty()
-            Result.success(windows)
+            val room = response.body()
+            if (room != null) {
+                Result.success(room)
+            } else {
+                Result.failure(Exception("Could not load the room's availability. Please try again."))
+            }
         } else {
             Result.failure(Exception(httpErrorMessage(response.code())))
         }
     } catch (_: Exception) {
         Result.failure(Exception("No internet connection. Please check your network and try again."))
     }
-
-    suspend fun getUserFreeSlots(dateValue: String): Result<List<RoomTimeWindowDto>> =
-        try {
-            val formattedDate = dateValue.toScheduleDateParam()
-            val response = apiService.getUserFreeSlots(date = formattedDate)
-            if (response.isSuccessful) {
-                val slots = response.body()?.freeSlots.orEmpty()
-                    .mapNotNull { slot ->
-                        val start = slot.startTime
-                        val end = slot.endTime
-                        if (start.isNullOrBlank() || end.isNullOrBlank()) {
-                            null
-                        } else {
-                            RoomTimeWindowDto(start = start, end = end)
-                        }
-                    }
-                Result.success(slots)
-            } else {
-                Result.failure(Exception(httpErrorMessage(response.code())))
-            }
-        } catch (_: Exception) {
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
-        }
 
     private fun String.toScheduleDateParam(): String {
         return runCatching {

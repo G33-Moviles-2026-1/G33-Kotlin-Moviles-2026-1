@@ -210,11 +210,8 @@ fun AndeSpaceApp(
                                     building = recommendedRoom.building_name,
                                     capacity = recommendedRoom.capacity,
                                     utilities = emptyList(),
-                                    availableSince = null,
-                                    availableUntil = null,
                                     waitSeconds = null,
-                                    matchingWindows = emptyList(),
-                                    availabilityStatus = null
+                                    matchingWindows = emptyList()
                                 )
                                 detailRoomViewModel.setRoom(mappedRoom)
                                 homepageViewModel.onShowRoomDetailScreen()

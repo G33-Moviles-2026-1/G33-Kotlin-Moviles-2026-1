@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.RoomTimeWindowDto
-import com.example.andespace.model.dto.windowsForDate
 import com.example.andespace.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +37,7 @@ class ResultsViewModel(
     fun onSearchClick(params: HomeSearchParams, isUserLoggedIn: Boolean) {
         lastSearchParams = params
         clearCache()
-        requestSearchPage(params = params, page = 1, isUserLoggedIn = isUserLoggedIn, trackEvent = true)
+        requestSearchPage(params = params, page = 1, trackEvent = true)
     }
 
     fun onRoomClick(room: RoomDto) {
@@ -55,7 +54,7 @@ class ResultsViewModel(
         val nextPage = (state.currentPage + 1).coerceAtMost(state.totalPages)
         if (nextPage == state.currentPage) return
 
-        requestSearchPage(params = params, page = nextPage, isUserLoggedIn = isUserLoggedIn)
+        requestSearchPage(params = params, page = nextPage)
     }
 
     fun onPreviousPage(isUserLoggedIn: Boolean) {
@@ -66,13 +65,12 @@ class ResultsViewModel(
         val previousPage = (state.currentPage - 1).coerceAtLeast(1)
         if (previousPage == state.currentPage) return
 
-        requestSearchPage(params = params, page = previousPage, isUserLoggedIn = isUserLoggedIn)
+        requestSearchPage(params = params, page = previousPage)
     }
 
     private fun requestSearchPage(
         params: HomeSearchParams,
         page: Int,
-        isUserLoggedIn: Boolean,
         trackEvent: Boolean = false
     ) {
         viewModelScope.launch {
@@ -94,17 +92,6 @@ class ResultsViewModel(
                     utilitiesUsed = params.utilities.isNotEmpty(),
                     closeToMeUsed = params.closeToMe
                 )
-
-                val hasGapAndUtilities =
-                    params.since != null && params.until != null && params.utilities.isNotEmpty()
-                if (hasGapAndUtilities) {
-                    repository.trackRoomGapSearch(
-                        dateValue = params.date,
-                        gapStart = params.since,
-                        gapEnd = params.until,
-                        utilities = params.utilities
-                    )
-                }
             }
 
             repository.searchRooms(params, limit = pageSize, offset = offset)
@@ -112,25 +99,14 @@ class ResultsViewModel(
                     onSuccess = { response ->
                         val totalItems = response.total ?: (offset + response.rooms.size)
                         val pages = calculateTotalPages(totalItems = totalItems, pageSize = pageSize)
-                        val enrichmentResult = enrichRoomsWithUserSchedule(
-                            rooms = response.rooms,
-                            dateValue = params.date,
-                            searchSince = params.since ?: "00:00",
-                            searchUntil = params.until ?: "23:59",
-                            isUserLoggedIn = isUserLoggedIn
-                        )
 
                         cachedParams = params
                         cachedTotalPages = pages
-                        cachedHasUploadedSchedule = enrichmentResult.hasUploadedSchedule
-                        cachedPages[page] = enrichmentResult.rooms
-                        Log.d(TAG, "requestSearchPage -> cached page $page (${enrichmentResult.rooms.size} rooms, total cached pages: ${cachedPages.size})")
 
                         _uiState.update {
                             it.copy(
                                 isSearching = false,
-                                rooms = enrichmentResult.rooms,
-                                hasUploadedSchedule = enrichmentResult.hasUploadedSchedule,
+                                rooms = response.rooms,
                                 selectedSearchDate = params.date,
                                 currentPage = page,
                                 totalPages = pages,
@@ -147,7 +123,6 @@ class ResultsViewModel(
                                 it.copy(
                                     isSearching = false,
                                     rooms = cachedRooms,
-                                    hasUploadedSchedule = cachedHasUploadedSchedule,
                                     selectedSearchDate = params.date,
                                     currentPage = page,
                                     totalPages = cachedTotalPages,
@@ -175,148 +150,6 @@ class ResultsViewModel(
         raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
         raw.matches(Regex("Error \\d+.*")) -> "Could not load results. Please try again."
         else -> "Something went wrong. Please try again."
-    }
-
-    private data class ScheduleEnrichmentResult(
-        val rooms: List<RoomDto>,
-        val hasUploadedSchedule: Boolean
-    )
-
-    private suspend fun enrichRoomsWithUserSchedule(
-        rooms: List<RoomDto>,
-        dateValue: String,
-        searchSince: String,
-        searchUntil: String,
-        isUserLoggedIn: Boolean
-    ): ScheduleEnrichmentResult {
-        if (!isUserLoggedIn || rooms.isEmpty()) {
-            return ScheduleEnrichmentResult(
-                rooms = rooms,
-                hasUploadedSchedule = false
-            )
-        }
-
-        val hasSchedule = repository.checkIfScheduleExists().getOrElse { error ->
-            Log.w(TAG, "Could not verify user schedule existence: ${error.message}")
-            false
-        }
-        if (!hasSchedule) {
-            return ScheduleEnrichmentResult(
-                rooms = rooms,
-                hasUploadedSchedule = false
-            )
-        }
-
-        val searchWindow = RoomTimeWindowDto(
-            start = normalizeToHhMmSs(searchSince),
-            end = normalizeToHhMmSs(searchUntil)
-        )
-
-        val userFreeSlots = repository.getUserFreeSlots(dateValue)
-            .getOrElse { error ->
-                Log.w(TAG, "Could not load user free slots: ${error.message}")
-                return ScheduleEnrichmentResult(
-                    rooms = rooms,
-                    hasUploadedSchedule = false
-                )
-            }
-
-        val enrichedRooms = rooms.map { room ->
-            val roomWindows = room.windowsForDate(dateValue).ifEmpty {
-                listOfNotNull(
-                    room.availableSince?.let { since ->
-                        val until = room.availableUntil ?: return@let null
-                        RoomTimeWindowDto(start = since, end = until)
-                    }
-                )
-            }
-
-            val overlapWindow = prioritizedOverlapWindow(
-                roomWindows = roomWindows,
-                freeSlots = userFreeSlots,
-                preferredWindow = searchWindow
-            )
-            val isFreeInSchedule = overlapWindow != null
-            room.copy(
-                availabilityStatus = if (isFreeInSchedule) "free_in_schedule" else "available_after",
-                availableSince = overlapWindow?.start ?: room.availableSince,
-                availableUntil = overlapWindow?.end ?: room.availableUntil,
-                matchingWindows = overlapWindow?.let { listOf(it) } ?: room.matchingWindows
-            )
-        }
-
-        return ScheduleEnrichmentResult(
-            rooms = enrichedRooms,
-            hasUploadedSchedule = true
-        )
-    }
-
-    private fun prioritizedOverlapWindow(
-        roomWindows: List<RoomTimeWindowDto>,
-        freeSlots: List<RoomTimeWindowDto>,
-        preferredWindow: RoomTimeWindowDto?
-    ): RoomTimeWindowDto? {
-        if (roomWindows.isEmpty() || freeSlots.isEmpty()) return null
-
-        val overlaps = roomWindows.flatMap { roomWindow ->
-            freeSlots.mapNotNull { freeSlot ->
-                overlapInterval(
-                    roomStart = roomWindow.start,
-                    roomEnd = roomWindow.end,
-                    freeStart = freeSlot.start,
-                    freeEnd = freeSlot.end
-                )
-            }
-        }
-
-        if (overlaps.isEmpty()) return null
-
-        val preferredOverlaps = preferredWindow?.let { preferred ->
-            overlaps.mapNotNull { overlap ->
-                overlapInterval(
-                    roomStart = overlap.start,
-                    roomEnd = overlap.end,
-                    freeStart = preferred.start,
-                    freeEnd = preferred.end
-                )
-            }
-        }.orEmpty()
-
-        if (preferredOverlaps.isNotEmpty()) {
-            return preferredOverlaps
-                .sortedWith(
-                    compareByDescending<RoomTimeWindowDto> { intervalDuration(it) }
-                        .thenBy { it.start.toSecondsOfDay() ?: Int.MAX_VALUE }
-                )
-                .first()
-        }
-
-        return overlaps.minByOrNull { it.start.toSecondsOfDay() ?: Int.MAX_VALUE }
-    }
-
-    private fun overlapInterval(
-        roomStart: String?,
-        roomEnd: String?,
-        freeStart: String?,
-        freeEnd: String?
-    ): RoomTimeWindowDto? {
-        val roomStartSeconds = roomStart.toSecondsOfDay()
-        val roomEndSeconds = roomEnd.toSecondsOfDay()
-        val freeStartSeconds = freeStart.toSecondsOfDay()
-        val freeEndSeconds = freeEnd.toSecondsOfDay()
-
-        if (roomStartSeconds == null || roomEndSeconds == null || freeStartSeconds == null || freeEndSeconds == null) {
-            return null
-        }
-
-        val overlapStart = maxOf(roomStartSeconds, freeStartSeconds)
-        val overlapEnd = minOf(roomEndSeconds, freeEndSeconds)
-        if (overlapStart >= overlapEnd) return null
-
-        return RoomTimeWindowDto(
-            start = overlapStart.toTimeString(),
-            end = overlapEnd.toTimeString()
-        )
     }
 
     private fun String?.toSecondsOfDay(): Int? {
