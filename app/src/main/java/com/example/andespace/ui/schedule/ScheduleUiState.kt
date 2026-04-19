@@ -1,7 +1,10 @@
 package com.example.andespace.ui.schedule
 
-import com.example.andespace.model.schedule.DayRoomRecommendationsOut
-import com.example.andespace.model.schedule.WeeklyScheduleOut
+import com.example.andespace.model.dto.DayRoomRecommendationsOut
+import com.example.andespace.model.dto.WeeklyScheduleOut
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 data class ScheduleUiState(
     val isLoading: Boolean = false,
@@ -12,6 +15,8 @@ data class ScheduleUiState(
     val classRoom: String = "",
     val startDate: String = "",
     val endDate: String = "",
+    val navigatedDate: String = "",
+    val currentWeekDate: LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
     val startTime: String = "",
     val endTime: String = "",
     val selectedDays: Set<String> = emptySet(),

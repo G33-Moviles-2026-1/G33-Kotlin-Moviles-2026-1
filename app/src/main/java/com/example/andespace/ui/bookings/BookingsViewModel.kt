@@ -4,17 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
-import com.example.andespace.data.repository.AppRepository
+import com.example.andespace.data.repository.BookingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class BookingsViewModel(
-    private val repository: AppRepository = AppRepository()
-) : ViewModel() {
-
+class BookingsViewModel(private val repository: BookingRepository): ViewModel()  {
     private val _uiState = MutableStateFlow(BookingsUIState())
     val uiState: StateFlow<BookingsUIState> = _uiState.asStateFlow()
 
@@ -131,9 +128,6 @@ class BookingsViewModel(
         _uiState.update { it.copy(bookingCreatedSuccess = false) }
     }
 
-    fun clearError() {
-        _uiState.update { it.copy(errorMessage = null, createError = null) }
-    }
 
     fun resetRequiresLogin() {
         _uiState.update { it.copy(requiresLogin = false) }

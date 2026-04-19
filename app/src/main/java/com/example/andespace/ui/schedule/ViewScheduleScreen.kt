@@ -1,6 +1,4 @@
 package com.example.andespace.ui.schedule
-
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,11 +27,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,9 +43,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.andespace.model.schedule.ScheduleClassOccurrenceOut
+import com.example.andespace.model.dto.ScheduleClassOccurrenceOut
+import com.example.andespace.ui.components.NoConnectionPlaceholder
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 @Composable
@@ -60,31 +60,15 @@ fun ViewScheduleScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedFilterDate by remember { mutableStateOf<LocalDate?>(null) }
 
-
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButtonPosition = FabPosition.Center,
-        floatingActionButton = {
-            if (selectedFilterDate != null) {
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                        viewModel.loadRecommendations(dateStr)
-                    },
-                    icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
-                    text = { Text("Filter from schedule") },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    ) { paddingValues ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(top = 20.dp)
+    ) {
 
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             item {
@@ -94,16 +78,14 @@ fun ViewScheduleScreen(
                         .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val dateRangeText = uiState.scheduleData?.let { data ->
-                        try {
-                            val start = LocalDate.parse(data.week_start)
-                            val end = LocalDate.parse(data.week_end)
-                            val formatter = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
-                            "${start.format(formatter)} - ${end.format(formatter)}"
-                        } catch (_: Exception) {
-                            "Invalid Date Range"
-                        }
-                    } ?: "Loading..."
+                    val dateRangeText = try {
+                        val start = uiState.currentWeekDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                        val end = start.plusDays(6)
+                        val formatter = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
+                        "${start.format(formatter)} - ${end.format(formatter)}"
+                    } catch (_: Exception) {
+                        "Schedule"
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -113,7 +95,14 @@ fun ViewScheduleScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                 contentDescription = "Previous Week",
-                                tint = MaterialTheme.colorScheme.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
                             )
                         }
                         Text(
@@ -126,7 +115,14 @@ fun ViewScheduleScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = "Next Week",
-                                tint = MaterialTheme.colorScheme.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
                             )
                         }
                     }
@@ -146,79 +142,126 @@ fun ViewScheduleScreen(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Manually Add Class",
-                            tint = MaterialTheme.colorScheme.onBackground
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = RoundedCornerShape(7.dp)
+                                )
+                                .padding(2.dp)
                         )
                     }
                     IconButton(onClick = { viewModel.resetToCurrentWeek() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Reload Schedule",
-                            tint = MaterialTheme.colorScheme.onBackground
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = RoundedCornerShape(7.dp)
+                                )
+                                .padding(2.dp)
                         )
                     }
                     IconButton(onClick = onDeleteScheduleClick) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Schedule",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = RoundedCornerShape(7.dp)
+                                )
+                                .padding(2.dp)
                         )
                     }
                 }
             }
 
-            if (uiState.isLoading || uiState.errorMessage != null) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        } else {
-                            Text(
-                                text = uiState.errorMessage ?: "An unknown error occurred",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (!uiState.isLoading && uiState.errorMessage == null && uiState.scheduleData != null) {
-                val scheduleData = uiState.scheduleData!!
-                val groupedClasses = scheduleData.occurrences.groupBy { backendDay ->
-                    backendDay.weekday.replaceFirstChar { it.uppercase() }
-                }
-
-                val weekStart = try {
-                    LocalDate.parse(scheduleData.week_start)
-                } catch (_: Exception) {
-                    LocalDate.now()
-                }
-
-                for (i in 0..5) {
-                    val currentDate = weekStart.plusDays(i.toLong())
-
-                    val dayName = currentDate.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
-                    val dayNumber = currentDate.dayOfMonth.toString()
-
-                    val classesForDay = groupedClasses[dayName] ?: emptyList()
-
+            when {
+                uiState.isLoading -> {
                     item {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            DayScheduleSection(
-                                dayName = dayName,
-                                dayNumber = dayNumber,
-                                classes = classesForDay,
-                                viewModel = viewModel,
-                                isSelected = (selectedFilterDate == currentDate),
-                                onDayClick = {
-                                    selectedFilterDate = if (selectedFilterDate == currentDate) null else currentDate                                }
-                            )
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                uiState.scheduleData == null -> {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillParentMaxHeight(0.7f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            NoConnectionPlaceholder()
+                        }
+                    }
+                }
+
+                else -> {
+                    val scheduleData = uiState.scheduleData!!
+                    val groupedClasses = scheduleData.occurrences.groupBy { backendDay ->
+                        backendDay.weekday.replaceFirstChar { it.uppercase() }
+                    }
+
+                    val weekStart = try {
+                        LocalDate.parse(scheduleData.week_start)
+                    } catch (_: Exception) {
+                        uiState.currentWeekDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    }
+
+                    for (i in 0..5) {
+                        val currentDate = weekStart.plusDays(i.toLong())
+                        val dayName = currentDate.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+                        val dayNumber = currentDate.dayOfMonth.toString()
+                        val classesForDay = groupedClasses[dayName] ?: emptyList()
+
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                DayScheduleSection(
+                                    dayName = dayName,
+                                    dayNumber = dayNumber,
+                                    classes = classesForDay,
+                                    viewModel = viewModel,
+                                    isSelected = (selectedFilterDate == currentDate),
+                                    onDayClick = {
+                                        selectedFilterDate = if (selectedFilterDate == currentDate) null else currentDate
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+
+        if (selectedFilterDate != null) {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    viewModel.loadRecommendations(dateStr)
+                },
+                icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
+                text = { Text("Filter from schedule") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+            )
         }
     }
 }
@@ -329,7 +372,15 @@ fun ClassCard(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete this class",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .size(30.dp)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outline,
+                            shape = RoundedCornerShape(7.dp)
+                        )
+                        .padding(2.dp)
                 )
             }
         }

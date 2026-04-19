@@ -93,8 +93,8 @@ fun LoadRoomDetailScreen(
     val utilities = room.utilities
         .map { RoomUtility.displayNameFromCode(it) }
         .ifEmpty {
-        listOf("Blackout", "Power Outlet", "Mobile Whiteboards")
-    }
+            listOf("Blackout", "Power Outlet", "Mobile Whiteboards")
+        }
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(

@@ -1,28 +1,19 @@
 package com.example.andespace.ui.favorites
 
-import android.app.Application
 import android.util.Log
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.repository.AppRepository
+import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.model.dto.RoomDto
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class FavoritesViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = AppRepository()
-    private val gson = Gson()
-    private val roomListType = object : TypeToken<List<RoomDto>>() {}.type
+class FavoritesViewModel(
+    private val repository: FavoritesRepository
+) : ViewModel() {
 
     companion object {
         private const val TAG = "FavoritesViewModel"
@@ -33,8 +24,9 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         viewModelScope.launch {
-            val localRooms = readFromDataStore()
-            Log.d(TAG, "init -> loaded ${localRooms.size} rooms from DataStore")
+            val localRooms = repository.getLocalFavorites()
+            Log.d(TAG, "init -> loaded ${localRooms.size} rooms from local cache")
+
             _uiState.value = FavoritesUiState(
                 favoriteRooms = localRooms,
                 favoriteIds = localRooms.map { it.id }.toSet(),
@@ -45,8 +37,8 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun refreshFromBackend() {
         viewModelScope.launch {
-            val localRooms = readFromDataStore()
-            Log.d(TAG, "refreshFromBackend -> local cache has ${localRooms.size} rooms")
+            val localRooms = repository.getLocalFavorites()
+
             if (localRooms.isNotEmpty() && _uiState.value.favoriteRooms.isEmpty()) {
                 _uiState.value = FavoritesUiState(
                     favoriteRooms = localRooms,
@@ -55,21 +47,21 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
 
-            Log.d(TAG, "refreshFromBackend -> calling backend")
             repository.getMyFavorites().fold(
                 onSuccess = { backendRooms ->
-                    Log.d(TAG, "refreshFromBackend -> backend returned ${backendRooms.size} rooms: ${backendRooms.map { it.id }}")
                     val localById = localRooms.associateBy { it.id }
                     val merged = backendRooms.map { backendRoom ->
                         localById[backendRoom.id] ?: backendRoom
                     }
-                    Log.d(TAG, "refreshFromBackend -> merged ${merged.size} rooms")
+
                     _uiState.value = FavoritesUiState(
                         favoriteRooms = merged,
                         favoriteIds = merged.map { it.id }.toSet(),
                         isLoading = false
                     )
-                    persistToDataStore(merged)
+
+                    // 2. Tell the repository to save it!
+                    repository.saveLocalFavorites(merged)
                 },
                 onFailure = { e ->
                     Log.e(TAG, "refreshFromBackend -> backend failed: ${e.message}")
@@ -81,7 +73,6 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun toggleFavorite(room: RoomDto) {
         val wasAlreadyFavorite = room.id in _uiState.value.favoriteIds
-        Log.d(TAG, "toggleFavorite -> roomId=${room.id}, wasAlreadyFavorite=$wasAlreadyFavorite")
 
         _uiState.update { state ->
             if (wasAlreadyFavorite) {
@@ -101,44 +92,22 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             if (wasAlreadyFavorite) {
                 repository.deleteFavorite(room.id)
-                    .onSuccess { Log.d(TAG, "deleteFavorite backend success: ${room.id}") }
-                    .onFailure { Log.e(TAG, "deleteFavorite backend failed: ${room.id} -> ${it.message}") }
+                    .onSuccess { repository.trackFavoriteEvent(room, added = false) }
             } else {
                 repository.addFavorite(room)
-                    .onSuccess { Log.d(TAG, "addFavorite backend success: ${room.id}") }
-                    .onFailure { Log.e(TAG, "addFavorite backend failed: ${room.id} -> ${it.message}") }
+                    .onSuccess { repository.trackFavoriteEvent(room, added = true) }
             }
         }
     }
 
     fun clearFavorites() {
-        Log.d(TAG, "clearFavorites -> clearing memory state")
         _uiState.value = FavoritesUiState(isLoading = false)
     }
 
     private fun persistFavorites() {
         val rooms = _uiState.value.favoriteRooms
-        viewModelScope.launch { persistToDataStore(rooms) }
-    }
-
-    private suspend fun persistToDataStore(rooms: List<RoomDto>) {
-        Log.d(TAG, "persistToDataStore -> saving ${rooms.size} rooms")
-        val json = gson.toJson(rooms)
-        getApplication<Application>().favoritesDataStore.edit { prefs ->
-            prefs[FAVORITES_JSON_KEY] = json
-        }
-    }
-
-    private suspend fun readFromDataStore(): List<RoomDto> {
-        val prefs = getApplication<Application>().favoritesDataStore.data
-            .catch { emit(emptyPreferences()) }
-            .first()
-        val json = prefs[FAVORITES_JSON_KEY]
-        return if (!json.isNullOrBlank()) {
-            runCatching<List<RoomDto>> { gson.fromJson(json, roomListType) }
-                .getOrDefault(emptyList())
-        } else {
-            emptyList()
+        viewModelScope.launch {
+            repository.saveLocalFavorites(rooms)
         }
     }
 }

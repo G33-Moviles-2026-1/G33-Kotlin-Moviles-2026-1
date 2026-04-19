@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import com.example.andespace.model.AppDestinations
-import com.example.andespace.AssetIcon
+import com.example.andespace.ui.main.AssetIcon
 
 @Composable
 fun AndeSpaceBottomBar(

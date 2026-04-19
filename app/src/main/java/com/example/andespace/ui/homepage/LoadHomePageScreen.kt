@@ -61,7 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
-import com.example.andespace.AssetIcon
+import com.example.andespace.ui.main.AssetIcon
 import com.example.andespace.data.location.GeoLocation
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.RoomUtility

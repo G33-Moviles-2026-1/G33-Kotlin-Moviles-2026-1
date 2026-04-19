@@ -1,9 +1,8 @@
 package com.example.andespace.ui.detailRoom
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.RoomDto
-import com.example.andespace.data.repository.AppRepository
+import com.example.andespace.data.repository.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,10 +12,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class DetailRoomViewModel(
-    private val repository: AppRepository = AppRepository()
-) : ViewModel() {
-
+class DetailRoomViewModel( private val repository: RoomRepository): ViewModel() {
     private val _uiState = MutableStateFlow(DetailRoomUiState())
     val uiState: StateFlow<DetailRoomUiState> = _uiState.asStateFlow()
 
