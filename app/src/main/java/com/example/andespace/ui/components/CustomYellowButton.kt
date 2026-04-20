@@ -22,7 +22,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun CustomYellowButton(text: String, onClick: () -> Unit) {
+fun CustomYellowButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true
+) {
     val targetYellow = Color(0xFFFFFF00)
     val cornerRadius = 10.dp
     val buttonHeight = 60.dp
@@ -41,6 +45,7 @@ fun CustomYellowButton(text: String, onClick: () -> Unit) {
                 shape = RoundedCornerShape(cornerRadius)
             )
             .clickable(
+                enabled = enabled,
                 onClick = onClick,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple()
@@ -50,7 +55,7 @@ fun CustomYellowButton(text: String, onClick: () -> Unit) {
             modifier = Modifier
                 .matchParentSize()
                 .background(
-                    color = targetYellow,
+                    color = if (enabled) targetYellow else Color(0xFFE2E2A8),
                     shape = RoundedCornerShape(cornerRadius)
                 )
                 .border(
