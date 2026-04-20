@@ -42,7 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.dto.ScheduleClassOccurrenceOut
 import com.example.andespace.ui.components.NoConnectionPlaceholder
 import java.time.DayOfWeek
@@ -81,7 +83,7 @@ fun ViewScheduleScreen(
                     val dateRangeText = try {
                         val start = uiState.currentWeekDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                         val end = start.plusDays(6)
-                        val formatter = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
+                        val formatter = DateTimeFormatter.ofPattern("MMM d", Locale.US)
                         "${start.format(formatter)} - ${end.format(formatter)}"
                     } catch (_: Exception) {
                         "Schedule"
@@ -109,7 +111,9 @@ fun ViewScheduleScreen(
                             text = dateRangeText,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onBackground,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f)
                         )
                         IconButton(onClick = { viewModel.loadNextWeek() }) {
                             Icon(
@@ -249,19 +253,27 @@ fun ViewScheduleScreen(
         }
 
         if (selectedFilterDate != null) {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                    viewModel.loadRecommendations(dateStr)
-                },
-                icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
-                text = { Text("Filter from schedule") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
+            val isOnline by NetworkMonitor.isOnline.collectAsState()
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
-            )
+                    .padding(bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        if (isOnline) {
+                            val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                            viewModel.loadRecommendations(dateStr)
+                        }
+                    },
+                    icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
+                    text = { Text("Filter from schedule") },
+                    containerColor = if (isOnline) MaterialTheme.colorScheme.primary else Color.Gray,
+                    contentColor = if (isOnline) MaterialTheme.colorScheme.onPrimary else Color.White
+                )
+            }
         }
     }
 }
@@ -307,7 +319,7 @@ fun DayScheduleSection(
             classes.forEach { classInfo ->
                 ClassCard(
                     classInfo = classInfo,
-                    onDeleteClick = { viewModel.deleteClass(classInfo.class_id) },
+                    onDeleteClick = { viewModel.promptDeleteClass(classInfo.class_id) },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }

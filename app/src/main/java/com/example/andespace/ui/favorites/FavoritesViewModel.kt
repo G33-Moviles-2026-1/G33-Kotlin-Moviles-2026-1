@@ -3,6 +3,7 @@ package com.example.andespace.ui.favorites
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.model.dto.RoomDto
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +13,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class FavoritesViewModel(
-    private val repository: FavoritesRepository
+    private val repository: FavoritesRepository,
+    private val analyticsRepository: AnalyticsRepository
 ) : ViewModel() {
 
     companion object {
@@ -92,10 +94,10 @@ class FavoritesViewModel(
         viewModelScope.launch {
             if (wasAlreadyFavorite) {
                 repository.deleteFavorite(room.id)
-                    .onSuccess { repository.trackFavoriteEvent(room, added = false) }
+                    .onSuccess { analyticsRepository.trackFavoriteEvent(room, added = false) }
             } else {
                 repository.addFavorite(room)
-                    .onSuccess { repository.trackFavoriteEvent(room, added = true) }
+                    .onSuccess { analyticsRepository.trackFavoriteEvent(room, added = true) }
             }
         }
     }

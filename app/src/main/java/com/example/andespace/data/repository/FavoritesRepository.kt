@@ -10,7 +10,6 @@ import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.repository.shared.ApiException
 import com.example.andespace.data.repository.shared.extractErrorMessage
 import com.example.andespace.model.dto.AddFavoriteRequest
-import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.RoomDto
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -23,13 +22,11 @@ class FavoritesRepository(
     private val apiService: ApiService,
     private val dataStore: DataStore<Preferences>
 ) {
-    private val sessionId: String =  AnalyticsSessionManager.currentSessionId
     private val gson = Gson()
     private val roomListType = object : TypeToken<List<RoomDto>>() {}.type
     private val FAVORITES_JSON_KEY = stringPreferencesKey("favorites_json")
     companion object {
         private const val TAG = "FavoritesRepository"
-        const val ANALYTICS_EVENT_FAVORITE_SUBMITTED = "favorite_submitted"
     }
 
     suspend fun getMyFavorites(): Result<List<RoomDto>> {
@@ -126,31 +123,6 @@ class FavoritesRepository(
         } catch (e: Exception) {
             Log.e(TAG, "deleteFavorite exception: ${e.message}", e)
             Result.failure(Exception("No internet connection. Please check your network and try again."))
-        }
-    }
-
-    suspend fun trackFavoriteEvent(room: RoomDto, added: Boolean) {
-        withContext(Dispatchers.IO) {
-            val request = AnalyticsEventRequest(
-                sessionId = sessionId,
-                eventName = ANALYTICS_EVENT_FAVORITE_SUBMITTED,
-                screen = "favorites",
-                propsJson = mapOf(
-                    "room_id" to room.id,
-                    "room_name" to (room.name ?: ""),
-                    "building" to (room.building ?: ""),
-                    "building_code" to (room.buildingCode ?: ""),
-                    "action" to if (added) "add" else "remove"
-                )
-            )
-            try {
-                val r = apiService.trackAnalyticsEvent(request)
-                if (!r.isSuccessful) {
-                    AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
-                }
-            } catch (_: Exception) {
-                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
-            }
         }
     }
 }
