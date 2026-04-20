@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -26,6 +27,21 @@ data class PendingAnalyticsEvent(
     val timestamp: Long
 )
 
+@Entity(
+    tableName = "favorite_rooms",
+    indices = [Index(value = ["userKey", "roomId"], unique = true)]
+)
+data class FavoriteRoomEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userKey: String,
+    val roomId: String,
+    val name: String?,
+    val building: String?,
+    val buildingCode: String?,
+    val capacity: Int?,
+    val utilitiesJson: String
+)
+
 @Dao
 interface SyncActionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -36,6 +52,12 @@ interface SyncActionDao {
 
     @Query("DELETE FROM pending_sync_actions WHERE id = :actionId")
     suspend fun deleteAction(actionId: Int): Int
+
+    @Query("SELECT * FROM pending_sync_actions WHERE actionType IN ('ADD_FAVORITE', 'DELETE_FAVORITE') ORDER BY id ASC")
+    suspend fun getPendingFavoriteActions(): List<PendingSyncAction>
+
+    @Query("DELETE FROM pending_sync_actions WHERE actionType IN ('ADD_FAVORITE', 'DELETE_FAVORITE') AND localClassId = :mutationKey")
+    suspend fun deleteFavoriteActionsByMutationKey(mutationKey: String): Int
 }
 
 @Dao
@@ -60,14 +82,30 @@ interface AnalyticsDao {
     suspend fun pruneOldEvents()
 }
 
+@Dao
+interface FavoritesDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFavorite(favorite: FavoriteRoomEntity): Long
+
+    @Query("SELECT * FROM favorite_rooms WHERE userKey = :userKey ORDER BY roomId ASC")
+    suspend fun getFavoritesByUser(userKey: String): List<FavoriteRoomEntity>
+
+    @Query("DELETE FROM favorite_rooms WHERE userKey = :userKey AND roomId = :roomId")
+    suspend fun deleteFavoriteByRoomId(userKey: String, roomId: String): Int
+
+    @Query("DELETE FROM favorite_rooms WHERE userKey = :userKey")
+    suspend fun clearFavoritesForUser(userKey: String): Int
+}
+
 @SuppressLint("RestrictedApi")
-// 4. ADDED THE ENTITY AND BUMPED VERSION TO 2
+// Added local favorites cache and bumped version to 3.
 @Database(
-    entities = [PendingSyncAction::class, PendingAnalyticsEvent::class],
-    version = 2,
+    entities = [PendingSyncAction::class, PendingAnalyticsEvent::class, FavoriteRoomEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class SyncDatabase : RoomDatabase() {
     abstract fun syncActionDao(): SyncActionDao
-    abstract fun analyticsDao(): AnalyticsDao // 5. EXPOSE THE DAO
+    abstract fun analyticsDao(): AnalyticsDao
+    abstract fun favoritesDao(): FavoritesDao
 }

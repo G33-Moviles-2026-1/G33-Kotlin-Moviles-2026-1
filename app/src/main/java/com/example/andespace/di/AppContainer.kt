@@ -1,9 +1,6 @@
 package com.example.andespace.di
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
 import com.example.andespace.data.db.SyncActionDao
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.NetworkModule
@@ -15,7 +12,10 @@ import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.data.repository.SyncManager
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.andespace.data.db.AnalyticsDao
+import com.example.andespace.data.db.FavoritesDao
 import com.example.andespace.data.db.SyncDatabase
 import com.google.gson.Gson
 
@@ -30,10 +30,31 @@ interface AppContainer {
     val syncManager: SyncManager
     val analyticsDao: AnalyticsDao
     val syncDao: SyncActionDao
+    val favoritesDao: FavoritesDao
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
-    val Context.favoritesDataStore: DataStore<Preferences> by preferencesDataStore(name = "favorites")
+    private val migration2To3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `favorite_rooms` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `userKey` TEXT NOT NULL,
+                    `roomId` TEXT NOT NULL,
+                    `name` TEXT,
+                    `building` TEXT,
+                    `buildingCode` TEXT,
+                    `capacity` INTEGER,
+                    `utilitiesJson` TEXT NOT NULL
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_favorite_rooms_userKey_roomId` ON `favorite_rooms` (`userKey`, `roomId`)"
+            )
+        }
+    }
 
     private val syncDatabase: SyncDatabase by lazy {
         Room.databaseBuilder(
@@ -41,6 +62,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             SyncDatabase::class.java,
             "andespace_sync_database"
         )
+            .addMigrations(migration2To3)
             .fallbackToDestructiveMigration(false)
             .build()
     }
@@ -62,11 +84,20 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val favoritesRepository: FavoritesRepository by lazy {
-        FavoritesRepository(apiService, dataStore = context.favoritesDataStore)
+        FavoritesRepository(
+            apiService = apiService,
+            favoritesDao = favoritesDao,
+            syncActionDao = syncDao,
+            context = context
+        )
     }
 
     override val analyticsDao: AnalyticsDao by lazy {
         syncDatabase.analyticsDao()
+    }
+
+    override val favoritesDao: FavoritesDao by lazy {
+        syncDatabase.favoritesDao()
     }
 
     override val analyticsRepository: AnalyticsRepository by lazy {
