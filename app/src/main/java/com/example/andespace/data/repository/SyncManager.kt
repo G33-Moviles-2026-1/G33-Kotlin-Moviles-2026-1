@@ -90,6 +90,14 @@ class SyncManager(
                         "DELETE_SCHEDULE" -> {
                             scheduleRepository.syncDeleteScheduleWithBackend()
                         }
+                        "ADD_FAVORITE", "DELETE_FAVORITE" -> {
+                            // Favorites are flushed by FavoritesRepository to preserve local-first semantics.
+                            continue
+                        }
+                        else -> {
+                            Log.w("SyncManager", "Unknown sync action type=${action.actionType}, keeping it in queue")
+                            continue
+                        }
                     }
                     syncDao.deleteAction(action.id)
                 } catch (e: IOException) {

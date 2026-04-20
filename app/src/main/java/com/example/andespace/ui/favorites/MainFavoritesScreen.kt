@@ -19,7 +19,7 @@ fun MainFavoritesScreen(
     val uiState by favoritesViewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
-        favoritesViewModel.refreshFromBackend()
+        favoritesViewModel.onFavoritesScreenOpened()
     }
 
     if (uiState.isLoading) {

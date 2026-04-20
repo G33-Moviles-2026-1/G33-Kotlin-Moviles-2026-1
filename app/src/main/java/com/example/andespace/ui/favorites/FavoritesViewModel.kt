@@ -3,6 +3,7 @@ package com.example.andespace.ui.favorites
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.model.dto.RoomDto
@@ -35,9 +36,20 @@ class FavoritesViewModel(
                 isLoading = false
             )
         }
+
+        viewModelScope.launch {
+            var wasOnline = NetworkMonitor.isOnline.value
+            NetworkMonitor.isOnline.collect { isOnline ->
+                if (isOnline && !wasOnline) {
+                    repository.syncPendingFavoriteActions()
+                    refreshFromBackend(force = true)
+                }
+                wasOnline = isOnline
+            }
+        }
     }
 
-    fun refreshFromBackend() {
+    fun refreshFromBackend(force: Boolean = false) {
         viewModelScope.launch {
             val localRooms = repository.getLocalFavorites()
 
@@ -47,6 +59,11 @@ class FavoritesViewModel(
                     favoriteIds = localRooms.map { it.id }.toSet(),
                     isLoading = false
                 )
+            }
+
+            if (!force && localRooms.isNotEmpty()) {
+                repository.syncPendingFavoriteActions()
+                return@launch
             }
 
             repository.getMyFavorites().fold(
@@ -104,6 +121,26 @@ class FavoritesViewModel(
 
     fun clearFavorites() {
         _uiState.value = FavoritesUiState(isLoading = false)
+    }
+
+    fun onFavoritesScreenOpened() {
+        viewModelScope.launch {
+            repository.syncPendingFavoriteActions()
+            refreshFromBackend(force = true)
+        }
+    }
+
+    fun onRoomDetailOpened() {
+        viewModelScope.launch {
+            repository.syncPendingFavoriteActions()
+        }
+    }
+
+    fun onAppForegrounded() {
+        viewModelScope.launch {
+            repository.syncPendingFavoriteActions()
+            refreshFromBackend(force = true)
+        }
     }
 
     private fun persistFavorites() {

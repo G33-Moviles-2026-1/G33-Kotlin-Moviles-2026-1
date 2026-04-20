@@ -39,6 +39,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
@@ -95,10 +98,21 @@ fun AndeSpaceApp(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val resultsViewModel: ResultsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val detailRoomViewModel: DetailRoomViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START && uiState.isLoggedIn) {
+                favoritesViewModel.onAppForegrounded()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     DisposableEffect(Unit) {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
@@ -254,7 +268,7 @@ fun AndeSpaceApp(
                         viewModel.onLogin()
                         bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.checkScheduleStatus()
-                        favoritesViewModel.refreshFromBackend()
+                        favoritesViewModel.refreshFromBackend(force = true)
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     }
                 )
@@ -264,7 +278,7 @@ fun AndeSpaceApp(
                         viewModel.onLogin()
                         bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.clearScheduleData()
-                        favoritesViewModel.refreshFromBackend()
+                        favoritesViewModel.refreshFromBackend(force = true)
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     }
                 )

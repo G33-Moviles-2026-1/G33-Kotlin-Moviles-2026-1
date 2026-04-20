@@ -70,6 +70,9 @@ fun MainClassroomsScreen(
         onFiltersOpened = { homepageViewModel.onFiltersOpened() },
         onRoomClick = { room ->
             resultsViewModel.onRoomClick(room)
+            if (isUserLoggedIn) {
+                favoritesViewModel.onRoomDetailOpened()
+            }
             detailRoomViewModel.setRoom(
                 room = room,
                 selectedDate = resultsUiState.selectedSearchDate
