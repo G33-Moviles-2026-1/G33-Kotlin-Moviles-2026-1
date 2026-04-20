@@ -63,9 +63,13 @@ fun MainClassroomsScreen(
         onSearchClick = { params ->
             resultsViewModel.onSearchClick(
                 params = params,
-                isUserLoggedIn = isUserLoggedIn
+                isUserLoggedIn = isUserLoggedIn,
+                onNavigateToResults = { shouldNavigate ->
+                    if (shouldNavigate) {
+                        homepageViewModel.onShowResults()
+                    }
+                }
             )
-            homepageViewModel.onShowResults()
         },
         onFiltersOpened = { homepageViewModel.onFiltersOpened() },
         onRoomClick = { room ->

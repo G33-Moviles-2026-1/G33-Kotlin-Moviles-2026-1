@@ -36,10 +36,20 @@ class ResultsViewModel(
         cachedPages.clear()
     }
 
-    fun onSearchClick(params: HomeSearchParams, isUserLoggedIn: Boolean) {
+    fun onSearchClick(
+        params: HomeSearchParams,
+        isUserLoggedIn: Boolean,
+        onNavigateToResults: (Boolean) -> Unit = {}
+    ) {
         lastSearchParams = params
-        clearCache()
-        requestSearchPage(params = params, page = 1, isUserLoggedIn = isUserLoggedIn, trackEvent = true)
+        requestSearchPage(
+            params = params,
+            page = 1,
+            isUserLoggedIn = isUserLoggedIn,
+            trackEvent = true,
+            fromHomepageAttempt = true,
+            onNavigateToResults = onNavigateToResults
+        )
     }
 
     fun onRoomClick(room: RoomDto) {
@@ -74,7 +84,9 @@ class ResultsViewModel(
         params: HomeSearchParams,
         page: Int,
         isUserLoggedIn: Boolean,
-        trackEvent: Boolean = false
+        trackEvent: Boolean = false,
+        fromHomepageAttempt: Boolean = false,
+        onNavigateToResults: (Boolean) -> Unit = {}
     ) {
         viewModelScope.launch {
             val pageSize = _uiState.value.resultsPageSize
@@ -121,11 +133,18 @@ class ResultsViewModel(
                             isUserLoggedIn = isUserLoggedIn
                         )
 
-                        cachedParams = params
-                        cachedTotalPages = pages
-                        cachedHasUploadedSchedule = enrichmentResult.hasUploadedSchedule
-                        cachedPages[page] = enrichmentResult.rooms
-                        Log.d(TAG, "requestSearchPage -> cached page $page (${enrichmentResult.rooms.size} rooms, total cached pages: ${cachedPages.size})")
+                        if (page == 1) {
+                            // Replace snapshot only after a successful new search.
+                            clearCache()
+                            cachedParams = params
+                            cachedTotalPages = pages
+                            cachedHasUploadedSchedule = enrichmentResult.hasUploadedSchedule
+                            cachedPages[1] = enrichmentResult.rooms
+                            prefetchSnapshotPages(params = params, isUserLoggedIn = isUserLoggedIn)
+                        } else if (cachedParams == params && page in 1..MAX_CACHED_PAGE) {
+                            cachedPages[page] = enrichmentResult.rooms
+                        }
+                        Log.d(TAG, "requestSearchPage -> snapshot cache pages=${cachedPages.keys.sorted()}")
 
                         _uiState.update {
                             it.copy(
@@ -139,11 +158,60 @@ class ResultsViewModel(
                                 showingCachedResults = false
                             )
                         }
+                        if (fromHomepageAttempt && page == 1) {
+                            onNavigateToResults(true)
+                        }
                     },
                     onFailure = { error ->
+                        val connectivityFailure = isConnectivityFailure(error.message)
                         val cachedRooms = cachedPages[page]
-                        if (cachedRooms != null && cachedParams == params) {
-                            Log.d(TAG, "requestSearchPage -> no network, serving page $page from cache (${cachedRooms.size} rooms)")
+                        val canServeFromSnapshot = cachedRooms != null &&
+                            cachedParams != null &&
+                            page in 1..MAX_CACHED_PAGE
+
+                        if (fromHomepageAttempt && page == 1 && connectivityFailure) {
+                            val snapshotPageOne = cachedPages[1]
+                            if (snapshotPageOne != null) {
+                                Log.d(TAG, "requestSearchPage -> homepage offline fallback using snapshot page 1")
+                                _uiState.update {
+                                    it.copy(
+                                        isSearching = false,
+                                        rooms = snapshotPageOne,
+                                        hasUploadedSchedule = cachedHasUploadedSchedule,
+                                        selectedSearchDate = cachedParams?.date ?: params.date,
+                                        currentPage = 1,
+                                        totalPages = cachedTotalPages,
+                                        errorMessage = "No internet connection. Showing the cached results from your last search.",
+                                        showingCachedResults = true
+                                    )
+                                }
+                                onNavigateToResults(true)
+                            } else {
+                                _uiState.update {
+                                    it.copy(
+                                        isSearching = false,
+                                        errorMessage = "No internet connection. Please check your connection and try again.",
+                                        showingCachedResults = false
+                                    )
+                                }
+                                onNavigateToResults(false)
+                            }
+                            return@fold
+                        }
+
+                        if (connectivityFailure && page > MAX_CACHED_PAGE) {
+                            _uiState.update {
+                                it.copy(
+                                    isSearching = false,
+                                    errorMessage = "More results require an internet connection. Please check your connection and try again.",
+                                    showingCachedResults = false
+                                )
+                            }
+                            return@fold
+                        }
+
+                        if (canServeFromSnapshot) {
+                            Log.d(TAG, "requestSearchPage -> offline, serving snapshot page $page from cache (${cachedRooms.size} rooms)")
                             _uiState.update {
                                 it.copy(
                                     isSearching = false,
@@ -152,7 +220,7 @@ class ResultsViewModel(
                                     selectedSearchDate = params.date,
                                     currentPage = page,
                                     totalPages = cachedTotalPages,
-                                    errorMessage = null,
+                                    errorMessage = "No internet connection. Showing cached results for page $page.",
                                     showingCachedResults = true
                                 )
                             }
@@ -168,6 +236,40 @@ class ResultsViewModel(
                     }
                 )
         }
+    }
+
+    private fun prefetchSnapshotPages(params: HomeSearchParams, isUserLoggedIn: Boolean) {
+        (2..MAX_CACHED_PAGE).forEach { page ->
+            viewModelScope.launch {
+                val pageSize = _uiState.value.resultsPageSize
+                val offset = (page - 1) * pageSize
+                repository.searchRooms(params, limit = pageSize, offset = offset).fold(
+                    onSuccess = { response ->
+                        val enrichmentResult = enrichRoomsWithUserSchedule(
+                            rooms = response.rooms,
+                            dateValue = params.date,
+                            searchSince = params.since ?: "00:00",
+                            searchUntil = params.until ?: "23:59",
+                            isUserLoggedIn = isUserLoggedIn
+                        )
+                        if (cachedParams == params) {
+                            cachedPages[page] = enrichmentResult.rooms
+                            Log.d(TAG, "prefetchSnapshotPages -> cached page $page")
+                        }
+                    },
+                    onFailure = {
+                        // Silent by design: prefetch failure must not break UX.
+                    }
+                )
+            }
+        }
+    }
+
+    private fun isConnectivityFailure(raw: String?): Boolean {
+        if (raw.isNullOrBlank()) return false
+        return raw.contains("internet", ignoreCase = true) ||
+            raw.contains("network", ignoreCase = true) ||
+            raw.contains("timeout", ignoreCase = true)
     }
 
     private fun friendlyError(raw: String?): String = when {
@@ -359,5 +461,6 @@ class ResultsViewModel(
 
     companion object {
         private const val TAG = "ResultsViewModel"
+        private const val MAX_CACHED_PAGE = 3
     }
 }
