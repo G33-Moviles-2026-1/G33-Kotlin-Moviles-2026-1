@@ -31,6 +31,7 @@ object AppViewModelProvider {
         initializer {
             ResultsViewModel(
                 repository = andeSpaceApplication().container.roomRepository,
+                analyticsRepository = andeSpaceApplication().container.analyticsRepository
             )
         }
         initializer {
@@ -45,7 +46,7 @@ object AppViewModelProvider {
         }
         initializer {
             HomepageViewModel(
-                repository = andeSpaceApplication().container.roomRepository,
+                analyticsRepository = andeSpaceApplication().container.analyticsRepository
             )
         }
 
@@ -57,6 +58,7 @@ object AppViewModelProvider {
         initializer{
             FavoritesViewModel(
                 repository = andeSpaceApplication().container.favoritesRepository,
+                analyticsRepository = andeSpaceApplication().container.analyticsRepository
             )
         }
 

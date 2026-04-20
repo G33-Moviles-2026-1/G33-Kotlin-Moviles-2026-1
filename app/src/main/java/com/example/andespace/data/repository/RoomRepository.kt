@@ -6,8 +6,6 @@ import com.example.andespace.data.repository.shared.ScheduleValidator
 import com.example.andespace.data.repository.shared.extractErrorMessage
 import com.example.andespace.data.repository.shared.httpErrorMessage
 import com.example.andespace.model.HomeSearchParams
-import com.example.andespace.model.dto.AnalyticsEventRequest
-import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.RoomTimeWindowDto
@@ -17,29 +15,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.collections.orEmpty
 
 
 class RoomRepository(private val apiService: ApiService) {
     private val scheduleValidator: ScheduleValidator = ScheduleValidator(apiService)
-    private val sessionId = AnalyticsSessionManager.currentSessionId
     companion object {
         private const val TAG = "RoomsRepository"
-    }
-
-    suspend fun trackHomeEvent(eventName: String) {
-        withContext(Dispatchers.IO) {
-            val request = AnalyticsEventRequest(
-                sessionId = sessionId,
-                eventName = eventName,
-                screen = "home"
-            )
-            try {
-                apiService.trackAnalyticsEvent(request)
-            } catch (_: Exception) {
-                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
-            }
-        }
     }
 
     suspend fun checkIfScheduleExists(): Result<Boolean> {
@@ -145,64 +126,5 @@ class RoomRepository(private val apiService: ApiService) {
             if (parsedDate != null) target.format(parsedDate) else this
         }.getOrDefault(this)
 
-    }
-
-
-
-    suspend fun trackAppliedFilters(
-        placeUsed: Boolean,
-        timeUsed: Boolean,
-        utilitiesUsed: Boolean,
-        closeToMeUsed: Boolean
-    ): Boolean {
-        return withContext(Dispatchers.IO) {
-            val request = AnalyticsEventRequest(
-                sessionId = sessionId,
-                eventName = "home_filters_opened",
-                screen = "home",
-                propsJson = mapOf(
-                    "place" to placeUsed,
-                    "time" to timeUsed,
-                    "utilities" to utilitiesUsed,
-                    "close_to_me" to closeToMeUsed
-                )
-            )
-            try {
-                apiService.trackAnalyticsEvent(request).isSuccessful
-            } catch (_: Exception) {
-                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.Generic(request))
-                false
-            }
-        }
-    }
-
-    suspend fun trackRoomGapSearch(
-        dateValue: String,
-        gapStart: String,
-        gapEnd: String,
-        utilities: List<String>
-    ): Boolean {
-        if (utilities.isEmpty()) return false
-
-        return withContext(Dispatchers.IO) {
-            val request = RoomGapSearchAnalyticsRequest(
-                sessionId = sessionId,
-                dateValue = dateValue,
-                gapStart = gapStart.toHhMmSs(),
-                gapEnd = gapEnd.toHhMmSs(),
-                utilities = utilities
-            )
-            try {
-                apiService.trackRoomGapSearch(request).isSuccessful
-            } catch (_: Exception) {
-                AnalyticsEventQueue.enqueue(AnalyticsEventQueue.PendingEvent.RoomGapSearch(request))
-                false
-            }
-        }
-    }
-
-    private fun String.toHhMmSs(): String {
-        val trimmed = trim()
-        return if (trimmed.count { it == ':' } == 1) "$trimmed:00" else trimmed
     }
 }

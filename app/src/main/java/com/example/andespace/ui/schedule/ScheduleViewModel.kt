@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.model.dto.ManualClassIn
-import com.example.andespace.model.dto.ManualScheduleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,14 +25,49 @@ class ScheduleViewModel(
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
 
     init {
-        _uiState.update { it.copy(hasSchedule = repository.hasAnyCachedSchedule()) }
+        viewModelScope.launch {
+            val hasCached = repository.hasAnyCachedSchedule()
+            _uiState.update { it.copy(hasSchedule = hasCached) }
+        }
         loadSchedule()
+    }
+    fun loadRecommendations(dateString: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            try {
+                val data = repository.getRoomRecommendationsForDay(dateString)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isShowingRecommendations = true,
+                        recommendationsData = data
+                    )
+                }
+            } catch (_: Exception) {
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = "Failed to load recommendations.")
+                }
+            }
+        }
+    }
+
+
+    fun showAddClassScreen() {
+        _uiState.update { it.copy(isAddingManualClass = true) }
+    }
+
+    fun hideAddClassScreen() {
+        _uiState.update { it.copy(isAddingManualClass = false) }
+    }
+
+    fun hideRecommendations() {
+        _uiState.update { it.copy(isShowingRecommendations = false, recommendationsData = null) }
     }
 
     fun checkScheduleStatus() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
             val result = repository.checkIfScheduleExists()
 
             result.onSuccess { hasSchedule ->
@@ -44,26 +78,8 @@ class ScheduleViewModel(
                 }
             }.onFailure { error ->
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = error.message ?: "Something went wrong. Please try again."
-                    )
+                    it.copy(isLoading = false, errorMessage = error.message ?: "Something went wrong.")
                 }
-            }
-        }
-    }
-    private fun syncTriadCache() {
-        viewModelScope.launch {
-            try {
-                val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-                val currentMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-
-                repository.getWeeklySchedule(currentMonday.format(formatter)) // Current
-                repository.getWeeklySchedule(currentMonday.minusDays(7).format(formatter)) // Previous
-                repository.getWeeklySchedule(currentMonday.plusDays(7).format(formatter)) // Next
-
-                loadSchedule()
-            } catch (_: Exception) {
             }
         }
     }
@@ -71,19 +87,16 @@ class ScheduleViewModel(
     fun uploadIcsFile(context: Context, uri: Uri, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
             val result = repository.uploadIcs(context, uri)
 
             result.onSuccess {
+                repository.syncEntireScheduleFromBackend()
+
                 _uiState.update { it.copy(isLoading = false, hasSchedule = true) }
-                syncTriadCache()
                 onSuccess()
             }.onFailure { error ->
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = error.message ?: "The file could not be uploaded. Please try again."
-                    )
+                    it.copy(isLoading = false, errorMessage = error.message)
                 }
             }
         }
@@ -96,18 +109,16 @@ class ScheduleViewModel(
             try {
                 val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
                 val requestedDate = _uiState.value.currentWeekDate
-                val dateString = requestedDate.format(formatter)
+                val expectedMonday = requestedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                val dateString = expectedMonday.format(formatter)
 
                 val schedule = repository.getWeeklySchedule(dateString)
-
-                val expectedMonday = requestedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 
                 val returnedMonday = try {
                     LocalDate.parse(schedule.week_start)
                 } catch(_: Exception) {
                     null
                 }
-
 
                 if (expectedMonday == returnedMonday) {
                     _uiState.update {
@@ -118,20 +129,10 @@ class ScheduleViewModel(
                         )
                     }
                 } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            scheduleData = null
-                        )
-                    }
+                    _uiState.update { it.copy(isLoading = false, scheduleData = null) }
                 }
             } catch (_: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        scheduleData = null
-                    )
-                }
+                _uiState.update { it.copy(isLoading = false, scheduleData = null) }
             }
         }
     }
@@ -192,25 +193,22 @@ class ScheduleViewModel(
 
     fun uploadManualSchedule(onSuccess: () -> Unit) {
         val state = _uiState.value
+
         if (state.classTitle.isBlank() || state.startDate.isBlank() ||
             state.endDate.isBlank() || state.startTime.isBlank() ||
             state.endTime.isBlank() || state.selectedDays.isEmpty()) {
-
             _uiState.update { it.copy(errorMessage = "Please fill in all required fields.") }
             return
         }
-
 
         if (state.startDate > state.endDate) {
             _uiState.update { it.copy(errorMessage = "The end date cannot be before the start date.") }
             return
         }
-
         if (state.startTime >= state.endTime) {
             _uiState.update { it.copy(errorMessage = "The class must end after it starts.") }
             return
         }
-
         if (state.startTime < "05:30" || state.endTime > "22:00") {
             _uiState.update { it.copy(errorMessage = "Classes must be scheduled between 05:30 and 22:00.") }
             return
@@ -219,132 +217,61 @@ class ScheduleViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            try {
-                val existingClassesResponse = repository.getScheduleClasses()
+            val newClass = ManualClassIn(
+                title = state.classTitle.trim(),
+                location_text = null,
+                room_id = state.classRoom.trim().ifBlank { null },
+                start_date = state.startDate,
+                end_date = state.endDate,
+                start_time = "${state.startTime}:00",
+                end_time = "${state.endTime}:00",
+                weekdays = state.selectedDays.toList()
+            )
 
-                val existingClassesToUpload = existingClassesResponse.classes.map { oldClass ->
-                    ManualClassIn(
-                        title = oldClass.title ?: "Unknown Class",
-                        location_text = oldClass.location_text,
-                        room_id = oldClass.room_id,
-                        start_date = oldClass.start_date,
-                        end_date = oldClass.end_date,
-                        start_time = oldClass.start_time,
-                        end_time = oldClass.end_time,
-                        weekdays = oldClass.weekdays
-                    )
-                }
+            repository.uploadManualSchedule(newClass)
 
-                val newClass = ManualClassIn(
-                    title = state.classTitle.trim(),
-                    location_text = null,
-                    room_id = state.classRoom.trim().ifBlank { null },
-                    start_date = state.startDate,
-                    end_date = state.endDate,
-                    start_time = "${state.startTime}:00",
-                    end_time = "${state.endTime}:00",
-                    weekdays = state.selectedDays.toList()
+            _uiState.update {
+                it.copy(
+                    classTitle = "", classRoom = "", startDate = "", endDate = "",
+                    startTime = "", endTime = "", selectedDays = emptySet(),
+                    hasSchedule = true, isLoading = false
                 )
-
-                val combinedClasses = existingClassesToUpload + newClass
-                val payload = ManualScheduleIn(classes = combinedClasses)
-
-                repository.uploadManualSchedule(payload)
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false, classTitle = "", classRoom = "",
-                        startDate = "", endDate = "", startTime = "",
-                        endTime = "", selectedDays = emptySet()
-                    )
-                }
-                syncTriadCache()
-                onSuccess()
-
-            } catch (_: Exception) {
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Failed to create class. Server error.")
-                }
             }
+            loadSchedule()
+            onSuccess()
         }
     }
 
-    fun deleteSchedule() {
+    fun promptDeleteClass(classId: String) {
+        _uiState.update { it.copy(classIdToDelete = classId) }
+    }
+
+    fun cancelDeleteClass() {
+        _uiState.update { it.copy(classIdToDelete = null) }
+    }
+
+    fun confirmDeleteClass() {
+        val classId = _uiState.value.classIdToDelete ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-            try {
-                repository.deleteSchedule()
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        hasSchedule = false,
-                        scheduleData = null
-                    )
-                }
-            } catch (_: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Failed to delete schedule. Please try again."
-                    )
-                }
-            }
+            cancelDeleteClass() // Hide the dialog
+            repository.deleteClass(classId)
+            loadSchedule()
         }
     }
 
-
-
-    fun showAddClassScreen() {
-        _uiState.update { it.copy(isAddingManualClass = true) }
+    fun promptDeleteSchedule() {
+        _uiState.update { it.copy(showDeleteScheduleConfirm = true) }
     }
 
-    fun hideAddClassScreen() {
-        _uiState.update { it.copy(isAddingManualClass = false) }
+    fun cancelDeleteSchedule() {
+        _uiState.update { it.copy(showDeleteScheduleConfirm = false) }
     }
 
-    fun deleteClass(classId: String) {
+    fun confirmDeleteSchedule() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-            try {
-                repository.deleteClass(classId)
-                loadSchedule()
-
-            } catch (_: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Failed to delete class. Please try again."
-                    )
-                }
-            }
+            cancelDeleteSchedule() // Hide the dialog
+            repository.deleteSchedule()
+            _uiState.update { it.copy(hasSchedule = false, scheduleData = null) }
         }
-    }
-
-    fun loadRecommendations(dateString: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-            try {
-                val data = repository.getRoomRecommendationsForDay(dateString)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isShowingRecommendations = true,
-                        recommendationsData = data
-                    )
-                }
-            } catch (_: Exception) {
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Failed to load recommendations.")
-                }
-            }
-        }
-    }
-
-    fun hideRecommendations() {
-        _uiState.update { it.copy(isShowingRecommendations = false, recommendationsData = null) }
     }
 }

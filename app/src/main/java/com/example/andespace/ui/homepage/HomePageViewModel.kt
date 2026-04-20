@@ -3,14 +3,16 @@ package com.example.andespace.ui.homepage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.location.LocationSensor
-import com.example.andespace.data.repository.RoomRepository
+import com.example.andespace.data.repository.AnalyticsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class HomepageViewModel( private val repository: RoomRepository): ViewModel() {
+class HomepageViewModel(
+    private val analyticsRepository: AnalyticsRepository
+): ViewModel() {
     private val _uiState = MutableStateFlow(HomepageUiState())
     val uiState: StateFlow<HomepageUiState> = _uiState.asStateFlow()
 
@@ -27,7 +29,7 @@ class HomepageViewModel( private val repository: RoomRepository): ViewModel() {
     }
 
     fun onFiltersOpened() {
-        viewModelScope.launch { repository.trackHomeEvent("home_filters_opened") }
+        viewModelScope.launch { analyticsRepository.trackHomeEvent("home_filters_opened") }
     }
 
     fun onShowMakeBooking() {

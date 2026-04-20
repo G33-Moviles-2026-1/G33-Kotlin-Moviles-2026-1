@@ -3,6 +3,7 @@ package com.example.andespace.ui.results
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.RoomDto
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 
 class ResultsViewModel(
     private val repository: RoomRepository,
+    private val analyticsRepository: AnalyticsRepository
 ): ViewModel(){
     private val _uiState = MutableStateFlow(ResultsUiState())
     val uiState: StateFlow<ResultsUiState> = _uiState.asStateFlow()
@@ -86,8 +88,8 @@ class ResultsViewModel(
             _uiState.update { it.copy(isSearching = true, errorMessage = null) }
 
             if (trackEvent) {
-                repository.trackHomeEvent("home_search_submitted")
-                repository.trackAppliedFilters(
+                analyticsRepository.trackHomeEvent("home_search_submitted")
+                analyticsRepository.trackAppliedFilters(
                     placeUsed = params.classroom.isNotBlank(),
                     timeUsed = params.since != null || params.until != null,
                     utilitiesUsed = params.utilities.isNotEmpty(),
@@ -97,7 +99,7 @@ class ResultsViewModel(
                 val hasGapAndUtilities =
                     params.since != null && params.until != null && params.utilities.isNotEmpty()
                 if (hasGapAndUtilities) {
-                    repository.trackRoomGapSearch(
+                    analyticsRepository.trackRoomGapSearch(
                         dateValue = params.date,
                         gapStart = params.since,
                         gapEnd = params.until,

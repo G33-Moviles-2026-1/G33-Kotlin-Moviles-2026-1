@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -67,11 +68,13 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.room3.common.jvm)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -80,4 +83,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    ksp("androidx.room:room-compiler:2.6.1")
 }

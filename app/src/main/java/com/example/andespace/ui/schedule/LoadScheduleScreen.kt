@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.andespace.R
+import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.ui.components.CustomIconButton
 import com.example.andespace.ui.components.IconPosition
 
@@ -28,6 +29,8 @@ fun LoadScheduleScreen(
     onLoadManuallyClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isOnline by NetworkMonitor.isOnline.collectAsState()
+
     val context = LocalContext.current
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -37,10 +40,9 @@ fun LoadScheduleScreen(
             viewModel.uploadIcsFile(context, uri, onSuccess = onScheduleLoaded)
         }
     }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -61,18 +63,17 @@ fun LoadScheduleScreen(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
-
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         if (uiState.isLoading) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-        }
-        else{
+        } else {
             CustomIconButton(
                 text = "Upload ICS",
                 iconResId = R.drawable.ic_file,
                 iconPosition = IconPosition.START,
-                onClick = {filePickerLauncher.launch("text/calendar")}
+                enabled = isOnline,
+                onClick = { filePickerLauncher.launch("text/calendar") }
             )
 
             Spacer(modifier = Modifier.height(16.dp))

@@ -22,5 +22,7 @@ data class ScheduleUiState(
     val selectedDays: Set<String> = emptySet(),
     val isAddingManualClass: Boolean = false,
     val isShowingRecommendations: Boolean = false,
-    val recommendationsData: DayRoomRecommendationsOut? = null
+    val recommendationsData: DayRoomRecommendationsOut? = null,
+    val classIdToDelete: String? = null,
+    val showDeleteScheduleConfirm: Boolean = false
 )
