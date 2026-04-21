@@ -7,12 +7,12 @@ import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.GetFavoritesResponse
 import com.example.andespace.model.dto.MyBookingsResponse
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
-import com.example.andespace.model.dto.RoomAvailabilityResponse
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.UserFreeSlotsResponse
 import com.example.andespace.model.dto.DayRoomRecommendationsOut
 import com.example.andespace.model.dto.ManualScheduleIn
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.ScheduleClassesOut
 import com.example.andespace.model.dto.WeeklyScheduleOut
 import okhttp3.MultipartBody
@@ -65,7 +65,7 @@ interface ApiService {
     suspend fun getRoomAvailability(
         @Path("roomId") roomId: String,
         @Query("date_value") dateValue: String
-    ): Response<RoomAvailabilityResponse>
+    ): Response<RoomDto>
 
     @GET("schedule/free-slots")
     suspend fun getUserFreeSlots(

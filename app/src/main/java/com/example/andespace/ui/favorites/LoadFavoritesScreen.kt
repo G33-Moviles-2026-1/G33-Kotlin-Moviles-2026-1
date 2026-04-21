@@ -85,7 +85,6 @@ fun LoadFavoritesScreen(
                     RoomCard(
                         room = room,
                         cardIndex = index,
-                        showScheduleLabel = false,
                         isFavorite = room.id in favoriteIds,
                         onFavoriteClick = { onToggleFavorite(room) },
                         onClick = { onRoomClick(room) }

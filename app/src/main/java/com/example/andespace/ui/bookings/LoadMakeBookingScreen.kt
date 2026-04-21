@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import com.example.andespace.ui.main.AssetIcon
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.RoomTimeWindowDto
+import com.example.andespace.model.dto.RoomWeeklyAvailabilityDto
 import com.example.andespace.ui.detailRoom.DetailRoomUiState
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
@@ -71,7 +72,7 @@ fun LoadMakeBookingScreen(
     val room = detailRoomUiState.room
     val roomId = room?.id ?: ""
     val date = detailRoomUiState.selectedDate ?: ""
-    val windows = room?.matchingWindows.orEmpty()
+    val windows = room?.availableSlots.orEmpty()
 
     if (bookingsUiState.bookingCreatedSuccess) {
         LaunchedEffect(Unit) {
@@ -92,7 +93,7 @@ fun LoadMakeBookingScreen(
     )
 }
 
-private fun formatSlotLabel(window: RoomTimeWindowDto): String {
+private fun formatSlotLabel(window: RoomWeeklyAvailabilityDto): String {
     val start = window.start?.take(5) ?: "?"
     val end = window.end?.take(5) ?: "?"
     return "$start - $end"
@@ -115,7 +116,7 @@ private fun millisToApiDate(millis: Long): String {
 private fun LoadMakeBookingContent(
     roomId: String,
     selectedDate: String,
-    availableWindows: List<RoomTimeWindowDto>,
+    availableWindows: List<RoomWeeklyAvailabilityDto>,
     isLoadingSlots: Boolean,
     isCreating: Boolean,
     errorMessage: String?,
