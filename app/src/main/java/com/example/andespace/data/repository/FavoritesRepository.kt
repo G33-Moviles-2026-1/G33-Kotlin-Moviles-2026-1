@@ -254,11 +254,8 @@ class FavoritesRepository(
             buildingCode = buildingCode,
             capacity = capacity,
             utilities = utilities,
-            availableSince = null,
-            availableUntil = null,
             waitSeconds = null,
-            matchingWindows = emptyList(),
-            availabilityStatus = null
+            matchingWindows = emptyList()
         )
     }
 

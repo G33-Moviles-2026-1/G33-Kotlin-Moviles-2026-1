@@ -6,11 +6,11 @@ import com.example.andespace.data.repository.shared.ScheduleValidator
 import com.example.andespace.data.repository.shared.extractErrorMessage
 import com.example.andespace.data.repository.shared.httpErrorMessage
 import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.RoomTimeWindowDto
 import com.example.andespace.model.dto.UserLocation
-import com.example.andespace.model.dto.toTimeWindows
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -79,18 +79,20 @@ class RoomRepository(private val apiService: ApiService) {
     suspend fun getRoomAvailability(
         roomId: String,
         dateValue: String
-    ): Result<List<RoomTimeWindowDto>> = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.getRoomAvailability(roomId = roomId, dateValue = dateValue)
-            if (response.isSuccessful) {
-                val windows = response.body()?.toTimeWindows(dateValue).orEmpty()
-                Result.success(windows)
+    ): Result<RoomDto> = try {
+        val response = apiService.getRoomAvailability(roomId = roomId, dateValue = dateValue)
+        if (response.isSuccessful) {
+            val room = response.body()
+            if (room != null) {
+                Result.success(room)
             } else {
-                Result.failure(Exception(httpErrorMessage(response.code())))
+                Result.failure(Exception("Could not load the room's availability. Please try again."))
             }
-        } catch (_: Exception) {
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
+        } else {
+            Result.failure(Exception(httpErrorMessage(response.code())))
         }
+    } catch (_: Exception) {
+        Result.failure(Exception("No internet connection. Please check your network and try again."))
     }
 
     suspend fun getUserFreeSlots(dateValue: String): Result<List<RoomTimeWindowDto>> =

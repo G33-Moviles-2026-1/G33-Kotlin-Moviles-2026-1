@@ -93,7 +93,6 @@ fun ResultsScreen(
                             RoomCard(
                                 room = room,
                                 cardIndex = index,
-                                showScheduleLabel = isUserLoggedIn && hasUploadedSchedule,
                                 isFavorite = room.id in favoriteIds,
                                 onFavoriteClick = onFavoriteClick?.let { { it(room) } },
                                 onClick = { onRoomClick(room) }
