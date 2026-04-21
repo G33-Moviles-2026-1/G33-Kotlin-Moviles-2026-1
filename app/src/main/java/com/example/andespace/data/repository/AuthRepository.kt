@@ -15,7 +15,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 
-class AuthRepository(private val apiService: ApiService, private val context: Context) {
+class AuthRepository(
+    private val apiService: ApiService,
+    private val context: Context,
+    private val scheduleRepository: ScheduleRepository,
+    private val sessionCookieJar: SessionCookieJar
+) {
     companion object {
         private const val TAG = "AuthRepository"
     }
@@ -28,15 +33,13 @@ class AuthRepository(private val apiService: ApiService, private val context: Co
         }
     }
 
-
     suspend fun register(email: String, password: String, semester: String): Result<Boolean> {
         return try {
             val response = apiService.register(RegisterRequest(email, password, semester))
             if (response.isSuccessful) {
                 Result.success(true)
             } else {
-                val backendMessage =
-                    extractErrorMessage(response.errorBody()?.string(), response.code())
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
         } catch (_: Exception) {
@@ -49,10 +52,10 @@ class AuthRepository(private val apiService: ApiService, private val context: Co
             val response = apiService.checkSession()
             if (response.isSuccessful) {
                 val dataString = response.body().toString()
+                scheduleRepository.triggerSilentBackgroundSync()
                 Result.success(dataString)
             } else {
-                val backendMessage =
-                    extractErrorMessage(response.errorBody()?.string(), response.code())
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
         } catch (e: Exception) {
@@ -61,15 +64,15 @@ class AuthRepository(private val apiService: ApiService, private val context: Co
         }
     }
 
-
     suspend fun login(email: String, password: String): Result<Boolean> {
         return try {
             val response = apiService.login(LoginRequest(email, password))
             if (response.isSuccessful) {
+                scheduleRepository.syncEntireScheduleFromBackend()
+
                 Result.success(true)
             } else {
-                val backendMessage =
-                    extractErrorMessage(response.errorBody()?.string(), response.code())
+                val backendMessage = extractErrorMessage(response.errorBody()?.string(), response.code())
                 Result.failure(ApiException(backendMessage))
             }
         } catch (_: Exception) {
@@ -80,12 +83,14 @@ class AuthRepository(private val apiService: ApiService, private val context: Co
     suspend fun logout(): Result<Boolean> {
         return try {
             apiService.logout()
-            SessionCookieJar(context).clearCookies()
+            sessionCookieJar.clearCookies()
+            scheduleRepository.clearLocalCacheOnLogout()
 
             Result.success(true)
         } catch (_: Exception) {
-            SessionCookieJar(context).clearCookies()
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
+            sessionCookieJar.clearCookies()
+            scheduleRepository.clearLocalCacheOnLogout()
+            Result.failure(Exception("No internet connection. Forced offline logout."))
         }
     }
 
@@ -98,5 +103,4 @@ class AuthRepository(private val apiService: ApiService, private val context: Co
             false
         }
     }
-
 }

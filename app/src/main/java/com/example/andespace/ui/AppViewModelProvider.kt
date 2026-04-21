@@ -37,6 +37,7 @@ object AppViewModelProvider {
         initializer {
             AuthViewModel(
                 repository = andeSpaceApplication().container.authRepository,
+                scheduleRepository = andeSpaceApplication().container.scheduleRepository
             )
         }
         initializer {

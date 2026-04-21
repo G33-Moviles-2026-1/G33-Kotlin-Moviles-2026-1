@@ -42,18 +42,38 @@ class SessionCookieJar(private val context: Context) : CookieJar {
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
         if (cookies.isEmpty()) return
-
         ensureLoaded(url)
+        var needsDiskUpdate = false
+        val currentTime = System.currentTimeMillis()
 
         for (cookie in cookies) {
-            memoryCookies[cookie.name] = cookie
+            if (cookie.expiresAt <= currentTime || cookie.value.isEmpty() || cookie.value == "null") {
+
+                if (cookie.name == "session") {
+                    clearCookies()
+                    return
+                }
+
+                if (memoryCookies.containsKey(cookie.name)) {
+                    memoryCookies.remove(cookie.name)
+                    needsDiskUpdate = true
+                }
+            } else {
+                memoryCookies[cookie.name] = cookie
+                needsDiskUpdate = true
+            }
         }
 
-        val cookieString = memoryCookies.values.joinToString(";") { "${it.name}=${it.value}" }
-
-        runBlocking {
-            context.dataStore.edit { preferences ->
-                preferences[COOKIE_KEY] = cookieString
+        if (needsDiskUpdate) {
+            val cookieString = memoryCookies.values.joinToString(";") { "${it.name}=${it.value}" }
+            runBlocking {
+                context.dataStore.edit { preferences ->
+                    if (cookieString.isEmpty()) {
+                        preferences.remove(COOKIE_KEY)
+                    } else {
+                        preferences[COOKIE_KEY] = cookieString
+                    }
+                }
             }
         }
     }

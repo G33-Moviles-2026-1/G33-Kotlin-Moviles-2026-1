@@ -3,7 +3,6 @@ package com.example.andespace.di
 import android.content.Context
 import com.example.andespace.data.db.SyncActionDao
 import com.example.andespace.data.network.ApiService
-import com.example.andespace.data.network.NetworkModule
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.BookingRepository
@@ -14,12 +13,19 @@ import com.example.andespace.data.repository.SyncManager
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.andespace.BuildConfig
 import com.example.andespace.data.db.AnalyticsDao
 import com.example.andespace.data.db.FavoritesDao
 import com.example.andespace.data.db.SyncDatabase
+import com.example.andespace.data.network.AuthInterceptor
+import com.example.andespace.data.network.SessionCookieJar
 import com.google.gson.Gson
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 interface AppContainer {
+    val sessionCookieJar: SessionCookieJar
     val apiService: ApiService
     val authRepository: AuthRepository
     val analyticsRepository: AnalyticsRepository
@@ -71,16 +77,39 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         syncDatabase.syncActionDao()
     }
 
+
     private val gson: Gson by lazy {
         Gson()
     }
 
+
+    override val sessionCookieJar: SessionCookieJar by lazy {
+        SessionCookieJar(context.applicationContext)
+    }
+
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .cookieJar(sessionCookieJar)
+            .addInterceptor(AuthInterceptor(sessionCookieJar))
+            .build()
+    }
+
     override val apiService: ApiService by lazy {
-        NetworkModule.getApiService(context)
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.API_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
     }
 
     override val authRepository: AuthRepository by lazy {
-        AuthRepository(apiService, context)
+        AuthRepository(
+            apiService = apiService,
+            context = context,
+            scheduleRepository = scheduleRepository,
+            sessionCookieJar = sessionCookieJar
+        )
     }
 
     override val favoritesRepository: FavoritesRepository by lazy {

@@ -31,10 +31,7 @@ class MainViewModel(
                             showSessionExpiredDialog = true
                         )
                     }
-                    try {
-                        authRepository.logout()
-                    } catch (_: Exception) {
-                    }
+                    authRepository.logout()
                 }
             }
         }
@@ -125,7 +122,7 @@ class MainViewModel(
                     isLoggedIn = false,
                     isUserMenuExpanded = false,
                     isLoading = false,
-                    currentDestination = AppDestinations.LOGIN
+                    currentDestination = AppDestinations.CLASSROOMS
                 )
             }
 

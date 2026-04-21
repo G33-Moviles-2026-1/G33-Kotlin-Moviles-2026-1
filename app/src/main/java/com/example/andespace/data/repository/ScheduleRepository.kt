@@ -16,11 +16,13 @@ import com.example.andespace.model.dto.ScheduleClassOccurrenceOut
 import com.example.andespace.model.dto.WeeklyScheduleOut
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -41,6 +43,7 @@ class ScheduleRepository(
     private val gson = Gson()
     private val SCHEDULE_FILE_NAME = "offline_schedule_cache.json"
     private val fileMutex = Mutex()
+    private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val MINIMUM_FREE_SPACE_BYTES = 5 * 1024 * 1024L
     companion object {
@@ -59,20 +62,52 @@ class ScheduleRepository(
         val cacheKey = date ?: "current"
         val cache = getLocalScheduleCache()
 
+        if (cache.isEmpty()) {
+            throw ScheduleNotFoundException()
+        }
         if (cache.containsKey(cacheKey)) {
             return cache[cacheKey]!!
         }
-        return try {
-            val response = withTimeoutOrNull(2000L) { apiService.getWeeklySchedule(date) }
-            if (response != null && response.isSuccessful) {
-                val schedule = response.body() ?: throw Exception("Empty body")
-                saveScheduleLocally(cacheKey, schedule)
-                schedule
+        val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
+        val fallbackDate = try {
+            if (cacheKey == "current") {
+                LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
             } else {
-                getScheduleFromCache(cacheKey)
+                LocalDate.parse(cacheKey, formatter).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
             }
         } catch (e: Exception) {
-            getScheduleFromCache(cacheKey)
+            LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        }
+
+        return WeeklyScheduleOut(
+            week_start = fallbackDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+            week_end = fallbackDate.plusDays(6).format(DateTimeFormatter.ISO_LOCAL_DATE),
+            occurrences = emptyList()
+        )
+    }
+
+    fun triggerSilentBackgroundSync() {
+        repoScope.launch {
+            try {
+                syncEntireScheduleFromBackend()
+                Log.d(TAG, "Silent background sync completed successfully.")
+            } catch (e: Exception) {
+                Log.d(TAG, "Silent background sync aborted (Offline or Unauthenticated).")
+            }
+        }
+    }
+
+    suspend fun clearLocalCacheOnLogout() {
+        fileMutex.withLock {
+            try {
+                val file = File(context.filesDir, SCHEDULE_FILE_NAME)
+                if (file.exists()) {
+                    file.delete()
+                    Log.d(TAG, "Local schedule cache wiped successfully on logout.")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to wipe local schedule cache on logout", e)
+            }
         }
     }
 
@@ -218,29 +253,44 @@ class ScheduleRepository(
 
     suspend fun uploadManualSchedule(newClass: ManualClassIn) {
         val fakeId = injectClassIntoLocalCache(newClass)
-
-        try {
-            syncManualClassWithBackend(newClass)
-        } catch (e: Exception) {
-            val payloadString = gson.toJson(newClass)
-            syncDao.insertAction(
-                PendingSyncAction(
-                    actionType = "ADD_CLASS",
-                    payload = payloadString,
-                    localClassId = fakeId
+        repoScope.launch {
+            try {
+                syncManualClassWithBackend(newClass)
+            } catch (e: Exception) {
+                val payloadString = gson.toJson(newClass)
+                syncDao.insertAction(
+                    PendingSyncAction(
+                        actionType = "ADD_CLASS",
+                        payload = payloadString,
+                        localClassId = fakeId
+                    )
                 )
-            )
-            Log.w(TAG, "Offline: Manual class queued for SyncManager.")
+                Log.w(TAG, "Offline: Manual class queued for SyncManager.")
+            }
         }
     }
 
     suspend fun deleteClass(classId: String) {
         removeClassFromLocalCache(classId)
-        try {
-            syncDeleteClassWithBackend(classId)
-        } catch (e: Exception) {
-            syncDao.insertAction(PendingSyncAction(actionType = "DELETE_CLASS", payload = classId))
-            Log.w(TAG, "Offline: Class deletion queued for SyncManager.")
+        repoScope.launch {
+            try {
+                syncDeleteClassWithBackend(classId)
+            } catch (e: Exception) {
+                syncDao.insertAction(PendingSyncAction(actionType = "DELETE_CLASS", payload = classId))
+                Log.w(TAG, "Offline: Class deletion queued for SyncManager.")
+            }
+        }
+    }
+
+    suspend fun deleteSchedule() {
+        File(context.filesDir, SCHEDULE_FILE_NAME).delete()
+        repoScope.launch {
+            try {
+                syncDeleteScheduleWithBackend()
+            } catch (e: Exception) {
+                syncDao.insertAction(PendingSyncAction(actionType = "DELETE_SCHEDULE", payload = ""))
+                Log.w(TAG, "Offline: Schedule deletion queued for SyncManager.")
+            }
         }
     }
 
@@ -248,14 +298,6 @@ class ScheduleRepository(
         apiService.deleteClass(classId)
     }
 
-    suspend fun deleteSchedule() {
-        File(context.filesDir, SCHEDULE_FILE_NAME).delete()
-        try {
-            syncDeleteScheduleWithBackend()
-        } catch (e: Exception) {
-            syncDao.insertAction(PendingSyncAction(actionType = "DELETE_SCHEDULE", payload = ""))
-        }
-    }
 
     suspend fun syncDeleteScheduleWithBackend() {
         apiService.deleteSchedule()
@@ -356,16 +398,6 @@ class ScheduleRepository(
         }
     }
 
-    private suspend fun saveScheduleLocally(date: String?, schedule: WeeklyScheduleOut) {
-        fileMutex.withLock {
-            try {
-                val cache = getLocalScheduleCacheUnsafe()
-                val cacheKey = date ?: "current"
-                cache[cacheKey] = schedule
-                writeCacheToDisk(cache)
-            } catch (e: Exception) {}
-        }
-    }
     private fun getLocalScheduleCacheUnsafe(): MutableMap<String, WeeklyScheduleOut> {
         return try {
             val file = File(context.filesDir, SCHEDULE_FILE_NAME)
@@ -376,35 +408,12 @@ class ScheduleRepository(
         } catch (e: Exception) { mutableMapOf() }
     }
 
-    private suspend fun getScheduleFromCache(cacheKey: String): WeeklyScheduleOut {
-        val cache = getLocalScheduleCache()
-        if (cache.containsKey(cacheKey)) {
-            return cache[cacheKey]!!
-        }
-        val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-        val fallbackDate = try {
-            if (cacheKey == "current") {
-                LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-            } else {
-                LocalDate.parse(cacheKey, formatter).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-            }
-        } catch (e: Exception) {
-            LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-        }
-
-        return WeeklyScheduleOut(
-            week_start = fallbackDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
-            week_end = fallbackDate.plusDays(6).format(DateTimeFormatter.ISO_LOCAL_DATE),
-            occurrences = emptyList()
-        )
-    }
 
     private suspend fun getLocalScheduleCache(): MutableMap<String, WeeklyScheduleOut> {
         return fileMutex.withLock {
             getLocalScheduleCacheUnsafe()
         }
     }
-
 
     suspend fun uploadIcs(context: Context, fileUri: Uri): Result<Boolean> =
         withContext(Dispatchers.IO) {
@@ -445,3 +454,5 @@ class ScheduleRepository(
         return getLocalScheduleCache().isNotEmpty()
     }
 }
+
+class ScheduleNotFoundException : Exception("No schedule exists locally. Trigger onboarding.")

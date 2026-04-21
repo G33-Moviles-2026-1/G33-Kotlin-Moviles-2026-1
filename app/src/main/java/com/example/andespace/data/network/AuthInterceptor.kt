@@ -11,13 +11,16 @@ class AuthInterceptor(
     override fun intercept(chain: Interceptor.Chain): Response {
 
         if (!NetworkMonitor.isOnline.value) {
+            NetworkMonitor.forceRetryConnection()
             throw NoInternetException("Aborted: Device is currently offline.")
         }
+
         val request = chain.request()
 
         try {
             val response = chain.proceed(request)
             NetworkMonitor.reportNetworkSuccess()
+
             if (response.code == 401) {
                 cookieJar.clearCookies()
                 throw SessionExpiredException()

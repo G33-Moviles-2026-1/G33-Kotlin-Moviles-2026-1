@@ -157,7 +157,10 @@ fun ViewScheduleScreen(
                                 .padding(2.dp)
                         )
                     }
-                    IconButton(onClick = { viewModel.resetToCurrentWeek() }) {
+                    IconButton(onClick = {
+                        viewModel.forceRefreshScheduleFromBackend()
+                        viewModel.resetToCurrentWeek()
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Reload Schedule",

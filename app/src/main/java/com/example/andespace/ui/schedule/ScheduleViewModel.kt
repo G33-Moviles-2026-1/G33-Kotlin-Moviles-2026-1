@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.repository.ScheduleNotFoundException
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.model.dto.ManualClassIn
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,6 +103,14 @@ class ScheduleViewModel(
         }
     }
 
+    fun forceRefreshScheduleFromBackend() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            repository.syncEntireScheduleFromBackend()
+            loadSchedule()
+        }
+    }
+
     fun loadSchedule() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, scheduleData = null) }
@@ -114,25 +123,30 @@ class ScheduleViewModel(
 
                 val schedule = repository.getWeeklySchedule(dateString)
 
-                val returnedMonday = try {
-                    LocalDate.parse(schedule.week_start)
-                } catch(_: Exception) {
-                    null
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        hasSchedule = true,
+                        scheduleData = schedule
+                    )
                 }
 
-                if (expectedMonday == returnedMonday) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            hasSchedule = true,
-                            scheduleData = schedule
-                        )
-                    }
-                } else {
-                    _uiState.update { it.copy(isLoading = false, scheduleData = null) }
+            } catch (e: ScheduleNotFoundException) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        hasSchedule = false,
+                        scheduleData = null
+                    )
                 }
-            } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, scheduleData = null) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Unknown error loading schedule",
+                        scheduleData = null
+                    )
+                }
             }
         }
     }

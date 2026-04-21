@@ -46,6 +46,7 @@ import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
+import com.example.andespace.BuildConfig
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.model.dto.RoomDto
@@ -70,7 +71,7 @@ import com.example.andespace.ui.theme.AndeSpaceTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        NetworkMonitor.register(applicationContext)
+        NetworkMonitor.register(applicationContext, BuildConfig.API_BASE_URL)
         enableEdgeToEdge()
         setContent {
             val mainViewModel: MainViewModel = viewModel(factory = AppViewModelProvider.Factory)

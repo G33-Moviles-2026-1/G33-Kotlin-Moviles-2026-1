@@ -3,6 +3,7 @@ package com.example.andespace.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AuthRepository
+import com.example.andespace.data.repository.ScheduleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,7 +11,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val scheduleRepository: ScheduleRepository
 ): ViewModel(){
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -35,6 +37,7 @@ class AuthViewModel(
             result.onSuccess {
                 _uiState.update { it.copy(isLoading = false, password = "", email = "", repeatPassword = "") }
                 onSuccess()
+                scheduleRepository.syncEntireScheduleFromBackend()
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
