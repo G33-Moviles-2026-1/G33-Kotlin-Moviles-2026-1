@@ -68,6 +68,7 @@ fun LoadClassroomsScreen(
                 isLocating = homepageUiState.isLocating,
                 locationError = homepageUiState.locationError,
                 userLocation = homepageUiState.userLocation,
+                lastSearchConfig = homepageUiState.lastSearchConfig,
                 searchError = resultsUiState.errorMessage,
                 rooms = resultsUiState.rooms,
                 currentPage = resultsUiState.currentPage,

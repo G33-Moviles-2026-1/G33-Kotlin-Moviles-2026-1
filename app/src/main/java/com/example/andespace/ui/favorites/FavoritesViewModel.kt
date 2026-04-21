@@ -7,6 +7,7 @@ import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +34,8 @@ class FavoritesViewModel(
             _uiState.value = FavoritesUiState(
                 favoriteRooms = localRooms,
                 favoriteIds = localRooms.map { it.id }.toSet(),
-                isLoading = false
+                isLoading = false,
+                errorMessage = null
             )
         }
 
@@ -57,7 +59,8 @@ class FavoritesViewModel(
                 _uiState.value = FavoritesUiState(
                     favoriteRooms = localRooms,
                     favoriteIds = localRooms.map { it.id }.toSet(),
-                    isLoading = false
+                    isLoading = false,
+                    errorMessage = null
                 )
             }
 
@@ -76,7 +79,8 @@ class FavoritesViewModel(
                     _uiState.value = FavoritesUiState(
                         favoriteRooms = merged,
                         favoriteIds = merged.map { it.id }.toSet(),
-                        isLoading = false
+                        isLoading = false,
+                        errorMessage = null
                     )
 
                     // 2. Tell the repository to save it!
@@ -84,7 +88,12 @@ class FavoritesViewModel(
                 },
                 onFailure = { e ->
                     Log.e(TAG, "refreshFromBackend -> backend failed: ${e.message}")
-                    _uiState.update { it.copy(isLoading = false) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = UserMessages.FAVORITES_SYNC_FAILED
+                        )
+                    }
                 }
             )
         }

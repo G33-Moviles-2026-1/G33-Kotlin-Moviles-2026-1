@@ -86,6 +86,7 @@ fun LoadHomePageScreen(
     isLocating: Boolean,
     locationError: Boolean,
     userLocation: GeoLocation?,
+    lastSearchConfig: HomeSearchConfig,
     searchError: String?,
     rooms: List<RoomDto>,
     currentPage: Int,
@@ -114,6 +115,7 @@ fun LoadHomePageScreen(
             isLocating = isLocating,
             locationError = locationError,
             userLocation = userLocation,
+            lastSearchConfig = lastSearchConfig,
             onRequestCurrentLocation = onRequestCurrentLocation,
             onLocationPermissionDenied = onLocationPermissionDenied,
             onCloseToMeDisabled = onCloseToMeDisabled,
@@ -153,6 +155,7 @@ private fun LoadHomeSearchScreen(
     isLocating: Boolean,
     locationError: Boolean,
     userLocation: GeoLocation?,
+    lastSearchConfig: HomeSearchConfig,
     onRequestCurrentLocation: () -> Unit,
     onLocationPermissionDenied: () -> Unit,
     onCloseToMeDisabled: () -> Unit,
@@ -160,7 +163,9 @@ private fun LoadHomeSearchScreen(
     onFiltersOpened: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
-    var selectedUtilities by remember { mutableStateOf(emptySet<String>()) }
+    var selectedUtilities by remember(lastSearchConfig.utilityDisplayNames) {
+        mutableStateOf(lastSearchConfig.utilityDisplayNames)
+    }
     if (showFilterSheet) {
         UtilitiesFilterSheet(
             selectedOptions = selectedUtilities,
@@ -194,6 +199,7 @@ private fun LoadHomeSearchScreen(
             isLocating = isLocating,
             locationError = locationError,
             userLocation = userLocation,
+            lastSearchConfig = lastSearchConfig,
             onRequestCurrentLocation = onRequestCurrentLocation,
             onLocationPermissionDenied = onLocationPermissionDenied,
             onCloseToMeDisabled = onCloseToMeDisabled,
@@ -218,6 +224,23 @@ private fun nextOpenDate(start: LocalDate): LocalDate {
     return if (start.dayOfWeek == DayOfWeek.SUNDAY) start.plusDays(1) else start
 }
 
+private fun parseDateMillisOrDefault(date: String?): Long {
+    val parsed = runCatching { LocalDate.parse(date) }.getOrNull()
+    val fallbackDate = nextOpenDate(LocalDate.now(ZoneId.systemDefault()))
+    val selected = parsed ?: fallbackDate
+    return selected.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+}
+
+private fun parseHourMinute(value: String?): Pair<Int, Int>? {
+    if (value.isNullOrBlank()) return null
+    val parts = value.split(":")
+    if (parts.size < 2) return null
+    val hour = parts[0].toIntOrNull() ?: return null
+    val minute = parts[1].toIntOrNull() ?: return null
+    if (hour !in 0..23 || minute !in 0..59) return null
+    return hour to minute
+}
+
 @Composable
 private fun SearchCard(
     selectedUtilities: Set<String>,
@@ -227,6 +250,7 @@ private fun SearchCard(
     isLocating: Boolean,
     locationError: Boolean,
     userLocation: GeoLocation?,
+    lastSearchConfig: HomeSearchConfig,
     onRequestCurrentLocation: () -> Unit,
     onLocationPermissionDenied: () -> Unit,
     onCloseToMeDisabled: () -> Unit,
@@ -235,12 +259,9 @@ private fun SearchCard(
     onSearchClick: (HomeSearchParams) -> Unit,
 ) {
     val context = LocalContext.current
-    var classroomInput by remember { mutableStateOf("") }
-    val initialDateMillis = remember {
-        nextOpenDate(LocalDate.now(ZoneId.systemDefault()))
-            .atStartOfDay(ZoneOffset.UTC)
-            .toInstant()
-            .toEpochMilli()
+    var classroomInput by remember(lastSearchConfig.classroom) { mutableStateOf(lastSearchConfig.classroom) }
+    val initialDateMillis = remember(lastSearchConfig.date) {
+        parseDateMillisOrDefault(lastSearchConfig.date)
     }
     var selectedDateMillis by remember { mutableStateOf(initialDateMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -257,12 +278,14 @@ private fun SearchCard(
         }
     }
 
-    var sinceHour by remember { mutableStateOf(8) }
-    var sinceMinute by remember { mutableStateOf(0) }
-    var untilHour by remember { mutableStateOf(18) }
-    var untilMinute by remember { mutableStateOf(0) }
-    var sinceSet by remember { mutableStateOf(false) }
-    var untilSet by remember { mutableStateOf(false) }
+    val initialSince = remember(lastSearchConfig.since) { parseHourMinute(lastSearchConfig.since) }
+    val initialUntil = remember(lastSearchConfig.until) { parseHourMinute(lastSearchConfig.until) }
+    var sinceHour by remember(lastSearchConfig.since) { mutableStateOf(initialSince?.first ?: 8) }
+    var sinceMinute by remember(lastSearchConfig.since) { mutableStateOf(initialSince?.second ?: 0) }
+    var untilHour by remember(lastSearchConfig.until) { mutableStateOf(initialUntil?.first ?: 18) }
+    var untilMinute by remember(lastSearchConfig.until) { mutableStateOf(initialUntil?.second ?: 0) }
+    var sinceSet by remember(lastSearchConfig.since) { mutableStateOf(initialSince != null) }
+    var untilSet by remember(lastSearchConfig.until) { mutableStateOf(initialUntil != null) }
     var missingTimeError by remember { mutableStateOf<String?>(null) }
     var showSincePicker by remember { mutableStateOf(false) }
     var showUntilPicker by remember { mutableStateOf(false) }
