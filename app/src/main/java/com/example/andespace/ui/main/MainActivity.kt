@@ -38,10 +38,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
@@ -62,6 +62,8 @@ import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.homepage.MainClassroomsScreen
+import com.example.andespace.ui.navigation.NavigationScreen
+import com.example.andespace.ui.navigation.NavigationViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
@@ -92,17 +94,18 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AndeSpaceApp(
-    viewModel: MainViewModel,
-    homepageViewModel: HomepageViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    scheduleViewModel: ScheduleViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    favoritesViewModel: FavoritesViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: MainViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val homepageViewModel: HomepageViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val scheduleViewModel: ScheduleViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val favoritesViewModel: FavoritesViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val resultsViewModel: ResultsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val detailRoomViewModel: DetailRoomViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val navigationViewModel: NavigationViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
 
     DisposableEffect(lifecycleOwner) {
@@ -319,6 +322,12 @@ fun AndeSpaceApp(
                             homepageViewModel.onShowRoomDetailScreen()
                             viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                         }
+                    )
+                }
+
+                AppDestinations.NAVIGATION -> {
+                    NavigationScreen(
+                        navigationViewModel = navigationViewModel
                     )
                 }
             }

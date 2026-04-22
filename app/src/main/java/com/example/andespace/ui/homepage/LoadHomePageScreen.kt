@@ -124,12 +124,9 @@ fun LoadHomePageScreen(
         ContentScreen.RESULTS -> ResultsScreen(
             rooms = rooms,
             isSearching = isSearching,
-            isUserLoggedIn = isUserLoggedIn,
-            hasUploadedSchedule = hasUploadedSchedule,
             errorMessage = searchError,
             currentPage = currentPage,
             totalPages = totalPages,
-            showingCachedResults = showingCachedResults,
             favoriteIds = favoriteIds,
             onFavoriteClick = onFavoriteClick,
             onRoomClick = onRoomClick,

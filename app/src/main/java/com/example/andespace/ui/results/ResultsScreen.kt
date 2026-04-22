@@ -24,20 +24,17 @@ import com.example.andespace.ui.components.PaginationFooter
 
 @Composable
 fun ResultsScreen(
+    modifier: Modifier = Modifier,
     rooms: List<RoomDto>,
     isSearching: Boolean,
-    isUserLoggedIn: Boolean,
-    hasUploadedSchedule: Boolean,
     errorMessage: String?,
     currentPage: Int,
     totalPages: Int,
-    showingCachedResults: Boolean = false,
     favoriteIds: Set<String> = emptySet(),
     onFavoriteClick: ((RoomDto) -> Unit)? = null,
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
-    onNextPage: () -> Unit,
-    modifier: Modifier = Modifier
+    onNextPage: () -> Unit
 ) {
     val listState = rememberLazyListState()
 

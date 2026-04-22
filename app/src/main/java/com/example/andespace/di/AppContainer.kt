@@ -19,6 +19,7 @@ import com.example.andespace.data.db.FavoritesDao
 import com.example.andespace.data.db.SyncDatabase
 import com.example.andespace.data.network.AuthInterceptor
 import com.example.andespace.data.network.SessionCookieJar
+import com.example.andespace.data.repository.NavigationRepository
 import com.google.gson.Gson
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -33,6 +34,7 @@ interface AppContainer {
     val scheduleRepository: ScheduleRepository
     val bookingRepository: BookingRepository
     val favoritesRepository: FavoritesRepository
+    val navigationRepository: NavigationRepository
     val syncManager: SyncManager
     val analyticsDao: AnalyticsDao
     val syncDao: SyncActionDao
@@ -143,6 +145,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val scheduleRepository: ScheduleRepository by lazy {
         ScheduleRepository(syncDao, apiService, context)
+    }
+
+    override val navigationRepository: NavigationRepository by lazy {
+        NavigationRepository(apiService)
     }
 
     override val syncManager: SyncManager by lazy {

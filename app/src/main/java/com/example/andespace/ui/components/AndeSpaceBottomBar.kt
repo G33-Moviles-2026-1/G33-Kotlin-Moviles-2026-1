@@ -26,6 +26,7 @@ fun AndeSpaceBottomBar(
         listOf(
             AppDestinations.CLASSROOMS,
             AppDestinations.FAVORITES,
+            AppDestinations.NAVIGATION,
             AppDestinations.BOOKINGS,
             AppDestinations.SCHEDULE
         ).forEach { destination ->
