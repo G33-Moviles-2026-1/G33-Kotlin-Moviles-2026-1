@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.data.repository.BookingRepository
-import com.example.andespace.ui.common.UserMessages
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,7 +61,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                 }
                 .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = UserMessages.DELETE_BOOKING_FAILED)
+                        it.copy(isLoading = false, errorMessage = RepositoryMessages.DELETE_BOOKING_FAILED)
                     }
                 }
         }
@@ -74,7 +74,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
             repository.deleteBooking(oldBookingId)
                 .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isSaving = false, errorMessage = UserMessages.DELETE_BOOKING_FAILED)
+                        it.copy(isSaving = false, errorMessage = RepositoryMessages.DELETE_BOOKING_FAILED)
                     }
                     return@launch
                 }
@@ -92,7 +92,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                 }
                 .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isSaving = false, errorMessage = UserMessages.SAVE_BOOKING_FAILED)
+                        it.copy(isSaving = false, errorMessage = RepositoryMessages.SAVE_BOOKING_FAILED)
                     }
                     loadBookings()
                 }
@@ -135,10 +135,10 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
     }
 
     private fun friendlyError(raw: String?): String = when {
-        raw == null -> UserMessages.GENERIC_ERROR
-        raw.startsWith("No internet connection") -> UserMessages.NO_INTERNET
-        raw.startsWith("Network error") -> UserMessages.NO_INTERNET
-        raw.matches(Regex("Error \\d+.*")) -> UserMessages.GENERIC_ERROR
-        else -> UserMessages.GENERIC_ERROR
+        raw == null -> RepositoryMessages.GENERIC_ERROR
+        raw.startsWith("No internet connection") -> RepositoryMessages.NO_INTERNET
+        raw.startsWith("Network error") -> RepositoryMessages.NO_INTERNET
+        raw.matches(Regex("Error \\d+.*")) -> RepositoryMessages.GENERIC_ERROR
+        else -> RepositoryMessages.GENERIC_ERROR
     }
 }

@@ -74,6 +74,7 @@ fun LoadClassroomsScreen(
                 currentPage = resultsUiState.currentPage,
                 totalPages = resultsUiState.totalPages,
                 showingCachedResults = resultsUiState.showingCachedResults,
+                showOfflinePlaceholder = resultsUiState.showOfflinePlaceholder,
                 favoriteIds = favoriteIds,
                 onFavoriteClick = onFavoriteClick,
                 onSearchClick = onSearchClick,

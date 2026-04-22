@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.FavoritesRepository
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.model.dto.RoomDto
-import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,7 +91,7 @@ class FavoritesViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = UserMessages.FAVORITES_SYNC_FAILED
+                            errorMessage = RepositoryMessages.FAVORITES_SYNC_FAILED
                         )
                     }
                 }
