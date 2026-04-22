@@ -24,17 +24,15 @@ class ResultsViewModel(
 
     private var cachedParams: HomeSearchParams? = null
     private var cachedTotalPages: Int = 1
-    private var cachedHasUploadedSchedule: Boolean = false
     private val cachedPages = mutableMapOf<Int, List<RoomDto>>()
 
     private fun clearCache() {
         cachedParams = null
         cachedTotalPages = 1
-        cachedHasUploadedSchedule = false
         cachedPages.clear()
     }
 
-    fun onSearchClick(params: HomeSearchParams, isUserLoggedIn: Boolean) {
+    fun onSearchClick(params: HomeSearchParams) {
         lastSearchParams = params
         clearCache()
         requestSearchPage(params = params, page = 1, trackEvent = true)
@@ -46,7 +44,7 @@ class ResultsViewModel(
         }
     }
 
-    fun onNextPage(isUserLoggedIn: Boolean) {
+    fun onNextPage() {
         val state = _uiState.value
         if (state.isSearching) return
 
@@ -57,8 +55,8 @@ class ResultsViewModel(
         requestSearchPage(params = params, page = nextPage)
     }
 
-    fun onPreviousPage(isUserLoggedIn: Boolean) {
-        val state = _uiState.value
+    fun onPreviousPage() {
+        val state = uiState.value
         if (state.isSearching) return
 
         val params = lastSearchParams ?: return
@@ -74,13 +72,8 @@ class ResultsViewModel(
         trackEvent: Boolean = false
     ) {
         viewModelScope.launch {
-            val pageSize = _uiState.value.resultsPageSize
+            val pageSize = uiState.value.resultsPageSize
             val offset = (page - 1).coerceAtLeast(0) * pageSize
-
-            Log.d(
-                TAG,
-                "requestSearchPage -> page=$page, limit=$pageSize, offset=$offset, classroom=${params.classroom}, date=${params.date}, since=${params.since}, until=${params.until}, closeToMe=${params.closeToMe}, utilities=${params.utilities}"
-            )
 
             _uiState.update { it.copy(isSearching = true, errorMessage = null) }
 
@@ -118,7 +111,6 @@ class ResultsViewModel(
                     onFailure = { error ->
                         val cachedRooms = cachedPages[page]
                         if (cachedRooms != null && cachedParams == params) {
-                            Log.d(TAG, "requestSearchPage -> no network, serving page $page from cache (${cachedRooms.size} rooms)")
                             _uiState.update {
                                 it.copy(
                                     isSearching = false,
@@ -150,38 +142,6 @@ class ResultsViewModel(
         raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
         raw.matches(Regex("Error \\d+.*")) -> "Could not load results. Please try again."
         else -> "Something went wrong. Please try again."
-    }
-
-    private fun String?.toSecondsOfDay(): Int? {
-        if (this.isNullOrBlank()) return null
-        val normalized = this.trim().substringBefore('.')
-        val parts = normalized.split(':')
-        if (parts.size < 2) return null
-
-        val hours = parts[0].toIntOrNull() ?: return null
-        val minutes = parts[1].toIntOrNull() ?: return null
-        val seconds = parts.getOrNull(2)?.toIntOrNull() ?: 0
-
-        if (hours !in 0..23 || minutes !in 0..59 || seconds !in 0..59) return null
-        return hours * 3600 + minutes * 60 + seconds
-    }
-
-    private fun Int.toTimeString(): String {
-        val hours = this / 3600
-        val minutes = (this % 3600) / 60
-        val seconds = this % 60
-        return "%02d:%02d:%02d".format(hours, minutes, seconds)
-    }
-
-    private fun intervalDuration(window: RoomTimeWindowDto): Int {
-        val start = window.start.toSecondsOfDay() ?: return 0
-        val end = window.end.toSecondsOfDay() ?: return 0
-        return (end - start).coerceAtLeast(0)
-    }
-
-    private fun normalizeToHhMmSs(value: String): String {
-        val trimmed = value.trim()
-        return if (trimmed.count { it == ':' } == 1) "$trimmed:00" else trimmed
     }
 
     private fun calculateTotalPages(totalItems: Int, pageSize: Int): Int {

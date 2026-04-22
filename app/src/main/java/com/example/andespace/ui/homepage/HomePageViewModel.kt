@@ -38,7 +38,7 @@ class HomepageViewModel(
     }
 
     fun onBackPressedInSearchFlow(): Boolean {
-        val current = _uiState.value.contentScreen
+        val current = uiState.value.contentScreen
         val previous = when (current) {
             ContentScreen.MAKE_BOOKING -> ContentScreen.ROOM_DETAIL
             ContentScreen.ROOM_DETAIL -> ContentScreen.RESULTS

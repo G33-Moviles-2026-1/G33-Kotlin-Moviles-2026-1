@@ -41,8 +41,7 @@ fun MainClassroomsScreen(
         bookingsUiState = bookingsUiState,
         onSearchClick = { params ->
             resultsViewModel.onSearchClick(
-                params = params,
-                isUserLoggedIn = isUserLoggedIn
+                params = params
             )
             homepageViewModel.onShowResults()
         },
@@ -55,8 +54,8 @@ fun MainClassroomsScreen(
             )
             homepageViewModel.onShowRoomDetailScreen()
         },
-        onPrevPage = { resultsViewModel.onPreviousPage(isUserLoggedIn = isUserLoggedIn) },
-        onNextPage = { resultsViewModel.onNextPage(isUserLoggedIn = isUserLoggedIn) },
+        onPrevPage = { resultsViewModel.onPreviousPage() },
+        onNextPage = { resultsViewModel.onNextPage() },
         onRoomDetailDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) },
         onRequestCurrentLocation = { homepageViewModel.requestCurrentLocation(locationSensor) },
         onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
