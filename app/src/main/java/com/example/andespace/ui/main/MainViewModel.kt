@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.AuthRepository
+import com.example.andespace.data.repository.ThemePreferencesRepository
 import com.example.andespace.model.AppDestinations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,11 +14,13 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val authRepository: AuthRepository,
-    private val analyticsRepository: AnalyticsRepository
+    private val analyticsRepository: AnalyticsRepository,
+    private val themePreferencesRepository: ThemePreferencesRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
     init {
+        observeSavedThemeMode()
         checkExistingSession()
         viewModelScope.launch {
             authRepository.observeSessionState().collect { hasValidCookie ->
@@ -33,6 +36,14 @@ class MainViewModel(
                     }
                     authRepository.logout()
                 }
+            }
+        }
+    }
+
+    private fun observeSavedThemeMode() {
+        viewModelScope.launch {
+            themePreferencesRepository.observeThemeMode().collect { savedTheme ->
+                _uiState.update { it.copy(themeMode = savedTheme) }
             }
         }
     }
@@ -106,6 +117,15 @@ class MainViewModel(
         }
     }
 
+    fun requestLoginRequiredDialog() {
+        _uiState.update {
+            it.copy(
+                showLoginRequiredDialog = true,
+                isUserMenuExpanded = false
+            )
+        }
+    }
+
 
     fun expandUserMenu() {
         _uiState.update { it.copy(isUserMenuExpanded = true) }
@@ -140,6 +160,9 @@ class MainViewModel(
 
     fun setThemeMode(mode: ThemeMode) {
         _uiState.update { it.copy(themeMode = mode) }
+        viewModelScope.launch {
+            themePreferencesRepository.saveThemeMode(mode)
+        }
     }
 
     fun setSensorDarkMode(isDark: Boolean) {

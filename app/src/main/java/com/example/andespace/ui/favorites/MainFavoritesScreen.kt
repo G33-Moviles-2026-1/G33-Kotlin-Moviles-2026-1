@@ -30,6 +30,7 @@ fun MainFavoritesScreen(
         LoadFavoritesScreen(
             favoriteRooms = uiState.favoriteRooms,
             favoriteIds = uiState.favoriteIds,
+            errorMessage = uiState.errorMessage,
             onToggleFavorite = { room -> favoritesViewModel.toggleFavorite(room) },
             onRoomClick = onRoomClick
         )
