@@ -36,7 +36,8 @@ fun MainClassroomsScreen(
         contentScreen = homepageState.contentScreen,
         isUserLoggedIn = isUserLoggedIn,
         homepageUiState = homepageState,
-        resultsUiState = resultsUiState,
+        detailRoomViewModel = detailRoomViewModel,
+        resultsViewModel = resultsViewModel,
         detailRoomUiState = detailRoomUiState,
         bookingsUiState = bookingsUiState,
         onSearchClick = { params ->

@@ -14,6 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,16 +27,18 @@ import com.example.andespace.ui.components.PaginationFooter
 @Composable
 fun ResultsScreen(
     modifier: Modifier = Modifier,
-    rooms: List<RoomDto>,
     isSearching: Boolean,
     errorMessage: String?,
-    currentPage: Int,
-    totalPages: Int,
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
-    onNextPage: () -> Unit
+    onNextPage: () -> Unit,
+    resultsViewModel: ResultsViewModel
 ) {
     val listState = rememberLazyListState()
+    val uiState by resultsViewModel.uiState.collectAsState()
+    val currentPage = uiState.currentPage
+    val rooms = uiState.rooms
+    val totalPages = uiState.totalPages
 
     LaunchedEffect(currentPage) {
         listState.scrollToItem(0)

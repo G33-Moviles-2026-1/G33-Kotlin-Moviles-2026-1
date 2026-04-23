@@ -1,12 +1,10 @@
 package com.example.andespace.ui.results
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.repository.AppRepository
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.RoomDto
-import com.example.andespace.model.dto.RoomTimeWindowDto
-import com.example.andespace.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,9 +65,7 @@ class ResultsViewModel(
     }
 
     private fun requestSearchPage(
-        params: HomeSearchParams,
-        page: Int,
-        trackEvent: Boolean = false
+        params: HomeSearchParams, page: Int, trackEvent: Boolean = false
     ) {
         viewModelScope.launch {
             val pageSize = uiState.value.resultsPageSize
@@ -88,51 +84,48 @@ class ResultsViewModel(
             }
 
             repository.searchRooms(params, limit = pageSize, offset = offset)
-                .fold(
-                    onSuccess = { response ->
-                        val totalItems = response.total ?: (offset + response.rooms.size)
-                        val pages = calculateTotalPages(totalItems = totalItems, pageSize = pageSize)
+                .fold(onSuccess = { response ->
+                    val totalItems = response.total ?: (offset + response.rooms.size)
+                    val pages = calculateTotalPages(totalItems = totalItems, pageSize = pageSize)
 
-                        cachedParams = params
-                        cachedTotalPages = pages
+                    cachedParams = params
+                    cachedTotalPages = pages
 
+                    _uiState.update {
+                        it.copy(
+                            isSearching = false,
+                            rooms = response.rooms,
+                            selectedSearchDate = params.date,
+                            currentPage = page,
+                            totalPages = pages,
+                            errorMessage = null,
+                            showingCachedResults = false
+                        )
+                    }
+                }, onFailure = { error ->
+                    val cachedRooms = cachedPages[page]
+                    if (cachedRooms != null && cachedParams == params) {
                         _uiState.update {
                             it.copy(
                                 isSearching = false,
-                                rooms = response.rooms,
+                                rooms = cachedRooms,
                                 selectedSearchDate = params.date,
                                 currentPage = page,
-                                totalPages = pages,
+                                totalPages = cachedTotalPages,
                                 errorMessage = null,
+                                showingCachedResults = true
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSearching = false,
+                                errorMessage = friendlyError(error.message),
                                 showingCachedResults = false
                             )
                         }
-                    },
-                    onFailure = { error ->
-                        val cachedRooms = cachedPages[page]
-                        if (cachedRooms != null && cachedParams == params) {
-                            _uiState.update {
-                                it.copy(
-                                    isSearching = false,
-                                    rooms = cachedRooms,
-                                    selectedSearchDate = params.date,
-                                    currentPage = page,
-                                    totalPages = cachedTotalPages,
-                                    errorMessage = null,
-                                    showingCachedResults = true
-                                )
-                            }
-                        } else {
-                            _uiState.update {
-                                it.copy(
-                                    isSearching = false,
-                                    errorMessage = friendlyError(error.message),
-                                    showingCachedResults = false
-                                )
-                            }
-                        }
                     }
-                )
+                })
         }
     }
 
@@ -147,9 +140,5 @@ class ResultsViewModel(
     private fun calculateTotalPages(totalItems: Int, pageSize: Int): Int {
         if (totalItems <= 0) return 1
         return ((totalItems + pageSize - 1) / pageSize).coerceAtLeast(1)
-    }
-
-    companion object {
-        private const val TAG = "ResultsViewModel"
     }
 }

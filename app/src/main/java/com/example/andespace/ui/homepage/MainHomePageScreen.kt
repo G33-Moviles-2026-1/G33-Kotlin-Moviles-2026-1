@@ -5,22 +5,17 @@ import androidx.compose.ui.Modifier
 import com.example.andespace.data.location.GeoLocation
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.ui.results.ResultsViewModel
 
 @Composable
 fun MainHomePageScreen(
     modifier: Modifier = Modifier,
     contentScreen: ContentScreen,
-    isSearching: Boolean,
     isUserLoggedIn: Boolean,
     closeToMe: Boolean,
     isLocating: Boolean,
     locationError: Boolean,
     userLocation: GeoLocation?,
-    searchError: String?,
-    rooms: List<RoomDto>,
-    currentPage: Int,
-    totalPages: Int,
-    showingCachedResults: Boolean = false,
     onSearchClick: (HomeSearchParams) -> Unit,
     onFiltersOpened: () -> Unit,
     onRequestCurrentLocation: () -> Unit,
@@ -30,20 +25,16 @@ fun MainHomePageScreen(
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
+    resultsViewModel: ResultsViewModel,
 ) {
     LoadHomePageScreen(
         modifier = modifier,
         contentScreen = contentScreen,
-        isSearching = isSearching,
         isUserLoggedIn = isUserLoggedIn,
         closeToMe = closeToMe,
         isLocating = isLocating,
         locationError = locationError,
         userLocation = userLocation,
-        searchError = searchError,
-        rooms = rooms,
-        currentPage = currentPage,
-        totalPages = totalPages,
         onSearchClick = onSearchClick,
         onFiltersOpened = onFiltersOpened,
         onRequestCurrentLocation = onRequestCurrentLocation,
@@ -52,6 +43,7 @@ fun MainHomePageScreen(
         onClearLocationError = onClearLocationError,
         onRoomClick = onRoomClick,
         onPrevPage = onPrevPage,
-        onNextPage = onNextPage
+        onNextPage = onNextPage,
+        resultsViewModel = resultsViewModel
     )
 }

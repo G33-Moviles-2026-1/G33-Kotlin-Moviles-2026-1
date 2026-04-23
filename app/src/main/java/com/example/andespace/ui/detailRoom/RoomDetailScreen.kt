@@ -1,6 +1,5 @@
 package com.example.andespace.ui.detailRoom
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,22 +39,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.andespace.model.RoomUtility
-import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.collections.map
+import kotlin.collections.mapNotNull
+import kotlin.collections.orEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoadRoomDetailScreen(
-    room: RoomDto?,
-    selectedDate: String?,
-    isLoadingAvailability: Boolean,
-    availabilityError: String?,
+fun RoomDetailScreen(
     onDateChange: (String) -> Unit,
-    onBookRoom: () -> Unit = {},
+    onBookRoom: () -> Unit,
+    detailRoomViewModel: DetailRoomViewModel
 ) {
+    val uiState by detailRoomViewModel.uiState.collectAsState()
+
+    val room = uiState.room
+    val selectedDate = uiState.selectedDate
+    val isLoadingAvailability = uiState.isLoadingAvailability
+    val availabilityError = uiState.availabilityError
+
     if (room == null) {
         Box(
             modifier = Modifier
@@ -83,8 +89,8 @@ fun LoadRoomDetailScreen(
     val utilities = room.utilities.orEmpty()
         .map { RoomUtility.displayNameFromCode(it) }
         .ifEmpty {
-        listOf("Blackout", "Power Outlet", "Mobile Whiteboards")
-    }
+            listOf("Blackout", "Power Outlet", "Mobile Whiteboards")
+        }
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(

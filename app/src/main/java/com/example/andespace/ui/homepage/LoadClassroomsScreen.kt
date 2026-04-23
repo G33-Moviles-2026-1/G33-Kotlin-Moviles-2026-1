@@ -7,15 +7,16 @@ import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.bookings.BookingsUIState
 import com.example.andespace.ui.bookings.MainMakeBookingScreen
 import com.example.andespace.ui.detailRoom.DetailRoomUiState
-import com.example.andespace.ui.detailRoom.MainRoomDetailScreen
+import com.example.andespace.ui.detailRoom.DetailRoomViewModel
+import com.example.andespace.ui.detailRoom.RoomDetailScreen
 import com.example.andespace.ui.results.ResultsUiState
+import com.example.andespace.ui.results.ResultsViewModel
 
 @Composable
 fun LoadClassroomsScreen(
     contentScreen: ContentScreen,
     isUserLoggedIn: Boolean,
     homepageUiState: HomepageUiState,
-    resultsUiState: ResultsUiState,
     detailRoomUiState: DetailRoomUiState,
     bookingsUiState: BookingsUIState,
     onSearchClick: (HomeSearchParams) -> Unit,
@@ -31,12 +32,14 @@ fun LoadClassroomsScreen(
     onShowMakeBooking: () -> Unit,
     onCreateBooking: (CreateBookingRequest) -> Unit,
     onBookingCreatedConsumed: () -> Unit,
-    onBookingCreatedNavigate: () -> Unit
+    onBookingCreatedNavigate: () -> Unit,
+    resultsViewModel: ResultsViewModel,
+    detailRoomViewModel: DetailRoomViewModel
 ) {
     when (contentScreen) {
         ContentScreen.ROOM_DETAIL -> {
-            MainRoomDetailScreen(
-                uiState = detailRoomUiState,
+            RoomDetailScreen(
+                detailRoomViewModel = detailRoomViewModel,
                 onDateChange = onRoomDetailDateChange,
                 onBookRoom = onShowMakeBooking
             )
@@ -56,17 +59,12 @@ fun LoadClassroomsScreen(
         else -> {
             MainHomePageScreen(
                 contentScreen = contentScreen,
-                isSearching = resultsUiState.isSearching,
                 isUserLoggedIn = isUserLoggedIn,
                 closeToMe = homepageUiState.closeToMe,
                 isLocating = homepageUiState.isLocating,
                 locationError = homepageUiState.locationError,
                 userLocation = homepageUiState.userLocation,
-                searchError = resultsUiState.errorMessage,
-                rooms = resultsUiState.rooms,
-                currentPage = resultsUiState.currentPage,
-                totalPages = resultsUiState.totalPages,
-                showingCachedResults = resultsUiState.showingCachedResults,
+                resultsViewModel = resultsViewModel,
                 onSearchClick = onSearchClick,
                 onFiltersOpened = onFiltersOpened,
                 onRequestCurrentLocation = onRequestCurrentLocation,

@@ -48,6 +48,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,27 +69,22 @@ import com.example.andespace.model.RoomUtility
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.results.ResultsScreen
+import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.util.Locale
 
 @Composable
 fun LoadHomePageScreen(
     contentScreen: ContentScreen,
-    isSearching: Boolean,
     isUserLoggedIn: Boolean,
     closeToMe: Boolean,
     isLocating: Boolean,
     locationError: Boolean,
     userLocation: GeoLocation?,
-    searchError: String?,
-    rooms: List<RoomDto>,
-    currentPage: Int,
-    totalPages: Int,
     onSearchClick: (HomeSearchParams) -> Unit,
     onFiltersOpened: () -> Unit,
     onRequestCurrentLocation: () -> Unit,
@@ -98,8 +94,12 @@ fun LoadHomePageScreen(
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    resultsViewModel: ResultsViewModel
 ) {
+    val uiState by resultsViewModel.uiState.collectAsState()
+    val isSearching = uiState.isSearching
+    val searchError = uiState.errorMessage
     when (contentScreen) {
         ContentScreen.HOME -> LoadHomeSearchScreen(
             modifier = modifier,
@@ -118,11 +118,9 @@ fun LoadHomePageScreen(
         )
 
         ContentScreen.RESULTS -> ResultsScreen(
-            rooms = rooms,
+            resultsViewModel = resultsViewModel,
             isSearching = isSearching,
             errorMessage = searchError,
-            currentPage = currentPage,
-            totalPages = totalPages,
             onRoomClick = onRoomClick,
             onPrevPage = onPrevPage,
             onNextPage = onNextPage,
