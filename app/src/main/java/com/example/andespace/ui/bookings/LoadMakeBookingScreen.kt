@@ -58,6 +58,10 @@ import com.example.andespace.model.dto.RoomWeeklyAvailabilityDto
 import com.example.andespace.ui.detailRoom.DetailRoomUiState
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
@@ -113,6 +117,18 @@ private fun millisToApiDate(millis: Long): String {
     return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
 }
 
+private fun isPastBookingStart(date: String, startTime: String): Boolean {
+    return try {
+        val dateValue = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE)
+        val normalizedTime = startTime.trim().substringBeforeLast(":")
+        val timeValue = LocalTime.parse(normalizedTime, DateTimeFormatter.ofPattern("HH:mm"))
+        val bookingStart = LocalDateTime.of(dateValue, timeValue)
+        bookingStart.isBefore(LocalDateTime.now())
+    } catch (_: Exception) {
+        false
+    }
+}
+
 @Composable
 private fun LoadMakeBookingContent(
     roomId: String,
@@ -128,6 +144,7 @@ private fun LoadMakeBookingContent(
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedSlotIndex by remember(availableWindows) { mutableIntStateOf(0) }
     var showTimeDropdown by remember { mutableStateOf(false) }
+    var localValidationError by remember { mutableStateOf<String?>(null) }
 
     var purpose by remember { mutableStateOf("study_alone") }
     var peopleCount by remember { mutableStateOf("") }
@@ -273,6 +290,7 @@ private fun LoadMakeBookingContent(
                             onClick = {
                                 selectedSlotIndex = index
                                 showTimeDropdown = false
+                                localValidationError = null
                             }
                         )
                     }
@@ -345,7 +363,8 @@ private fun LoadMakeBookingContent(
             modifier = Modifier.fillMaxWidth()
         )
 
-        errorMessage?.let {
+        val displayedError = localValidationError ?: errorMessage
+        displayedError?.let {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = it,
@@ -361,11 +380,17 @@ private fun LoadMakeBookingContent(
         Button(
             onClick = {
                 val window = availableWindows[selectedSlotIndex]
+                val startTime = window.start ?: return@Button
+                if (isPastBookingStart(selectedDate, startTime)) {
+                    localValidationError = "You can't book a time slot that has already started."
+                    return@Button
+                }
+                localValidationError = null
                 onBook(
                     CreateBookingRequest(
                         roomId = roomId,
                         date = selectedDate,
-                        startTime = window.start ?: return@Button,
+                        startTime = startTime,
                         endTime = window.end ?: return@Button,
                         purpose = purpose
                     )
