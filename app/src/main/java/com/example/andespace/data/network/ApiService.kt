@@ -7,11 +7,10 @@ import com.example.andespace.model.dto.MyBookingsResponse
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
-import com.example.andespace.model.dto.UserFreeSlotsResponse
-import com.example.andespace.model.schedule.DayRoomRecommendationsOut
-import com.example.andespace.model.schedule.ManualScheduleIn
-import com.example.andespace.model.schedule.ScheduleClassesOut
-import com.example.andespace.model.schedule.WeeklyScheduleOut
+import com.example.andespace.model.dto.DayRoomRecommendationsOut
+import com.example.andespace.model.dto.ManualScheduleIn
+import com.example.andespace.model.dto.ScheduleClassesOut
+import com.example.andespace.model.dto.WeeklyScheduleOut
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -60,11 +59,6 @@ interface ApiService {
         @Path("roomId") roomId: String,
         @Query("date_value") dateValue: String
     ): Response<RoomDto>
-
-    @GET("schedule/free-slots")
-    suspend fun getUserFreeSlots(
-        @Query("date") date: String
-    ): Response<UserFreeSlotsResponse>
 
     @GET("bookings/mine")
     suspend fun getMyBookings(): Response<MyBookingsResponse>

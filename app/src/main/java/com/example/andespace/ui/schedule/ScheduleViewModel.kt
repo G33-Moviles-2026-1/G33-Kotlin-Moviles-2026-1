@@ -5,8 +5,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AppRepository
-import com.example.andespace.model.schedule.ManualClassIn
-import com.example.andespace.model.schedule.ManualScheduleIn
+import com.example.andespace.model.dto.ManualClassIn
+import com.example.andespace.model.dto.ManualScheduleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

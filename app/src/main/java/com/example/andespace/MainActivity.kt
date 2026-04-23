@@ -51,7 +51,6 @@ import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
-import com.example.andespace.ui.screen.HistoryScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 
 class MainActivity : ComponentActivity() {
@@ -161,8 +160,6 @@ fun AndeSpaceApp(
                         }
                     )
                 }
-
-                AppDestinations.HISTORY -> HistoryScreen()
 
                 AppDestinations.LOGIN -> LoginScreen(
                     onLoginSuccess = {

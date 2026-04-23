@@ -3,31 +3,26 @@ package com.example.andespace.data.repository
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.example.andespace.model.HomeSearchParams
-import com.example.andespace.model.dto.AnalyticsEventRequest
-import com.example.andespace.model.dto.BookingDto
-import com.example.andespace.model.dto.CreateBookingRequest
-import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
-import com.example.andespace.model.dto.RoomDto
-import com.example.andespace.model.dto.RoomSearchRequest
-import com.example.andespace.model.dto.UserLocation
-import com.example.andespace.model.dto.RoomSearchResponse
-import com.example.andespace.model.dto.RoomTimeWindowDto
-import com.example.andespace.model.schedule.WeeklyScheduleOut
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.LoginRequest
 import com.example.andespace.data.network.NetworkModule
 import com.example.andespace.data.network.RegisterRequest
-import com.example.andespace.model.dto.AvailabilitySlotDto
-import com.example.andespace.model.schedule.ManualScheduleIn
-import com.example.andespace.model.schedule.ScheduleClassesOut
+import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.model.dto.AnalyticsEventRequest
+import com.example.andespace.model.dto.BookingDto
+import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.DayRoomRecommendationsOut
+import com.example.andespace.model.dto.ManualScheduleIn
+import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomSearchRequest
+import com.example.andespace.model.dto.RoomSearchResponse
+import com.example.andespace.model.dto.ScheduleClassesOut
+import com.example.andespace.model.dto.UserLocation
+import com.example.andespace.model.dto.WeeklyScheduleOut
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Locale
-import com.example.andespace.model.schedule.DayRoomRecommendationsOut
 
 class AppRepository {
     private val apiService: ApiService = NetworkModule.apiService
@@ -242,21 +237,6 @@ class AppRepository {
         }
     } catch (_: Exception) {
         Result.failure(Exception("No internet connection. Please check your network and try again."))
-    }
-
-    private fun String.toScheduleDateParam(): String {
-        return runCatching {
-            val source = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val target = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
-            val parsedDate = source.parse(this)
-            if (parsedDate != null) target.format(parsedDate) else this
-        }.getOrDefault(this)
-
-    }
-
-    private fun String.toHhMmSs(): String {
-        val trimmed = trim()
-        return if (trimmed.count { it == ':' } == 1) "$trimmed:00" else trimmed
     }
 
     suspend fun getMyBookings(): Result<List<BookingDto>> = try {

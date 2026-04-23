@@ -1,4 +1,4 @@
-package com.example.andespace.model.schedule
+package com.example.andespace.model.dto
 
 data class WeeklyScheduleOut(
     val week_start: String,

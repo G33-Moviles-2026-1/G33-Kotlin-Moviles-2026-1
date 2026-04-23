@@ -13,7 +13,6 @@ enum class AppDestinations(
     CLASSROOMS("Classrooms", assetIconPath = "icons/rooms.svg"),
     BOOKINGS("Bookings", assetIconPath = "icons/bookings.svg"),
     SCHEDULE("My Schedule", assetIconPath = "icons/schedule.svg"),
-    HISTORY("History", assetIconPath = "icons/history.svg"),
     LOGIN("Log In", icon = Icons.Default.Lock),
     REGISTER("Register", icon = Icons.Default.PersonAdd)
 }

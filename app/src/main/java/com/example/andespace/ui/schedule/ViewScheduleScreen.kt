@@ -1,6 +1,4 @@
 package com.example.andespace.ui.schedule
-
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,11 +26,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,7 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.andespace.model.schedule.ScheduleClassOccurrenceOut
+import com.example.andespace.model.dto.ScheduleClassOccurrenceOut
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -60,31 +56,14 @@ fun ViewScheduleScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedFilterDate by remember { mutableStateOf<LocalDate?>(null) }
 
-
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButtonPosition = FabPosition.Center,
-        floatingActionButton = {
-            if (selectedFilterDate != null) {
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                        viewModel.loadRecommendations(dateStr)
-                    },
-                    icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
-                    text = { Text("Filter from schedule") },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    ) { paddingValues ->
-
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(top = 10.dp)
+    ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             item {
@@ -98,7 +77,7 @@ fun ViewScheduleScreen(
                         try {
                             val start = LocalDate.parse(data.week_start)
                             val end = LocalDate.parse(data.week_end)
-                            val formatter = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
+                            val formatter = DateTimeFormatter.ofPattern("MMM d", Locale.US)
                             "${start.format(formatter)} - ${end.format(formatter)}"
                         } catch (_: Exception) {
                             "Invalid Date Range"
@@ -169,7 +148,9 @@ fun ViewScheduleScreen(
             if (uiState.isLoading || uiState.errorMessage != null) {
                 item {
                     Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         if (uiState.isLoading) {
@@ -213,12 +194,29 @@ fun ViewScheduleScreen(
                                 viewModel = viewModel,
                                 isSelected = (selectedFilterDate == currentDate),
                                 onDayClick = {
-                                    selectedFilterDate = if (selectedFilterDate == currentDate) null else currentDate                                }
+                                    selectedFilterDate = if (selectedFilterDate == currentDate) null else currentDate
+                                }
                             )
                         }
                     }
                 }
             }
+        }
+
+        if (selectedFilterDate != null) {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    viewModel.loadRecommendations(dateStr)
+                },
+                icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
+                text = { Text("Filter from schedule") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+            )
         }
     }
 }
