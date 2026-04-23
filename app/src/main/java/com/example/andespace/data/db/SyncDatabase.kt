@@ -98,7 +98,6 @@ interface FavoritesDao {
 }
 
 @SuppressLint("RestrictedApi")
-// Added local favorites cache and bumped version to 3.
 @Database(
     entities = [PendingSyncAction::class, PendingAnalyticsEvent::class, FavoriteRoomEntity::class],
     version = 3,

@@ -91,7 +91,6 @@ class SyncManager(
                             scheduleRepository.syncDeleteScheduleWithBackend()
                         }
                         "ADD_FAVORITE", "DELETE_FAVORITE" -> {
-                            // Favorites are flushed by FavoritesRepository to preserve local-first semantics.
                             continue
                         }
                         else -> {
