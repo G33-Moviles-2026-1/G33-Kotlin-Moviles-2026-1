@@ -19,6 +19,11 @@ class ScheduleViewModel(
     private val repository: AppRepository = AppRepository()
 ) : ViewModel() {
 
+    companion object {
+        const val IMPORT_METHOD_ICS = "ics"
+        const val IMPORT_METHOD_MANUAL = "manual"
+    }
+
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
     private var currentWeekDate: LocalDate = LocalDate.now()
@@ -59,6 +64,9 @@ class ScheduleViewModel(
             val result = repository.uploadIcs(context, uri)
 
             result.onSuccess {
+                repository.trackScheduleImportStep(IMPORT_METHOD_ICS, "parsed")
+                repository.trackScheduleImportStep(IMPORT_METHOD_ICS, "confirmed")
+                repository.trackScheduleImportStep(IMPORT_METHOD_ICS, "completed")
                 _uiState.update { it.copy(isLoading = false, hasSchedule = true) }
                 onSuccess()
             }.onFailure { error ->
@@ -201,6 +209,9 @@ class ScheduleViewModel(
                 val payload = ManualScheduleIn(classes = combinedClasses)
 
                 repository.uploadManualSchedule(payload)
+                repository.trackScheduleImportStep(IMPORT_METHOD_MANUAL, "first_class_added")
+                repository.trackScheduleImportStep(IMPORT_METHOD_MANUAL, "confirmed")
+                repository.trackScheduleImportStep(IMPORT_METHOD_MANUAL, "completed")
 
                 _uiState.update {
                     it.copy(
@@ -216,6 +227,12 @@ class ScheduleViewModel(
                     it.copy(isLoading = false, errorMessage = "Failed to create class. Server error.")
                 }
             }
+        }
+    }
+
+    fun trackScheduleImportStep(method: String, step: String) {
+        viewModelScope.launch {
+            repository.trackScheduleImportStep(method, step)
         }
     }
 

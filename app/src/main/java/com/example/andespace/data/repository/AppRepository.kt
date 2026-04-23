@@ -17,12 +17,14 @@ import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.ScheduleClassesOut
+import com.example.andespace.model.dto.ScheduleImportStepRequest
 import com.example.andespace.model.dto.UserLocation
 import com.example.andespace.model.dto.WeeklyScheduleOut
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.time.Instant
 
 class AppRepository {
     private val apiService: ApiService = NetworkModule.apiService
@@ -217,6 +219,31 @@ class AppRepository {
             )
             apiService.trackAnalyticsEvent(payload)
         } catch (_: Exception) {
+        }
+    }
+
+    suspend fun trackScheduleImportStep(method: String, step: String): Boolean {
+        val methodSteps = mapOf(
+            "ics" to listOf("started", "file_selected", "parsed", "confirmed", "completed"),
+            "manual" to listOf("started", "first_class_added", "confirmed", "completed")
+        )
+
+        val steps = methodSteps[method] ?: return false
+        val stepNumber = steps.indexOf(step) + 1
+        if (stepNumber <= 0) return false
+
+        return try {
+            val payload = ScheduleImportStepRequest(
+                sessionId = sessionId,
+                method = method,
+                step = step,
+                stepNumber = stepNumber,
+                timestamp = Instant.now().toString()
+            )
+            val response = apiService.trackScheduleImportStep(payload)
+            response.isSuccessful && (response.body()?.ok == true)
+        } catch (_: Exception) {
+            false
         }
     }
 

@@ -22,3 +22,17 @@ data class RoomGapSearchAnalyticsRequest(
     @SerializedName("utilities") val utilities: List<String>,
     @SerializedName("props_json") val propsJson: Map<String, Any?> = emptyMap()
 )
+
+data class ScheduleImportStepRequest(
+    @SerializedName("session_id") val sessionId: String,
+    @SerializedName("device_id") val deviceId: String? = null,
+    @SerializedName("user_email") val userEmail: String? = null,
+    @SerializedName("method") val method: String,
+    @SerializedName("step") val step: String,
+    @SerializedName("step_number") val stepNumber: Int,
+    @SerializedName("timestamp") val timestamp: String
+)
+
+data class AnalyticsOkResponse(
+    @SerializedName("ok") val ok: Boolean
+)

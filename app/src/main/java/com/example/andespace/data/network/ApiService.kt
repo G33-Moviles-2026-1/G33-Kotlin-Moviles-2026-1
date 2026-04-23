@@ -1,8 +1,10 @@
 package com.example.andespace.data.network
 
 import com.example.andespace.model.dto.AnalyticsEventRequest
+import com.example.andespace.model.dto.AnalyticsOkResponse
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.ScheduleImportStepRequest
 import com.example.andespace.model.dto.MyBookingsResponse
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.RoomSearchRequest
@@ -53,6 +55,9 @@ interface ApiService {
 
     @POST("analytics/events")
     suspend fun trackAnalyticsEvent(@Body body: AnalyticsEventRequest): Response<Unit>
+
+    @POST("analytics/schedule-import-step")
+    suspend fun trackScheduleImportStep(@Body body: ScheduleImportStepRequest): Response<AnalyticsOkResponse>
 
     @GET("rooms/{roomId}/availability")
     suspend fun getRoomAvailability(

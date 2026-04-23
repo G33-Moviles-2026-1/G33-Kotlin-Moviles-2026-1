@@ -34,6 +34,7 @@ fun LoadScheduleScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
+            viewModel.trackScheduleImportStep(ScheduleViewModel.IMPORT_METHOD_ICS, "file_selected")
             viewModel.uploadIcsFile(context, uri, onSuccess = onScheduleLoaded)
         }
     }
@@ -72,7 +73,10 @@ fun LoadScheduleScreen(
                 text = "Upload ICS",
                 iconResId = R.drawable.ic_file,
                 iconPosition = IconPosition.START,
-                onClick = {filePickerLauncher.launch("text/calendar")}
+                onClick = {
+                    viewModel.trackScheduleImportStep(ScheduleViewModel.IMPORT_METHOD_ICS, "started")
+                    filePickerLauncher.launch("text/calendar")
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -81,7 +85,10 @@ fun LoadScheduleScreen(
                 text = "Upload Manually",
                 iconResId = R.drawable.ic_manual,
                 iconPosition = IconPosition.START,
-                onClick = onLoadManuallyClick
+                onClick = {
+                    viewModel.trackScheduleImportStep(ScheduleViewModel.IMPORT_METHOD_MANUAL, "started")
+                    onLoadManuallyClick()
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
