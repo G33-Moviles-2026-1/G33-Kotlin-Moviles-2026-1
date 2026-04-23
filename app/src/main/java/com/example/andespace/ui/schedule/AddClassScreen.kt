@@ -44,7 +44,7 @@ fun AddClassScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(top = 5.dp) // Added the requested 5.dp top padding
+            .padding(top = 5.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
