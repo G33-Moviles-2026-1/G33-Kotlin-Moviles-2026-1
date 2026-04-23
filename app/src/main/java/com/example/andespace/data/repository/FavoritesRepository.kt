@@ -3,10 +3,10 @@ package com.example.andespace.data.repository
 import android.content.Context
 import android.util.Log
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.example.andespace.data.db.FavoriteRoomEntity
-import com.example.andespace.data.db.FavoritesDao
-import com.example.andespace.data.db.PendingSyncAction
-import com.example.andespace.data.db.SyncActionDao
+import com.example.andespace.model.db.FavoriteRoomEntity
+import com.example.andespace.model.db.FavoritesDao
+import com.example.andespace.model.db.PendingSyncAction
+import com.example.andespace.model.db.SyncActionDao
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.network.dataStore

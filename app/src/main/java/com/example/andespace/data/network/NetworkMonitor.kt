@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -120,14 +119,6 @@ object NetworkMonitor {
         }
     }
 
-    fun verifyConnectionNow(): Boolean {
-        val network = currentNetwork ?: return false
-        if (pingUrl.isEmpty()) return false
-        return runBlocking(Dispatchers.IO) {
-            healthCheckOnce(network)
-        }
-    }
-
     fun reportNetworkSuccess() {
         if (!_isOnline.value) {
             _isOnline.value = true
@@ -138,22 +129,6 @@ object NetworkMonitor {
         if (_isOnline.value) {
             _isOnline.value = false
             Log.e(TAG, "Interceptor caught network drop. App is now OFFLINE.")
-        }
-    }
-
-    private fun healthCheckOnce(networkToTest: Network): Boolean {
-        return try {
-            val url = URL(pingUrl)
-            val connection = networkToTest.openConnection(url) as HttpURLConnection
-            connection.connectTimeout = 1500
-            connection.readTimeout = 1500
-            connection.requestMethod = "GET"
-            connection.connect()
-            val responseCode = connection.responseCode
-            connection.disconnect()
-            responseCode in 200..499
-        } catch (_: Exception) {
-            false
         }
     }
 }

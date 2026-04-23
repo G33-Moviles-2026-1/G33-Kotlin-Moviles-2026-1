@@ -1,46 +1,9 @@
-package com.example.andespace.data.db
+package com.example.andespace.model.db
 
-import android.annotation.SuppressLint
 import androidx.room.Dao
-import androidx.room.Database
-import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.RoomDatabase
-import androidx.room.PrimaryKey
-
-@Entity(tableName = "pending_sync_actions")
-data class PendingSyncAction(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val actionType: String,
-    val payload: String,
-    val localClassId: String? = null
-)
-
-@Entity(tableName = "pending_analytics_events")
-data class PendingAnalyticsEvent(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val eventType: String,
-    val eventDataJson: String,
-    val timestamp: Long
-)
-
-@Entity(
-    tableName = "favorite_rooms",
-    indices = [Index(value = ["userKey", "roomId"], unique = true)]
-)
-data class FavoriteRoomEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val userKey: String,
-    val roomId: String,
-    val name: String?,
-    val building: String?,
-    val buildingCode: String?,
-    val capacity: Int?,
-    val utilitiesJson: String
-)
 
 @Dao
 interface SyncActionDao {
@@ -97,14 +60,3 @@ interface FavoritesDao {
     suspend fun clearFavoritesForUser(userKey: String): Int
 }
 
-@SuppressLint("RestrictedApi")
-@Database(
-    entities = [PendingSyncAction::class, PendingAnalyticsEvent::class, FavoriteRoomEntity::class],
-    version = 3,
-    exportSchema = false
-)
-abstract class SyncDatabase : RoomDatabase() {
-    abstract fun syncActionDao(): SyncActionDao
-    abstract fun analyticsDao(): AnalyticsDao
-    abstract fun favoritesDao(): FavoritesDao
-}

@@ -1,7 +1,7 @@
-package com.example.andespace.di
+package com.example.andespace
 
 import android.content.Context
-import com.example.andespace.data.db.SyncActionDao
+import com.example.andespace.model.db.SyncActionDao
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.AuthRepository
@@ -14,10 +14,9 @@ import com.example.andespace.data.repository.ThemePreferencesRepository
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.andespace.BuildConfig
-import com.example.andespace.data.db.AnalyticsDao
-import com.example.andespace.data.db.FavoritesDao
-import com.example.andespace.data.db.SyncDatabase
+import com.example.andespace.model.db.AnalyticsDao
+import com.example.andespace.model.db.FavoritesDao
+import com.example.andespace.model.db.SyncDatabase
 import com.example.andespace.data.network.AuthInterceptor
 import com.example.andespace.data.network.SessionCookieJar
 import com.google.gson.Gson

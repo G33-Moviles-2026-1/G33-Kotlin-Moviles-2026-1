@@ -47,7 +47,11 @@ class ScheduleViewModel(
                 }
             } catch (_: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Failed to load recommendations.")
+                    it.copy(
+                    isLoading = false,
+                    isShowingRecommendations = true,
+                    recommendationsData = null
+                    )
                 }
             }
         }

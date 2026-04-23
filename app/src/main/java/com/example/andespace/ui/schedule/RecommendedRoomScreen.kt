@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.andespace.model.dto.RecommendedRoomOut
 import com.example.andespace.ui.components.FeatureChip
+import com.example.andespace.ui.components.NoConnectionPlaceholder
 import java.util.Locale
 import kotlin.math.ceil
 
@@ -96,6 +97,9 @@ fun RecommendedRoomsScreen(
                         }
                     }
                 }
+            }
+            else{
+                NoConnectionPlaceholder()
             }
         }
     }

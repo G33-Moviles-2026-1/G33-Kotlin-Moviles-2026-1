@@ -44,7 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.dto.ScheduleClassOccurrenceOut
 import com.example.andespace.ui.components.NoConnectionPlaceholder
 import java.time.DayOfWeek
@@ -256,7 +255,6 @@ fun ViewScheduleScreen(
         }
 
         if (selectedFilterDate != null) {
-            val isOnline by NetworkMonitor.isOnline.collectAsState()
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -266,15 +264,13 @@ fun ViewScheduleScreen(
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                        if (isOnline) {
-                            val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                            viewModel.loadRecommendations(dateStr)
-                        }
+                        val dateStr = selectedFilterDate!!.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                        viewModel.loadRecommendations(dateStr)
                     },
                     icon = { Icon(Icons.Default.FilterList, contentDescription = "Filter") },
                     text = { Text("Filter from schedule") },
-                    containerColor = if (isOnline) MaterialTheme.colorScheme.primary else Color.Gray,
-                    contentColor = if (isOnline) MaterialTheme.colorScheme.onPrimary else Color.White
+                    containerColor =  MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }

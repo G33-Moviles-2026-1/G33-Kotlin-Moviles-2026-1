@@ -3,8 +3,8 @@ package com.example.andespace.data.repository
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.example.andespace.data.db.PendingSyncAction
-import com.example.andespace.data.db.SyncActionDao
+import com.example.andespace.model.db.PendingSyncAction
+import com.example.andespace.model.db.SyncActionDao
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.repository.shared.ApiException
 import com.example.andespace.data.repository.shared.ScheduleValidator
@@ -32,7 +32,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.util.UUID
-
+import com.example.andespace.model.cache.RecommendationsCache
 
 class ScheduleRepository(
     private val syncDao: SyncActionDao,
@@ -40,11 +40,11 @@ class ScheduleRepository(
     private val context: Context
 ) {
     private val scheduleValidator: ScheduleValidator = ScheduleValidator(apiService)
+    private val recommendationsCache = RecommendationsCache(context)
     private val gson = Gson()
     private val SCHEDULE_FILE_NAME = "offline_schedule_cache.json"
     private val fileMutex = Mutex()
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     private val MINIMUM_FREE_SPACE_BYTES = 5 * 1024 * 1024L
     companion object {
         private const val TAG = "ScheduleRepository"
@@ -103,6 +103,7 @@ class ScheduleRepository(
                 val file = File(context.filesDir, SCHEDULE_FILE_NAME)
                 if (file.exists()) {
                     file.delete()
+                    invalidateRecommendations()
                     Log.d(TAG, "Local schedule cache wiped successfully on logout.")
                 }
             } catch (e: Exception) {
@@ -225,6 +226,7 @@ class ScheduleRepository(
         }
         try {
             file.writeText(gson.toJson(cache))
+            invalidateRecommendations()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write schedule to disk", e)
         }
@@ -393,7 +395,6 @@ class ScheduleRepository(
                 val updatedList = weeklySchedule.occurrences.filter { it.class_id != classId }
                 cache[key] = weeklySchedule.copy(occurrences = updatedList)
             }
-
             writeCacheToDisk(cache)
         }
     }
@@ -443,15 +444,27 @@ class ScheduleRepository(
             }
         }
     suspend fun getRoomRecommendationsForDay(date: String): DayRoomRecommendationsOut {
+        val cachedRecommendations = recommendationsCache.get(date)
+        if (cachedRecommendations != null) {
+            return cachedRecommendations
+        }
+
         val response = apiService.getRoomRecommendationsForDay(date)
         if (!response.isSuccessful) {
             throw Exception("Error ${response.code()}: Failed to fetch recommendations")
         }
+        val newRecommendations = response.body() ?: throw Exception("Empty recommendations body")
+        recommendationsCache.put(date, newRecommendations)
         return response.body() ?: throw Exception("Empty recommendations body")
     }
 
+
     suspend fun hasAnyCachedSchedule(): Boolean {
         return getLocalScheduleCache().isNotEmpty()
+    }
+
+    private fun invalidateRecommendations() {
+        recommendationsCache.clearCacheOnScheduleChange()
     }
 }
 
