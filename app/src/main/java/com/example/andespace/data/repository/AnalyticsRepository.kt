@@ -1,9 +1,9 @@
 package com.example.andespace.data.repository
 
 import android.util.Log
-import com.example.andespace.model.db.AnalyticsDao
-import com.example.andespace.model.db.PendingAnalyticsEvent
 import com.example.andespace.data.network.ApiService
+import com.example.andespace.model.db.sync.AnalyticsDao
+import com.example.andespace.model.db.sync.PendingAnalyticsEvent
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.RoomDto
 import com.google.gson.Gson

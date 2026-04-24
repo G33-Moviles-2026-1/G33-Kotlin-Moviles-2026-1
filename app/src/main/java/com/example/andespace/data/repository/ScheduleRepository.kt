@@ -3,8 +3,6 @@ package com.example.andespace.data.repository
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.example.andespace.model.db.PendingSyncAction
-import com.example.andespace.model.db.SyncActionDao
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.repository.shared.ApiException
 import com.example.andespace.data.repository.shared.ScheduleValidator
@@ -33,6 +31,8 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.util.UUID
 import com.example.andespace.model.cache.RecommendationsCache
+import com.example.andespace.model.db.sync.PendingSyncAction
+import com.example.andespace.model.db.sync.SyncActionDao
 
 class ScheduleRepository(
     private val syncDao: SyncActionDao,

@@ -12,10 +12,12 @@ data class BookingsUIState(
     val selectedBooking: BookingDto? = null,
     val contentScreen: BookingsContentScreen = BookingsContentScreen.LIST,
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isSaving: Boolean = false,
     val isCreating: Boolean = false,
     val createError: String? = null,
     val bookingCreatedSuccess: Boolean = false,
     val errorMessage: String? = null,
+    val syncMessage: String? = null,
     val requiresLogin: Boolean = false
 )
