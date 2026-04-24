@@ -16,6 +16,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.andespace.BuildConfig
 import com.example.andespace.data.db.AnalyticsDao
+import com.example.andespace.data.db.BookingDao
 import com.example.andespace.data.db.FavoritesDao
 import com.example.andespace.data.db.SyncDatabase
 import com.example.andespace.data.network.AuthInterceptor
@@ -39,6 +40,7 @@ interface AppContainer {
     val analyticsDao: AnalyticsDao
     val syncDao: SyncActionDao
     val favoritesDao: FavoritesDao
+    val bookingDao: BookingDao
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -64,13 +66,32 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         }
     }
 
+    private val migration3To4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `bookings` (
+                    `id` TEXT PRIMARY KEY NOT NULL,
+                    `roomId` TEXT NOT NULL,
+                    `date` TEXT NOT NULL,
+                    `startTime` TEXT NOT NULL,
+                    `endTime` TEXT NOT NULL,
+                    `purpose` TEXT NOT NULL,
+                    `status` TEXT NOT NULL,
+                    `createdAt` TEXT
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     private val syncDatabase: SyncDatabase by lazy {
         Room.databaseBuilder(
             context,
             SyncDatabase::class.java,
             "andespace_sync_database"
         )
-            .addMigrations(migration2To3)
+            .addMigrations(migration2To3, migration3To4)
             .fallbackToDestructiveMigration(false)
             .build()
     }
@@ -135,6 +156,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         syncDatabase.favoritesDao()
     }
 
+    override val bookingDao: BookingDao by lazy {
+        syncDatabase.bookingDao()
+    }
+
     override val analyticsRepository: AnalyticsRepository by lazy {
         AnalyticsRepository(apiService, analyticsDao, gson)
     }
@@ -144,7 +169,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val bookingRepository: BookingRepository by lazy {
-        BookingRepository(apiService)
+        BookingRepository(apiService, bookingDao, syncDao, gson)
     }
 
     override val scheduleRepository: ScheduleRepository by lazy {
@@ -152,6 +177,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val syncManager: SyncManager by lazy {
-        SyncManager(syncDao, analyticsDao, scheduleRepository, apiService, gson)
+        SyncManager(syncDao, analyticsDao, scheduleRepository, bookingRepository, apiService, gson)
     }
 }
