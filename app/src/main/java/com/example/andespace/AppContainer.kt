@@ -9,6 +9,7 @@ import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.BookingRepository
 import com.example.andespace.data.repository.FavoritesRepository
+import com.example.andespace.data.repository.RecommendationsRepository
 import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.data.repository.SyncManager
@@ -29,6 +30,7 @@ interface AppContainer {
     val authRepository: AuthRepository
     val analyticsRepository: AnalyticsRepository
     val roomRepository: RoomRepository
+    val recommendationsRepository: RecommendationsRepository
     val scheduleRepository: ScheduleRepository
     val bookingRepository: BookingRepository
     val favoritesRepository: FavoritesRepository
@@ -98,6 +100,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             context = context
         )
     }
+
+    override val recommendationsRepository: RecommendationsRepository by lazy {
+        RecommendationsRepository(apiService)
+    }
+
+
 
     override val themePreferencesRepository: ThemePreferencesRepository by lazy {
         ThemePreferencesRepository(context)

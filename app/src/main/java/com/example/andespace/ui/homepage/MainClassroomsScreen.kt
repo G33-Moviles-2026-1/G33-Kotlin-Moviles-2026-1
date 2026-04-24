@@ -7,12 +7,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.example.andespace.data.location.FusedLocationSensor
-import com.example.andespace.ui.bookings.BookingsUIState
 import com.example.andespace.ui.bookings.BookingsViewModel
-import com.example.andespace.ui.detailRoom.DetailRoomUiState
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
-import com.example.andespace.ui.results.ResultsUiState
+import com.example.andespace.ui.recommendations.RecommendationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 
 @Composable
@@ -21,6 +19,7 @@ fun MainClassroomsScreen(
     resultsViewModel: ResultsViewModel,
     detailRoomViewModel: DetailRoomViewModel,
     bookingsViewModel: BookingsViewModel,
+    recommendationsViewModel: RecommendationsViewModel,
     favoritesViewModel: FavoritesViewModel,
     isUserLoggedIn: Boolean,
     onRequireLogin: () -> Unit,
@@ -97,6 +96,8 @@ fun MainClassroomsScreen(
         onBookingCreatedNavigate = {
             onBookingCreatedNavigate()
             homepageViewModel.resetToHome()
-        }
+        },
+        recommendationsViewModel = recommendationsViewModel,
+        onAutoSearchClick = { homepageViewModel.onShowAutoSearch() }
     )
 }
