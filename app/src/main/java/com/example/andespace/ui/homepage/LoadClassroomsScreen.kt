@@ -8,6 +8,8 @@ import com.example.andespace.ui.bookings.BookingsUIState
 import com.example.andespace.ui.bookings.MainMakeBookingScreen
 import com.example.andespace.ui.detailRoom.DetailRoomUiState
 import com.example.andespace.ui.detailRoom.MainRoomDetailScreen
+import com.example.andespace.ui.recommendations.RecommendationsScreen
+import com.example.andespace.ui.recommendations.RecommendationsViewModel
 import com.example.andespace.ui.results.ResultsUiState
 
 @Composable
@@ -34,7 +36,9 @@ fun LoadClassroomsScreen(
     onShowMakeBooking: () -> Unit,
     onCreateBooking: (CreateBookingRequest) -> Unit,
     onBookingCreatedConsumed: () -> Unit,
-    onBookingCreatedNavigate: () -> Unit
+    onBookingCreatedNavigate: () -> Unit,
+    recommendationsViewModel: RecommendationsViewModel,
+    onAutoSearchClick: () -> Unit
 ) {
     when (contentScreen) {
         ContentScreen.ROOM_DETAIL -> {
@@ -56,6 +60,10 @@ fun LoadClassroomsScreen(
                 onBookingCreatedConsumed = onBookingCreatedConsumed,
                 onBookingCreatedNavigate = onBookingCreatedNavigate
             )
+        }
+
+        ContentScreen.AUTO_SEARCH -> {
+            RecommendationsScreen(viewModel = recommendationsViewModel)
         }
 
         else -> {
@@ -85,7 +93,8 @@ fun LoadClassroomsScreen(
                 onClearLocationError = onClearLocationError,
                 onRoomClick = onRoomClick,
                 onPrevPage = onPrevPage,
-                onNextPage = onNextPage
+                onNextPage = onNextPage,
+                onAutoSearchClick = onAutoSearchClick
             )
         }
     }

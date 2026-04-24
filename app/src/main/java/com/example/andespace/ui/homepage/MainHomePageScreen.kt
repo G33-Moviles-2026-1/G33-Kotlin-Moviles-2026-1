@@ -8,6 +8,7 @@ import com.example.andespace.model.dto.RoomDto
 
 @Composable
 fun MainHomePageScreen(
+    modifier: Modifier = Modifier,
     contentScreen: ContentScreen,
     isSearching: Boolean,
     isUserLoggedIn: Boolean,
@@ -34,7 +35,7 @@ fun MainHomePageScreen(
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
-    modifier: Modifier = Modifier
+    onAutoSearchClick: () -> Unit,
 ) {
     LoadHomePageScreen(
         contentScreen = contentScreen,
@@ -63,6 +64,7 @@ fun MainHomePageScreen(
         onRoomClick = onRoomClick,
         onPrevPage = onPrevPage,
         onNextPage = onNextPage,
-        modifier = modifier
+        modifier = modifier,
+        onAutoSearchClick = onAutoSearchClick
     )
 }

@@ -5,7 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.data.repository.BookingRepository
-import com.example.andespace.data.repository.shared.RepositoryMessages
+import com.example.andespace.data.network.NetworkMonitor
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,13 +17,37 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
     private val _uiState = MutableStateFlow(BookingsUIState())
     val uiState: StateFlow<BookingsUIState> = _uiState.asStateFlow()
 
+    init {
+        observeBookings()
+        loadBookings()
+        observeNetwork()
+    }
+
+    private fun observeBookings() {
+        viewModelScope.launch {
+            repository.bookings.collect { bookings ->
+                _uiState.update { it.copy(bookings = bookings) }
+            }
+        }
+    }
+
+    private fun observeNetwork() {
+        viewModelScope.launch {
+            NetworkMonitor.isOnline.collect { isOnline ->
+                if (isOnline) {
+                    refreshBookings()
+                }
+            }
+        }
+    }
+
     fun loadBookings() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, requiresLogin = false) }
             repository.getMyBookings()
                 .onSuccess { bookings ->
                     _uiState.update {
-                        it.copy(bookings = bookings, isLoading = false)
+                        it.copy(isLoading = false)
                     }
                 }
                 .onFailure { error ->
@@ -35,6 +60,14 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                         )
                     }
                 }
+        }
+    }
+
+    private fun refreshBookings() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            repository.refreshBookings()
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 
@@ -52,16 +85,11 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             repository.deleteBooking(booking.id)
                 .onSuccess {
-                    _uiState.update { state ->
-                        state.copy(
-                            bookings = state.bookings.filter { it.id != booking.id },
-                            isLoading = false
-                        )
-                    }
+                    _uiState.update { it.copy(isLoading = false) }
                 }
                 .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = RepositoryMessages.DELETE_BOOKING_FAILED)
+                        it.copy(isLoading = false, errorMessage = UserMessages.DELETE_BOOKING_FAILED)
                     }
                 }
         }
@@ -74,7 +102,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
             repository.deleteBooking(oldBookingId)
                 .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isSaving = false, errorMessage = RepositoryMessages.DELETE_BOOKING_FAILED)
+                        it.copy(isSaving = false, errorMessage = UserMessages.DELETE_BOOKING_FAILED)
                     }
                     return@launch
                 }
@@ -90,11 +118,21 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                     }
                     loadBookings()
                 }
-                .onFailure { _ ->
-                    _uiState.update {
-                        it.copy(isSaving = false, errorMessage = RepositoryMessages.SAVE_BOOKING_FAILED)
+                .onFailure { error ->
+                    if (error.message == "OFFLINE_SYNC_PENDING") {
+                        _uiState.update {
+                            it.copy(
+                                selectedBooking = null,
+                                isSaving = false,
+                                contentScreen = BookingsContentScreen.LIST,
+                                syncMessage = UserMessages.BOOKING_PENDING_SYNC
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(isSaving = false, errorMessage = UserMessages.SAVE_BOOKING_FAILED)
+                        }
                     }
-                    loadBookings()
                 }
         }
     }
@@ -118,8 +156,18 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                     }
                 }
                 .onFailure { error ->
-                    _uiState.update {
-                        it.copy(isCreating = false, createError = friendlyError(error.message))
+                    if (error.message == "OFFLINE_SYNC_PENDING") {
+                        _uiState.update {
+                            it.copy(
+                                isCreating = false,
+                                bookingCreatedSuccess = true, // We treat it as success to close the screen
+                                syncMessage = UserMessages.BOOKING_PENDING_SYNC
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(isCreating = false, createError = friendlyError(error.message))
+                        }
                     }
                 }
         }
@@ -129,16 +177,21 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
         _uiState.update { it.copy(bookingCreatedSuccess = false) }
     }
 
+    fun consumeSyncMessage() {
+        _uiState.update { it.copy(syncMessage = null) }
+    }
+
 
     fun resetRequiresLogin() {
         _uiState.update { it.copy(requiresLogin = false) }
     }
 
     private fun friendlyError(raw: String?): String = when {
-        raw == null -> RepositoryMessages.GENERIC_ERROR
-        raw.startsWith("No internet connection") -> RepositoryMessages.NO_INTERNET
-        raw.startsWith("Network error") -> RepositoryMessages.NO_INTERNET
-        raw.matches(Regex("Error \\d+.*")) -> RepositoryMessages.GENERIC_ERROR
-        else -> RepositoryMessages.GENERIC_ERROR
+        raw == null -> UserMessages.GENERIC_ERROR
+        raw == "OFFLINE_SYNC_PENDING" -> UserMessages.BOOKING_PENDING_SYNC
+        raw.startsWith("No internet connection") -> UserMessages.NO_INTERNET
+        raw.startsWith("Network error") -> UserMessages.NO_INTERNET
+        raw.matches(Regex("Error \\d+.*")) -> UserMessages.GENERIC_ERROR
+        else -> UserMessages.GENERIC_ERROR
     }
 }

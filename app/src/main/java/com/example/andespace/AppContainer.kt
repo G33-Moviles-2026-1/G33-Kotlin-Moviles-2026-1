@@ -1,25 +1,24 @@
-package com.example.andespace.di
+package com.example.andespace
 
 import android.content.Context
-import com.example.andespace.data.db.SyncActionDao
+import androidx.room.Room
 import com.example.andespace.data.network.ApiService
+import com.example.andespace.data.network.AuthInterceptor
+import com.example.andespace.data.network.SessionCookieJar
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.BookingRepository
 import com.example.andespace.data.repository.FavoritesRepository
+import com.example.andespace.data.repository.RecommendationsRepository
 import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.data.repository.SyncManager
 import com.example.andespace.data.repository.ThemePreferencesRepository
-import androidx.room.Room
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.andespace.BuildConfig
-import com.example.andespace.data.db.AnalyticsDao
-import com.example.andespace.data.db.FavoritesDao
-import com.example.andespace.data.db.SyncDatabase
-import com.example.andespace.data.network.AuthInterceptor
-import com.example.andespace.data.network.SessionCookieJar
+import com.example.andespace.model.db.SyncDatabase
+import com.example.andespace.model.db.booking.BookingDao
+import com.example.andespace.model.db.favorites.FavoritesDao
+import com.example.andespace.model.db.sync.AnalyticsDao
+import com.example.andespace.model.db.sync.SyncActionDao
 import com.google.gson.Gson
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -31,6 +30,7 @@ interface AppContainer {
     val authRepository: AuthRepository
     val analyticsRepository: AnalyticsRepository
     val roomRepository: RoomRepository
+    val recommendationsRepository: RecommendationsRepository
     val scheduleRepository: ScheduleRepository
     val bookingRepository: BookingRepository
     val favoritesRepository: FavoritesRepository
@@ -39,39 +39,17 @@ interface AppContainer {
     val analyticsDao: AnalyticsDao
     val syncDao: SyncActionDao
     val favoritesDao: FavoritesDao
+    val bookingDao: BookingDao
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
-    private val migration2To3 = object : Migration(2, 3) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL(
-                """
-                CREATE TABLE IF NOT EXISTS `favorite_rooms` (
-                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                    `userKey` TEXT NOT NULL,
-                    `roomId` TEXT NOT NULL,
-                    `name` TEXT,
-                    `building` TEXT,
-                    `buildingCode` TEXT,
-                    `capacity` INTEGER,
-                    `utilitiesJson` TEXT NOT NULL
-                )
-                """.trimIndent()
-            )
-            db.execSQL(
-                "CREATE UNIQUE INDEX IF NOT EXISTS `index_favorite_rooms_userKey_roomId` ON `favorite_rooms` (`userKey`, `roomId`)"
-            )
-        }
-    }
-
     private val syncDatabase: SyncDatabase by lazy {
         Room.databaseBuilder(
             context,
             SyncDatabase::class.java,
             "andespace_sync_database"
         )
-            .addMigrations(migration2To3)
-            .fallbackToDestructiveMigration(false)
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
 
@@ -123,6 +101,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         )
     }
 
+    override val recommendationsRepository: RecommendationsRepository by lazy {
+        RecommendationsRepository(apiService)
+    }
+
+
+
     override val themePreferencesRepository: ThemePreferencesRepository by lazy {
         ThemePreferencesRepository(context)
     }
@@ -135,6 +119,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         syncDatabase.favoritesDao()
     }
 
+    override val bookingDao: BookingDao by lazy {
+        syncDatabase.bookingDao()
+    }
+
     override val analyticsRepository: AnalyticsRepository by lazy {
         AnalyticsRepository(apiService, analyticsDao, gson)
     }
@@ -144,7 +132,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val bookingRepository: BookingRepository by lazy {
-        BookingRepository(apiService)
+        BookingRepository(apiService, bookingDao, syncDao, gson)
     }
 
     override val scheduleRepository: ScheduleRepository by lazy {
@@ -152,6 +140,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val syncManager: SyncManager by lazy {
-        SyncManager(syncDao, analyticsDao, scheduleRepository, apiService, gson)
+        SyncManager(syncDao, analyticsDao, scheduleRepository, bookingRepository, apiService, gson)
     }
 }

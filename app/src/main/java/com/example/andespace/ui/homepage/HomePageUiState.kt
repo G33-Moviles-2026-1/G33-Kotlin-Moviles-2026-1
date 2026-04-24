@@ -8,7 +8,8 @@ enum class ContentScreen {
     HOME,
     RESULTS,
     ROOM_DETAIL,
-    MAKE_BOOKING
+    MAKE_BOOKING,
+    AUTO_SEARCH
 }
 
 data class HomepageUiState(
