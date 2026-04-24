@@ -1,24 +1,21 @@
 package com.example.andespace.ui.bookings
 
 import androidx.compose.runtime.Composable
-import com.example.andespace.model.dto.CreateBookingRequest
-import com.example.andespace.ui.detailRoom.DetailRoomUiState
+import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 
 @Composable
 fun MainMakeBookingScreen(
-    detailRoomUiState: DetailRoomUiState,
-    bookingsUiState: BookingsUIState,
-    onDateChange: (String) -> Unit,
-    onCreateBooking: (CreateBookingRequest) -> Unit,
-    onBookingCreatedConsumed: () -> Unit,
-    onBookingCreatedNavigate: () -> Unit
+    onBookingCreatedNavigate: () -> Unit,
+    detailRoomViewModel: DetailRoomViewModel,
+    bookingsViewModel: BookingsViewModel
 ) {
+
     LoadMakeBookingScreen(
-        detailRoomUiState = detailRoomUiState,
-        bookingsUiState = bookingsUiState,
-        onDateChange = onDateChange,
-        onCreateBooking = onCreateBooking,
-        onBookingCreatedConsumed = onBookingCreatedConsumed,
+        detailRoomViewModel = detailRoomViewModel,
+        bookingsViewModel = bookingsViewModel,
+        onDateChange = { dateValue -> detailRoomViewModel.onDateChange(dateValue) },
+        onCreateBooking = { request -> bookingsViewModel.onCreateBooking(request) },
+        onBookingCreatedConsumed = { bookingsViewModel.consumeBookingCreatedSuccess() },
         onBookingCreatedNavigate = onBookingCreatedNavigate
     )
 }

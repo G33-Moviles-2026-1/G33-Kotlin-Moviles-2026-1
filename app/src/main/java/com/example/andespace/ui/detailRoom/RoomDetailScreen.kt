@@ -20,17 +20,18 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,24 +42,36 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.andespace.model.RoomUtility
-import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.ui.favorites.FavoritesViewModel
+import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.collections.map
+import kotlin.collections.mapNotNull
+import kotlin.collections.orEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoadRoomDetailScreen(
-    room: RoomDto?,
-    selectedDate: String?,
-    isLoadingAvailability: Boolean,
-    availabilityError: String?,
-    isFavorite: Boolean = false,
+fun RoomDetailScreen(
     onFavoriteClick: (() -> Unit)? = null,
-    onDateChange: (String) -> Unit,
-    onBookRoom: () -> Unit = {},
+    favoritesViewModel: FavoritesViewModel,
+    detailRoomViewModel: DetailRoomViewModel,
+    isUserLoggedIn: Boolean,
+    onRequireLogin: () -> Unit,
+    homepageViewModel: HomepageViewModel
 ) {
+    val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
+    val favoritesUiState by favoritesViewModel.uiState.collectAsState()
+
+    val room = detailRoomUiState.room
+    val selectedDate = detailRoomUiState.selectedDate
+    val isLoadingAvailability = detailRoomUiState.isLoadingAvailability
+    val availabilityError = detailRoomUiState.availabilityError
+    val favoriteIds = favoritesUiState.favoriteIds
+    val isFavorite = detailRoomUiState.room?.id?.let { it in favoriteIds } ?: false
+
     if (room == null) {
         Box(
             modifier = Modifier
@@ -69,7 +82,7 @@ fun LoadRoomDetailScreen(
         }
         return
     }
-
+    val onBookRoom = { if (isUserLoggedIn) homepageViewModel.onShowMakeBooking() else onRequireLogin() }
     var showDatePicker by remember { mutableStateOf(false) }
     val selectedDateValue = selectedDate ?: currentDateApiValue()
 
@@ -101,7 +114,7 @@ fun LoadRoomDetailScreen(
                         val newDate =
                             datePickerState.selectedDateMillis?.let { millisToApiDate(it) }
                                 ?: selectedDateValue
-                        onDateChange(newDate)
+                        detailRoomViewModel.onDateChange(newDate)
                         showDatePicker = false
                     },
                     colors = ButtonDefaults.buttonColors(

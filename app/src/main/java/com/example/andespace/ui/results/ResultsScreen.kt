@@ -14,32 +14,56 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.RoomCard
 import com.example.andespace.ui.components.PaginationFooter
+import com.example.andespace.ui.detailRoom.DetailRoomViewModel
+import com.example.andespace.ui.favorites.FavoritesViewModel
+import com.example.andespace.ui.homepage.HomepageViewModel
 
 
 @Composable
 fun ResultsScreen(
-    rooms: List<RoomDto>,
-    isSearching: Boolean,
-    isUserLoggedIn: Boolean,
-    hasUploadedSchedule: Boolean,
-    errorMessage: String?,
-    currentPage: Int,
-    totalPages: Int,
-    showingCachedResults: Boolean = false,
+    modifier: Modifier = Modifier,
     favoriteIds: Set<String> = emptySet(),
-    onFavoriteClick: ((RoomDto) -> Unit)? = null,
-    onRoomClick: (RoomDto) -> Unit,
-    onPrevPage: () -> Unit,
-    onNextPage: () -> Unit,
-    modifier: Modifier = Modifier
+    resultsViewModel: ResultsViewModel,
+    favoritesViewModel: FavoritesViewModel,
+    detailRoomViewModel: DetailRoomViewModel,
+    homepageViewModel: HomepageViewModel,
+    onRequireLogin: () -> Unit,
+    isUserLoggedIn: Boolean
 ) {
     val listState = rememberLazyListState()
+    val resultsUiState by resultsViewModel.uiState.collectAsState()
+
+
+    val currentPage = resultsUiState.currentPage
+    val errorMessage = resultsUiState.errorMessage
+    val rooms = resultsUiState.rooms
+    val totalPages = resultsUiState.totalPages
+    val isSearching = resultsUiState.isSearching
+
+    fun onFavoriteClick (room: RoomDto) {
+        if (isUserLoggedIn) {
+            favoritesViewModel.toggleFavorite(room)
+        } else {
+            onRequireLogin()
+        }
+    }
+
+    fun onRoomClick(room: RoomDto){
+        resultsViewModel.onRoomClick(room)
+        detailRoomViewModel.setRoom(
+            room = room,
+            selectedDate = resultsUiState.selectedSearchDate
+        )
+        homepageViewModel.onShowRoomDetailScreen()
+    }
 
     LaunchedEffect(currentPage) {
         listState.scrollToItem(0)
@@ -102,12 +126,13 @@ fun ResultsScreen(
                 }
             }
 
+
             PaginationFooter(
                 currentPage = currentPage,
                 totalPages = totalPages,
                 isSearching = isSearching,
-                onPrevPage = onPrevPage,
-                onNextPage = onNextPage
+                onPrevPage = {resultsViewModel.onPreviousPage()},
+                onNextPage = {resultsViewModel.onNextPage()}
             )
         }
     }

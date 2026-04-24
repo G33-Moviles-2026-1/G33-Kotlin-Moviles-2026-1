@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,9 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.andespace.ui.main.AssetIcon
 import com.example.andespace.model.dto.CreateBookingRequest
-import com.example.andespace.model.dto.RoomTimeWindowDto
 import com.example.andespace.model.dto.RoomWeeklyAvailabilityDto
 import com.example.andespace.ui.detailRoom.DetailRoomUiState
+import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -62,13 +63,15 @@ import java.util.Locale
 
 @Composable
 fun LoadMakeBookingScreen(
-    detailRoomUiState: DetailRoomUiState,
-    bookingsUiState: BookingsUIState,
     onDateChange: (String) -> Unit,
     onCreateBooking: (CreateBookingRequest) -> Unit,
     onBookingCreatedConsumed: () -> Unit,
-    onBookingCreatedNavigate: () -> Unit
+    onBookingCreatedNavigate: () -> Unit,
+    detailRoomViewModel: DetailRoomViewModel,
+    bookingsViewModel: BookingsViewModel
 ) {
+    val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
+    val bookingsUiState by bookingsViewModel.uiState.collectAsState()
     val room = detailRoomUiState.room
     val roomId = room?.id ?: ""
     val date = detailRoomUiState.selectedDate ?: ""

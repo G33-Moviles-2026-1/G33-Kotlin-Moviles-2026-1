@@ -61,7 +61,7 @@ import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
-import com.example.andespace.ui.homepage.MainClassroomsScreen
+import com.example.andespace.ui.homepage.HomePageScreen
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
@@ -251,7 +251,7 @@ fun AndeSpaceApp(
             when (uiState.currentDestination) {
 
                 AppDestinations.CLASSROOMS -> {
-                    MainClassroomsScreen(
+                    HomePageScreen(
                         homepageViewModel = homepageViewModel,
                         resultsViewModel = resultsViewModel,
                         detailRoomViewModel = detailRoomViewModel,
