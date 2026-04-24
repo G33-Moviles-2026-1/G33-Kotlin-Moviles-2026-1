@@ -260,7 +260,7 @@ fun AndeSpaceApp(
                         bookingsViewModel = bookingsViewModel,
                         favoritesViewModel = favoritesViewModel,
                         isUserLoggedIn = uiState.isLoggedIn,
-                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) },
+                        onRequireLogin = { viewModel.requestLoginRequiredDialog() },
                         onBookingCreatedNavigate = {
                             viewModel.onDestinationChanged(AppDestinations.BOOKINGS)
                         }
@@ -301,7 +301,7 @@ fun AndeSpaceApp(
                 AppDestinations.BOOKINGS -> {
                     MainBookingsScreen(
                         bookingsViewModel = bookingsViewModel,
-                        onRequireLogin = { viewModel.onDestinationChanged(AppDestinations.LOGIN) }
+                        onRequireLogin = { viewModel.requestLoginRequiredDialog() }
                     )
                 }
 

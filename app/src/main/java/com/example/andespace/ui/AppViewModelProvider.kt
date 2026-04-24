@@ -21,7 +21,8 @@ object AppViewModelProvider {
         initializer {
             MainViewModel(
                 authRepository = andeSpaceApplication().container.authRepository,
-                analyticsRepository = andeSpaceApplication().container.analyticsRepository
+                analyticsRepository = andeSpaceApplication().container.analyticsRepository,
+                themePreferencesRepository = andeSpaceApplication().container.themePreferencesRepository
             )
         }
         initializer {

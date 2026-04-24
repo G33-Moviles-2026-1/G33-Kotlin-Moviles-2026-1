@@ -61,6 +61,7 @@ fun MainClassroomsScreen(
         onFavoriteClick = onFavoriteClick,
         onDetailFavoriteClick = onDetailFavoriteClick,
         onSearchClick = { params ->
+            homepageViewModel.cacheLastSearchConfig(params)
             resultsViewModel.onSearchClick(
                 params = params,
                 isUserLoggedIn = isUserLoggedIn,

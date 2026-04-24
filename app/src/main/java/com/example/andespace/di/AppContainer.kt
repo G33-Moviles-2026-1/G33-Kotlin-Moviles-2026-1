@@ -10,6 +10,7 @@ import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.data.repository.SyncManager
+import com.example.andespace.data.repository.ThemePreferencesRepository
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -35,6 +36,7 @@ interface AppContainer {
     val bookingRepository: BookingRepository
     val favoritesRepository: FavoritesRepository
     val navigationRepository: NavigationRepository
+    val themePreferencesRepository: ThemePreferencesRepository
     val syncManager: SyncManager
     val analyticsDao: AnalyticsDao
     val syncDao: SyncActionDao
@@ -121,6 +123,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             syncActionDao = syncDao,
             context = context
         )
+    }
+
+    override val themePreferencesRepository: ThemePreferencesRepository by lazy {
+        ThemePreferencesRepository(context)
     }
 
     override val analyticsDao: AnalyticsDao by lazy {

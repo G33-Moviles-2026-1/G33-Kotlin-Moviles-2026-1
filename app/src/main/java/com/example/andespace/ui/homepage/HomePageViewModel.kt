@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.location.LocationSensor
 import com.example.andespace.data.repository.AnalyticsRepository
+import com.example.andespace.model.HomeSearchParams
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,10 @@ class HomepageViewModel(
 
     fun onShowResults() {
         _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS) }
+    }
+
+    fun cacheLastSearchConfig(params: HomeSearchParams) {
+        _uiState.update { it.copy(lastSearchConfig = params.toSearchConfig()) }
     }
 
     fun onShowRoomDetailScreen() {

@@ -28,6 +28,7 @@ import com.example.andespace.ui.components.RoomCard
 fun LoadFavoritesScreen(
     favoriteRooms: List<RoomDto>,
     favoriteIds: Set<String>,
+    errorMessage: String?,
     onToggleFavorite: (RoomDto) -> Unit,
     onRoomClick: (RoomDto) -> Unit
 ) {
@@ -44,6 +45,18 @@ fun LoadFavoritesScreen(
                 .padding(top = 24.dp, bottom = 16.dp),
             textAlign = TextAlign.Center
         )
+
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                textAlign = TextAlign.Center
+            )
+        }
 
         if (favoriteRooms.isEmpty()) {
             Box(

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.data.repository.BookingRepository
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,7 +61,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                 }
                 .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = "Could not delete the booking. Please try again.")
+                        it.copy(isLoading = false, errorMessage = UserMessages.DELETE_BOOKING_FAILED)
                     }
                 }
         }
@@ -73,7 +74,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
             repository.deleteBooking(oldBookingId)
                 .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isSaving = false, errorMessage = "Could not delete the booking. Please try again.")
+                        it.copy(isSaving = false, errorMessage = UserMessages.DELETE_BOOKING_FAILED)
                     }
                     return@launch
                 }
@@ -91,7 +92,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                 }
                 .onFailure { _ ->
                     _uiState.update {
-                        it.copy(isSaving = false, errorMessage = "Could not save the booking. Please try again.")
+                        it.copy(isSaving = false, errorMessage = UserMessages.SAVE_BOOKING_FAILED)
                     }
                     loadBookings()
                 }
@@ -134,10 +135,10 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
     }
 
     private fun friendlyError(raw: String?): String = when {
-        raw == null -> "Something went wrong. Please try again."
-        raw.startsWith("No internet connection") -> "No internet connection. Please check your network and try again."
-        raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
-        raw.matches(Regex("Error \\d+.*")) -> "Something went wrong. Please try again."
-        else -> "Something went wrong. Please try again."
+        raw == null -> UserMessages.GENERIC_ERROR
+        raw.startsWith("No internet connection") -> UserMessages.NO_INTERNET
+        raw.startsWith("Network error") -> UserMessages.NO_INTERNET
+        raw.matches(Regex("Error \\d+.*")) -> UserMessages.GENERIC_ERROR
+        else -> UserMessages.GENERIC_ERROR
     }
 }
