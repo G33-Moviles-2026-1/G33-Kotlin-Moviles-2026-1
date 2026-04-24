@@ -40,6 +40,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -83,6 +86,9 @@ fun LoadBookingsScreen(
     onSaveBooking: (CreateBookingRequest, String) -> Unit,
     onCancelEdit: () -> Unit
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    var lastShownError by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(Unit) {
         onLoadBookings()
     }
@@ -95,25 +101,41 @@ fun LoadBookingsScreen(
 
     if (uiState.requiresLogin) return
 
-    when (uiState.contentScreen) {
-        BookingsContentScreen.LIST -> MyBookingsScreen(
-            bookings = uiState.bookings,
-            isLoading = uiState.isLoading,
-            errorMessage = uiState.errorMessage,
-            onDeleteBooking = onDeleteBooking,
-            onEditBooking = onEditBooking
+    LaunchedEffect(uiState.errorMessage) {
+        val message = uiState.errorMessage ?: return@LaunchedEffect
+        if (message == lastShownError) return@LaunchedEffect
+        lastShownError = message
+        snackbarHostState.showSnackbar(
+            message = message,
+            withDismissAction = true,
+            duration = SnackbarDuration.Short
         )
+    }
 
-        BookingsContentScreen.EDIT -> {
-            uiState.selectedBooking?.let { booking ->
-                EditBookingScreen(
-                    booking = booking,
-                    isSaving = uiState.isSaving,
-                    onSave = onSaveBooking,
-                    onCancel = onCancelEdit
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (uiState.contentScreen) {
+            BookingsContentScreen.LIST -> MyBookingsScreen(
+                bookings = uiState.bookings,
+                isLoading = uiState.isLoading,
+                onDeleteBooking = onDeleteBooking,
+                onEditBooking = onEditBooking
+            )
+
+            BookingsContentScreen.EDIT -> {
+                uiState.selectedBooking?.let { booking ->
+                    EditBookingScreen(
+                        booking = booking,
+                        isSaving = uiState.isSaving,
+                        onSave = onSaveBooking,
+                        onCancel = onCancelEdit
+                    )
+                }
             }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -121,7 +143,6 @@ fun LoadBookingsScreen(
 private fun MyBookingsScreen(
     bookings: List<BookingDto>,
     isLoading: Boolean,
-    errorMessage: String?,
     modifier: Modifier = Modifier,
     onDeleteBooking: (BookingDto) -> Unit = {},
     onEditBooking: (BookingDto) -> Unit = {}
@@ -143,16 +164,6 @@ private fun MyBookingsScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return
-        }
-
-        errorMessage?.let {
-            Text(
-                text = it,
-                color = Color(0xFFD32F2F),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
         }
 
         if (bookings.isEmpty()) {
