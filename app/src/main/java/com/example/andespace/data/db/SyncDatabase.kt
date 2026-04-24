@@ -99,13 +99,15 @@ interface FavoritesDao {
 
 @SuppressLint("RestrictedApi")
 // Added local favorites cache and bumped version to 3.
+// Added local bookings cache and bumped version to 4.
 @Database(
-    entities = [PendingSyncAction::class, PendingAnalyticsEvent::class, FavoriteRoomEntity::class],
-    version = 3,
+    entities = [PendingSyncAction::class, PendingAnalyticsEvent::class, FavoriteRoomEntity::class, BookingEntity::class],
+    version = 4,
     exportSchema = false
 )
 abstract class SyncDatabase : RoomDatabase() {
     abstract fun syncActionDao(): SyncActionDao
     abstract fun analyticsDao(): AnalyticsDao
     abstract fun favoritesDao(): FavoritesDao
+    abstract fun bookingDao(): BookingDao
 }

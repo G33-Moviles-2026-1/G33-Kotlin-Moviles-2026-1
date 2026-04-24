@@ -6,6 +6,7 @@ import com.example.andespace.data.db.SyncActionDao
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.dto.AnalyticsEventRequest
+import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.ManualClassIn
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.google.gson.Gson
@@ -21,6 +22,7 @@ class SyncManager(
     private val syncDao: SyncActionDao,
     private val analyticsDao: AnalyticsDao,
     private val scheduleRepository: ScheduleRepository,
+    private val bookingRepository: BookingRepository,
     private val apiService: ApiService,
     private val gson: Gson
 ) {
@@ -94,6 +96,13 @@ class SyncManager(
                             // Favorites are flushed by FavoritesRepository to preserve local-first semantics.
                             continue
                         }
+                        "CREATE_BOOKING" -> {
+                            val request = gson.fromJson(action.payload, CreateBookingRequest::class.java)
+                            apiService.createBooking(request)
+                        }
+                        "DELETE_BOOKING" -> {
+                            apiService.deleteBooking(action.payload)
+                        }
                         else -> {
                             Log.w("SyncManager", "Unknown sync action type=${action.actionType}, keeping it in queue")
                             continue
@@ -110,6 +119,7 @@ class SyncManager(
 
             if (!networkFailed) {
                 scheduleRepository.syncEntireScheduleFromBackend()
+                bookingRepository.refreshBookings()
             }
         }
     }
