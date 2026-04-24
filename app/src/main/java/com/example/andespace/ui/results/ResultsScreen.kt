@@ -48,7 +48,7 @@ fun ResultsScreen(
     val totalPages = resultsUiState.totalPages
     val isSearching = resultsUiState.isSearching
 
-    fun onFavoriteClick (room: RoomDto) {
+    val onFavoriteClick: (RoomDto) -> Unit = { room ->
         if (isUserLoggedIn) {
             favoritesViewModel.toggleFavorite(room)
         } else {
@@ -118,7 +118,7 @@ fun ResultsScreen(
                                 room = room,
                                 cardIndex = index,
                                 isFavorite = room.id in favoriteIds,
-                                onFavoriteClick = onFavoriteClick?.let { { it(room) } },
+                                onFavoriteClick = onFavoriteClick.let { { it(room) } },
                                 onClick = { onRoomClick(room) }
                             )
                         }
