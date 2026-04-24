@@ -81,7 +81,6 @@ fun HomeSearchScreen(
     modifier: Modifier = Modifier,
     isSearching: Boolean = false,
     searchError: String? = null,
-    onSearchClick: (HomeSearchParams) -> Unit = {},
     resultsViewModel: ResultsViewModel,
     homepageViewModel: HomepageViewModel
 ) {
@@ -142,7 +141,17 @@ fun HomeSearchScreen(
                 homepageViewModel.onFiltersOpened()
                 showFilterSheet = true
             },
-            onSearchClick = onSearchClick,
+            onSearchClick = { params ->
+                homepageViewModel.cacheLastSearchConfig(params)
+                resultsViewModel.onSearchClick(
+                    params = params,
+                    onNavigateToResults = { shouldNavigate ->
+                        if (shouldNavigate) {
+                            homepageViewModel.onShowResults()
+                        }
+                    }
+                )
+            },
             onAutoSearchClick = { homepageViewModel.onShowAutoSearch() }
         )
     }
