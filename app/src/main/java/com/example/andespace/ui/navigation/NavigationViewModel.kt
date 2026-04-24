@@ -35,6 +35,7 @@ class NavigationViewModel(
                         fromClassroom = response.fromClassroom,
                         toClassroom = response.toClassroom,
                         instructions = response.steps,
+                        totalTimeSeconds = response.totalTime,
                         isLoading = false
                     )
                 }

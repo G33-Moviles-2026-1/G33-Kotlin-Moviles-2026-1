@@ -1,39 +1,52 @@
 package com.example.andespace.ui.navigation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.andespace.ui.theme.PrimaryYellow
 
 @Composable
 fun NavigationScreen(
@@ -44,6 +57,11 @@ fun NavigationScreen(
     
     var fromClassroom by remember { mutableStateOf("") }
     var toClassroom by remember { mutableStateOf("") }
+
+    // Pagination state
+    var currentPage by remember { mutableIntStateOf(0) }
+    val stepsPerPage = 3
+    val totalPages = if (uiState.instructions.isEmpty()) 0 else (uiState.instructions.size + stepsPerPage - 1) / stepsPerPage
 
     Column(
         modifier = modifier
@@ -57,33 +75,43 @@ fun NavigationScreen(
 
         Text(
             text = "Where Are You?",
-            style = MaterialTheme.typography.titleMedium.copy(
+            modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.titleLarge.copy(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             ),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Start
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         CustomNavigationTextField(
             value = fromClassroom,
             onValueChange = { fromClassroom = it },
-            placeholder = "ML 340"
+            placeholder = "ML 340",
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.MyLocation,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Where You Want to Go?",
-            style = MaterialTheme.typography.titleMedium.copy(
+            text = "Where Do You Want to Go?",
+            modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.titleLarge.copy(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             ),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Start
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         CustomNavigationTextField(
             value = toClassroom,
@@ -91,52 +119,100 @@ fun NavigationScreen(
             placeholder = "C 404"
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        Column(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Follow Me:",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontSize = 18.sp,
+                text = "Follow these steps:",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp)
-                    .verticalScroll(rememberScrollState())
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFFFF9C4)) // Light yellow
-                    .padding(24.dp),
-                contentAlignment = if (uiState.isLoading) Alignment.Center else Alignment.TopStart
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(color = Color.Black)
-                } else if (uiState.error != null) {
-                    Text(
-                        text = uiState.error!!,
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodyLarge
+            if (uiState.instructions.isNotEmpty() && !uiState.isLoading) {
+                Text(
+                    text = "Est. ${formatTotalTime(uiState.totalTimeSeconds)}",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold
                     )
-                } else if (uiState.instructions.isEmpty()) {
-                    Text(
-                        text = "Enter classrooms and click Book to see the path.",
-                        style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray)
-                    )
-                } else {
-                    Column {
-                        uiState.instructions.forEach { step ->
-                            Text(
-                                text = "• $step",
-                                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
-                                modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(320.dp),
+            contentAlignment = if (uiState.isLoading) Alignment.Center else Alignment.TopCenter
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(color = PrimaryYellow)
+            } else if (uiState.error != null) {
+                Text(
+                    text = uiState.error!!,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center
+                )
+            } else if (uiState.instructions.isEmpty()) {
+                Text(
+                    text = "Enter classrooms and click the button to see the path.",
+                    style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 40.dp)
+                )
+            } else {
+                val pagedInstructions = uiState.instructions.windowed(stepsPerPage, stepsPerPage, true)
+                val currentSteps = pagedInstructions.getOrNull(currentPage) ?: emptyList()
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    currentSteps.forEachIndexed { index, step ->
+                        StepItem(
+                            number = currentPage * stepsPerPage + index + 1,
+                            text = step
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Pagination Controls
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { if (currentPage > 0) currentPage-- },
+                            enabled = currentPage > 0
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronLeft, 
+                                contentDescription = "Previous",
+                                tint = if (currentPage > 0) MaterialTheme.colorScheme.onSurface else Color.Gray
+                            )
+                        }
+                        Text(
+                            text = "${currentPage + 1} / $totalPages",
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(
+                            onClick = { if (currentPage < totalPages - 1) currentPage++ },
+                            enabled = currentPage < totalPages - 1
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight, 
+                                contentDescription = "Next",
+                                tint = if (currentPage < totalPages - 1) MaterialTheme.colorScheme.onSurface else Color.Gray
                             )
                         }
                     }
@@ -149,24 +225,61 @@ fun NavigationScreen(
         Button(
             onClick = { 
                 navigationViewModel.getInstructions(fromClassroom, toClassroom)
+                currentPage = 0
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
-                .shadow(elevation = 4.dp, shape = RoundedCornerShape(12.dp)),
+                .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFFEB3B),
+                containerColor = PrimaryYellow,
                 contentColor = Color.Black
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "GO",
+                text = "Show me the way",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+fun StepItem(number: Int, text: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, PrimaryYellow.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(PrimaryYellow, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = number.toString(),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 
@@ -174,31 +287,55 @@ fun NavigationScreen(
 fun CustomNavigationTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String
+    placeholder: String,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp))
-            .background(Color.White, RoundedCornerShape(12.dp))
-            .border(1.dp, Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.CenterStart
     ) {
-        if (value.isEmpty()) {
-            Text(
-                text = placeholder,
-                color = Color.Gray,
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp)
-            )
-        }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp)
-        )
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp)
+                    )
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface)
+                )
+            }
+            if (trailingIcon != null) {
+                trailingIcon()
+            }
+        }
+    }
+}
+
+private fun formatTotalTime(seconds: Int): String {
+    val minutes = seconds / 60
+    val remainingSeconds = seconds % 60
+    return if (minutes > 0) {
+        "${minutes}min ${remainingSeconds}s"
+    } else {
+        "${remainingSeconds}s"
     }
 }
