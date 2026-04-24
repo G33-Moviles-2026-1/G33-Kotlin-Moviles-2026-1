@@ -1,12 +1,11 @@
 package com.example.andespace.data.repository
 
 import android.util.Log
-import com.example.andespace.data.db.AnalyticsDao
-import com.example.andespace.data.db.PendingAnalyticsEvent
 import com.example.andespace.data.network.ApiService
+import com.example.andespace.model.db.sync.AnalyticsDao
+import com.example.andespace.model.db.sync.PendingAnalyticsEvent
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.RoomDto
-import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -100,30 +99,5 @@ class AnalyticsRepository(
             )
         )
         return logGenericEvent(request)
-    }
-
-    suspend fun trackRoomGapSearch(
-        dateValue: String,
-        gapStart: String,
-        gapEnd: String,
-        utilities: List<String>
-    ): Boolean {
-        if (utilities.isEmpty()) return false
-
-        return withContext(Dispatchers.IO) {
-            val request = RoomGapSearchAnalyticsRequest(
-                sessionId = sessionId,
-                dateValue = dateValue,
-                gapStart = gapStart,
-                gapEnd = gapEnd,
-                utilities = utilities
-            )
-            try {
-                apiService.trackRoomGapSearch(request).isSuccessful
-            } catch (e: Exception) {
-                saveEventOffline("ROOM_GAP", gson.toJson(request))
-                false
-            }
-        }
     }
 }

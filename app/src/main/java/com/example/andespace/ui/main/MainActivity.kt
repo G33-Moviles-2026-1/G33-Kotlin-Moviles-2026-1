@@ -103,6 +103,7 @@ fun AndeSpaceApp(
     val resultsViewModel: ResultsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val detailRoomViewModel: DetailRoomViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val recommendationsViewModel: com.example.andespace.ui.recommendations.RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
 
     DisposableEffect(lifecycleOwner) {
@@ -256,6 +257,7 @@ fun AndeSpaceApp(
                         detailRoomViewModel = detailRoomViewModel,
                         bookingsViewModel = bookingsViewModel,
                         favoritesViewModel = favoritesViewModel,
+                        recommendationsViewModel = recommendationsViewModel,
                         isUserLoggedIn = uiState.isLoggedIn,
                         onRequireLogin = { viewModel.requestLoginRequiredDialog() },
                         onBookingCreatedNavigate = {

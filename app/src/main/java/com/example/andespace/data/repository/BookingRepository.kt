@@ -1,15 +1,16 @@
 package com.example.andespace.data.repository
 
 import android.util.Log
-import com.example.andespace.data.db.BookingDao
-import com.example.andespace.data.db.PendingSyncAction
-import com.example.andespace.data.db.SyncActionDao
-import com.example.andespace.data.db.toDto
-import com.example.andespace.data.db.toEntity
+import com.example.andespace.model.db.booking.BookingDao
+
+import com.example.andespace.model.db.booking.toDto
+import com.example.andespace.model.db.booking.toEntity
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.shared.ApiException
 import com.example.andespace.data.repository.shared.httpErrorMessage
+import com.example.andespace.model.db.sync.PendingSyncAction
+import com.example.andespace.model.db.sync.SyncActionDao
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.google.gson.Gson

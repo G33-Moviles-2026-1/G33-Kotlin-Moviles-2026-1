@@ -74,7 +74,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.util.Locale
 
 @Composable
 fun LoadHomePageScreen(
@@ -103,7 +102,8 @@ fun LoadHomePageScreen(
     onRoomClick: (RoomDto) -> Unit,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
-    modifier: Modifier = Modifier
+    onAutoSearchClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     when (contentScreen) {
         ContentScreen.HOME -> LoadHomeSearchScreen(
@@ -120,7 +120,8 @@ fun LoadHomePageScreen(
             onLocationPermissionDenied = onLocationPermissionDenied,
             onCloseToMeDisabled = onCloseToMeDisabled,
             onClearLocationError = onClearLocationError,
-            onFiltersOpened = onFiltersOpened
+            onFiltersOpened = onFiltersOpened,
+            onAutoSearchClick = onAutoSearchClick
         )
 
         ContentScreen.RESULTS -> ResultsScreen(
@@ -142,6 +143,7 @@ fun LoadHomePageScreen(
 
         ContentScreen.ROOM_DETAIL,
         ContentScreen.MAKE_BOOKING -> Unit
+        ContentScreen.AUTO_SEARCH -> Unit
     }
 }
 
@@ -161,6 +163,7 @@ private fun LoadHomeSearchScreen(
     onCloseToMeDisabled: () -> Unit,
     onClearLocationError: () -> Unit,
     onFiltersOpened: () -> Unit = {},
+    onAutoSearchClick: () -> Unit
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
     var selectedUtilities by remember(lastSearchConfig.utilityDisplayNames) {
@@ -208,7 +211,8 @@ private fun LoadHomeSearchScreen(
                 onFiltersOpened()
                 showFilterSheet = true
             },
-            onSearchClick = onSearchClick
+            onSearchClick = onSearchClick,
+            onAutoSearchClick = onAutoSearchClick
         )
     }
 }
@@ -257,6 +261,7 @@ private fun SearchCard(
     onClearLocationError: () -> Unit,
     onFilterClick: () -> Unit,
     onSearchClick: (HomeSearchParams) -> Unit,
+    onAutoSearchClick: () -> Unit
 ) {
     val context = LocalContext.current
     var classroomInput by remember(lastSearchConfig.classroom) { mutableStateOf(lastSearchConfig.classroom) }
@@ -564,6 +569,13 @@ private fun SearchCard(
                     onSearchClick(params)
                 }
             }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+        CustomYellowButton(
+            text = "✨ Auto Search (ML) ✨",
+            enabled = !isSearching && !isSearchBlockedByLocation,
+            onClick = onAutoSearchClick
         )
     }
 }

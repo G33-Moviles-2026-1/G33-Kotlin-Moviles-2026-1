@@ -47,7 +47,11 @@ class ScheduleViewModel(
                 }
             } catch (_: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Failed to load recommendations.")
+                    it.copy(
+                    isLoading = false,
+                    isShowingRecommendations = true,
+                    recommendationsData = null
+                    )
                 }
             }
         }
@@ -114,7 +118,6 @@ class ScheduleViewModel(
     fun loadSchedule() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, scheduleData = null) }
-
             try {
                 val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
                 val requestedDate = _uiState.value.currentWeekDate
@@ -267,7 +270,7 @@ class ScheduleViewModel(
     fun confirmDeleteClass() {
         val classId = _uiState.value.classIdToDelete ?: return
         viewModelScope.launch {
-            cancelDeleteClass() // Hide the dialog
+            cancelDeleteClass()
             repository.deleteClass(classId)
             loadSchedule()
         }
@@ -283,7 +286,7 @@ class ScheduleViewModel(
 
     fun confirmDeleteSchedule() {
         viewModelScope.launch {
-            cancelDeleteSchedule() // Hide the dialog
+            cancelDeleteSchedule()
             repository.deleteSchedule()
             _uiState.update { it.copy(hasSchedule = false, scheduleData = null) }
         }
