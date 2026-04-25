@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
@@ -30,7 +33,6 @@ import com.example.andespace.ui.homepage.HomepageViewModel
 @Composable
 fun ResultsScreen(
     modifier: Modifier = Modifier,
-    favoriteIds: Set<String> = emptySet(),
     resultsViewModel: ResultsViewModel,
     favoritesViewModel: FavoritesViewModel,
     detailRoomViewModel: DetailRoomViewModel,
@@ -40,6 +42,8 @@ fun ResultsScreen(
 ) {
     val listState = rememberLazyListState()
     val resultsUiState by resultsViewModel.uiState.collectAsState()
+    val favoritesUiState by favoritesViewModel.uiState.collectAsState()
+    val favoriteIds = favoritesUiState.favoriteIds
 
 
     val currentPage = resultsUiState.currentPage
@@ -47,6 +51,7 @@ fun ResultsScreen(
     val rooms = resultsUiState.rooms
     val totalPages = resultsUiState.totalPages
     val isSearching = resultsUiState.isSearching
+    val showOfflinePlaceholder = resultsUiState.showOfflinePlaceholder
 
     val onFavoriteClick: (RoomDto) -> Unit = { room ->
         if (isUserLoggedIn) {
@@ -86,6 +91,35 @@ fun ResultsScreen(
                 )
             }
             when {
+                showOfflinePlaceholder -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Outlined.WifiOff,
+                                contentDescription = "Offline",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "No connection",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                            Text(
+                                text = errorMessage ?: "Please check your connection and try again.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
                 errorMessage != null && rooms.isEmpty() -> {
                     Box(
                         modifier = Modifier

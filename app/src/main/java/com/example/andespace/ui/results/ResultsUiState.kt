@@ -12,5 +12,6 @@ data class ResultsUiState(
     val resultsPageSize: Int = 20,
     val currentPage: Int = 1,
     val totalPages: Int = 1,
-    val showingCachedResults: Boolean = false
+    val showingCachedResults: Boolean = false,
+    val showOfflinePlaceholder: Boolean = false
 )
