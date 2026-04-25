@@ -48,6 +48,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,104 +62,39 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
+import com.example.andespace.data.location.FusedLocationSensor
 import com.example.andespace.ui.main.AssetIcon
 import com.example.andespace.data.location.GeoLocation
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.RoomUtility
-import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.CustomYellowButton
-import com.example.andespace.ui.results.ResultsScreen
+import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.util.Locale
 
 @Composable
-fun LoadHomePageScreen(
-    contentScreen: ContentScreen,
-    isSearching: Boolean,
-    isUserLoggedIn: Boolean,
-    hasUploadedSchedule: Boolean,
-    closeToMe: Boolean,
-    isLocating: Boolean,
-    locationError: Boolean,
-    userLocation: GeoLocation?,
-    lastSearchConfig: HomeSearchConfig,
-    searchError: String?,
-    rooms: List<RoomDto>,
-    currentPage: Int,
-    totalPages: Int,
-    showingCachedResults: Boolean = false,
-    favoriteIds: Set<String> = emptySet(),
-    onFavoriteClick: ((RoomDto) -> Unit)? = null,
-    onSearchClick: (HomeSearchParams) -> Unit,
-    onFiltersOpened: () -> Unit,
-    onRequestCurrentLocation: () -> Unit,
-    onLocationPermissionDenied: () -> Unit,
-    onCloseToMeDisabled: () -> Unit,
-    onClearLocationError: () -> Unit,
-    onRoomClick: (RoomDto) -> Unit,
-    onPrevPage: () -> Unit,
-    onNextPage: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    when (contentScreen) {
-        ContentScreen.HOME -> LoadHomeSearchScreen(
-            modifier = modifier,
-            isSearching = isSearching,
-            searchError = searchError,
-            onSearchClick = onSearchClick,
-            closeToMe = closeToMe,
-            isLocating = isLocating,
-            locationError = locationError,
-            userLocation = userLocation,
-            lastSearchConfig = lastSearchConfig,
-            onRequestCurrentLocation = onRequestCurrentLocation,
-            onLocationPermissionDenied = onLocationPermissionDenied,
-            onCloseToMeDisabled = onCloseToMeDisabled,
-            onClearLocationError = onClearLocationError,
-            onFiltersOpened = onFiltersOpened
-        )
-
-        ContentScreen.RESULTS -> ResultsScreen(
-            rooms = rooms,
-            isSearching = isSearching,
-            errorMessage = searchError,
-            currentPage = currentPage,
-            totalPages = totalPages,
-            favoriteIds = favoriteIds,
-            onFavoriteClick = onFavoriteClick,
-            onRoomClick = onRoomClick,
-            onPrevPage = onPrevPage,
-            onNextPage = onNextPage,
-            modifier = modifier
-        )
-
-        ContentScreen.ROOM_DETAIL,
-        ContentScreen.MAKE_BOOKING -> Unit
-    }
-}
-
-@Composable
-private fun LoadHomeSearchScreen(
+fun HomeSearchScreen(
     modifier: Modifier = Modifier,
-    isSearching: Boolean = false,
-    searchError: String? = null,
-    onSearchClick: (HomeSearchParams) -> Unit = {},
-    closeToMe: Boolean,
-    isLocating: Boolean,
-    locationError: Boolean,
-    userLocation: GeoLocation?,
-    lastSearchConfig: HomeSearchConfig,
-    onRequestCurrentLocation: () -> Unit,
-    onLocationPermissionDenied: () -> Unit,
-    onCloseToMeDisabled: () -> Unit,
-    onClearLocationError: () -> Unit,
-    onFiltersOpened: () -> Unit = {},
+    resultsViewModel: ResultsViewModel,
+    homepageViewModel: HomepageViewModel
 ) {
+    val context = LocalContext.current
+    val locationSensor = remember(context) { FusedLocationSensor(context.applicationContext) }
+    val homepageUiState by homepageViewModel.uiState.collectAsState()
+
+
+    val lastSearchConfig = homepageUiState.lastSearchConfig
+    val closeToMe = homepageUiState.closeToMe
+    val isLocating = homepageUiState.isLocating
+    val locationError = homepageUiState.locationError
+    val userLocation = homepageUiState.userLocation
+    val isSearching = homepageUiState.isSearching
+    val searchError = homepageUiState.searchError
+
     var showFilterSheet by remember { mutableStateOf(false) }
     var selectedUtilities by remember(lastSearchConfig.utilityDisplayNames) {
         mutableStateOf(lastSearchConfig.utilityDisplayNames)
@@ -197,15 +133,26 @@ private fun LoadHomeSearchScreen(
             locationError = locationError,
             userLocation = userLocation,
             lastSearchConfig = lastSearchConfig,
-            onRequestCurrentLocation = onRequestCurrentLocation,
-            onLocationPermissionDenied = onLocationPermissionDenied,
-            onCloseToMeDisabled = onCloseToMeDisabled,
-            onClearLocationError = onClearLocationError,
+            onRequestCurrentLocation = { homepageViewModel.requestCurrentLocation(locationSensor) },
+            onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
+            onCloseToMeDisabled = {homepageViewModel.onCloseToMeDisabled()},
+            onClearLocationError = { homepageViewModel.clearLocationError() },
             onFilterClick = {
-                onFiltersOpened()
+                homepageViewModel.onFiltersOpened()
                 showFilterSheet = true
             },
-            onSearchClick = onSearchClick
+            onSearchClick = { params ->
+                homepageViewModel.cacheLastSearchConfig(params)
+                resultsViewModel.onSearchClick(
+                    params = params,
+                    onNavigateToResults = { shouldNavigate ->
+                        if (shouldNavigate) {
+                            homepageViewModel.onShowResults()
+                        }
+                    }
+                )
+            },
+            onAutoSearchClick = { homepageViewModel.onShowAutoSearch() }
         )
     }
 }
@@ -254,6 +201,7 @@ private fun SearchCard(
     onClearLocationError: () -> Unit,
     onFilterClick: () -> Unit,
     onSearchClick: (HomeSearchParams) -> Unit,
+    onAutoSearchClick: () -> Unit
 ) {
     val context = LocalContext.current
     var classroomInput by remember(lastSearchConfig.classroom) { mutableStateOf(lastSearchConfig.classroom) }
@@ -267,7 +215,7 @@ private fun SearchCard(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) {
             onRequestCurrentLocation()
         } else {
@@ -278,9 +226,17 @@ private fun SearchCard(
     val initialSince = remember(lastSearchConfig.since) { parseHourMinute(lastSearchConfig.since) }
     val initialUntil = remember(lastSearchConfig.until) { parseHourMinute(lastSearchConfig.until) }
     var sinceHour by remember(lastSearchConfig.since) { mutableStateOf(initialSince?.first ?: 8) }
-    var sinceMinute by remember(lastSearchConfig.since) { mutableStateOf(initialSince?.second ?: 0) }
+    var sinceMinute by remember(lastSearchConfig.since) {
+        mutableStateOf(
+            initialSince?.second ?: 0
+        )
+    }
     var untilHour by remember(lastSearchConfig.until) { mutableStateOf(initialUntil?.first ?: 18) }
-    var untilMinute by remember(lastSearchConfig.until) { mutableStateOf(initialUntil?.second ?: 0) }
+    var untilMinute by remember(lastSearchConfig.until) {
+        mutableStateOf(
+            initialUntil?.second ?: 0
+        )
+    }
     var sinceSet by remember(lastSearchConfig.since) { mutableStateOf(initialSince != null) }
     var untilSet by remember(lastSearchConfig.until) { mutableStateOf(initialUntil != null) }
     var missingTimeError by remember { mutableStateOf<String?>(null) }
@@ -329,8 +285,8 @@ private fun SearchCard(
                         .atZone(ZoneOffset.UTC)
                         .toLocalDate()
                     return !picked.isBefore(firstSelectable) &&
-                        !picked.isAfter(lastSelectable) &&
-                        picked.dayOfWeek != DayOfWeek.SUNDAY
+                            !picked.isAfter(lastSelectable) &&
+                            picked.dayOfWeek != DayOfWeek.SUNDAY
                 }
 
                 override fun isSelectableYear(year: Int): Boolean {
@@ -486,8 +442,14 @@ private fun SearchCard(
                     onClearLocationError()
                     if (checked) {
                         val alreadyGranted =
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED ||
+                                    ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    ) == PackageManager.PERMISSION_GRANTED
                         if (alreadyGranted) {
                             onRequestCurrentLocation()
                         } else {
@@ -554,13 +516,24 @@ private fun SearchCard(
                         since = if (sinceSet) formatTime(sinceHour, sinceMinute) else null,
                         until = if (untilSet) formatTime(untilHour, untilMinute) else null,
                         closeToMe = closeToMe,
-                        utilities = selectedUtilities.mapNotNull { RoomUtility.codeFromDisplayName(it) },
+                        utilities = selectedUtilities.mapNotNull {
+                            RoomUtility.codeFromDisplayName(
+                                it
+                            )
+                        },
                         userLatitude = if (closeToMe) userLocation?.latitude else null,
                         userLongitude = if (closeToMe) userLocation?.longitude else null
                     )
                     onSearchClick(params)
                 }
             }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+        CustomYellowButton(
+            text = "✨ Auto Search (ML) ✨",
+            enabled = !isSearching && !isSearchBlockedByLocation,
+            onClick = onAutoSearchClick
         )
     }
 }

@@ -12,6 +12,7 @@ import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.main.MainViewModel
 import com.example.andespace.ui.navigation.NavigationViewModel
+import com.example.andespace.ui.recommendations.RecommendationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.ScheduleViewModel
 
@@ -68,6 +69,11 @@ object AppViewModelProvider {
                 repository = andeSpaceApplication().container.navigationRepository
             )
         }
+            RecommendationsViewModel(
+                repository = andeSpaceApplication().container.recommendationsRepository
+            )
+        }
+
     }
 }
 

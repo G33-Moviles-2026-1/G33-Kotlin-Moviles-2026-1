@@ -2,7 +2,6 @@ package com.example.andespace.data.repository
 
 import android.util.Log
 import com.example.andespace.data.network.ApiService
-import com.example.andespace.data.repository.shared.ScheduleValidator
 import com.example.andespace.data.repository.shared.extractErrorMessage
 import com.example.andespace.data.repository.shared.httpErrorMessage
 import com.example.andespace.model.HomeSearchParams
@@ -15,8 +14,6 @@ import kotlinx.coroutines.withContext
 
 
 class RoomRepository(private val apiService: ApiService) {
-    private val scheduleValidator: ScheduleValidator = ScheduleValidator(apiService)
-
     companion object {
         private const val TAG = "RoomsRepository"
     }

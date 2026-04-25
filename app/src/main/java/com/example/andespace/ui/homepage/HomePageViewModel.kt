@@ -22,11 +22,11 @@ class HomepageViewModel(
     }
 
     fun onShowResults() {
-        _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS) }
+        _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS, isSearching = false) }
     }
 
     fun cacheLastSearchConfig(params: HomeSearchParams) {
-        _uiState.update { it.copy(lastSearchConfig = params.toSearchConfig()) }
+        _uiState.update { it.copy(lastSearchConfig = params.toSearchConfig(), isSearching = true) }
     }
 
     fun onShowRoomDetailScreen() {
@@ -41,12 +41,17 @@ class HomepageViewModel(
         _uiState.update { it.copy(contentScreen = ContentScreen.MAKE_BOOKING) }
     }
 
+    fun onShowAutoSearch() {
+        _uiState.update { it.copy(contentScreen = ContentScreen.AUTO_SEARCH) }
+    }
+
     fun onBackPressedInSearchFlow(): Boolean {
         val current = _uiState.value.contentScreen
         val previous = when (current) {
             ContentScreen.MAKE_BOOKING -> ContentScreen.ROOM_DETAIL
             ContentScreen.ROOM_DETAIL -> ContentScreen.RESULTS
             ContentScreen.RESULTS -> ContentScreen.HOME
+            ContentScreen.AUTO_SEARCH -> ContentScreen.HOME
             ContentScreen.HOME -> null
         }
 

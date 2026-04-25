@@ -36,14 +36,12 @@ class ResultsViewModel(
 
     fun onSearchClick(
         params: HomeSearchParams,
-        isUserLoggedIn: Boolean,
         onNavigateToResults: (Boolean) -> Unit = {}
     ) {
         lastSearchParams = params
         requestSearchPage(
             params = params,
             page = 1,
-            isUserLoggedIn = isUserLoggedIn,
             trackEvent = true,
             fromHomepageAttempt = true,
             onNavigateToResults = onNavigateToResults
@@ -56,32 +54,31 @@ class ResultsViewModel(
         }
     }
 
-    fun onNextPage(isUserLoggedIn: Boolean) {
-        val state = _uiState.value
+    fun onNextPage() {
+        val state = uiState.value
         if (state.isSearching) return
 
         val params = lastSearchParams ?: return
         val nextPage = (state.currentPage + 1).coerceAtMost(state.totalPages)
         if (nextPage == state.currentPage) return
 
-        requestSearchPage(params = params, page = nextPage, isUserLoggedIn = isUserLoggedIn)
+        requestSearchPage(params = params, page = nextPage)
     }
 
-    fun onPreviousPage(isUserLoggedIn: Boolean) {
-        val state = _uiState.value
+    fun onPreviousPage() {
+        val state = uiState.value
         if (state.isSearching) return
 
         val params = lastSearchParams ?: return
         val previousPage = (state.currentPage - 1).coerceAtLeast(1)
         if (previousPage == state.currentPage) return
 
-        requestSearchPage(params = params, page = previousPage, isUserLoggedIn = isUserLoggedIn)
+        requestSearchPage(params = params, page = previousPage)
     }
 
     private fun requestSearchPage(
         params: HomeSearchParams,
         page: Int,
-        isUserLoggedIn: Boolean,
         trackEvent: Boolean = false,
         fromHomepageAttempt: Boolean = false,
         onNavigateToResults: (Boolean) -> Unit = {}
@@ -121,7 +118,7 @@ class ResultsViewModel(
                             cachedParams = params
                             cachedTotalPages = pages
                             cachedPages[1] = rooms
-                            prefetchSnapshotPages(params = params, isUserLoggedIn = isUserLoggedIn)
+                            prefetchSnapshotPages(params = params)
                         } else if (cachedParams == params && page in 1..MAX_CACHED_PAGE) {
                             cachedPages[page] = rooms
                         }
@@ -218,7 +215,7 @@ class ResultsViewModel(
         }
     }
 
-    private fun prefetchSnapshotPages(params: HomeSearchParams, isUserLoggedIn: Boolean) {
+    private fun prefetchSnapshotPages(params: HomeSearchParams) {
         (2..MAX_CACHED_PAGE).forEach { page ->
             viewModelScope.launch {
                 val pageSize = _uiState.value.resultsPageSize

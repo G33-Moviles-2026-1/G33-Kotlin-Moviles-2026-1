@@ -1,10 +1,10 @@
 package com.example.andespace.data.repository
 
 import android.util.Log
-import com.example.andespace.data.db.AnalyticsDao
-import com.example.andespace.data.db.SyncActionDao
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.NetworkMonitor
+import com.example.andespace.model.db.sync.AnalyticsDao
+import com.example.andespace.model.db.sync.SyncActionDao
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.ManualClassIn
@@ -93,7 +93,6 @@ class SyncManager(
                             scheduleRepository.syncDeleteScheduleWithBackend()
                         }
                         "ADD_FAVORITE", "DELETE_FAVORITE" -> {
-                            // Favorites are flushed by FavoritesRepository to preserve local-first semantics.
                             continue
                         }
                         "CREATE_BOOKING" -> {

@@ -8,13 +8,16 @@ enum class ContentScreen {
     HOME,
     RESULTS,
     ROOM_DETAIL,
-    MAKE_BOOKING
+    MAKE_BOOKING,
+    AUTO_SEARCH
 }
 
 data class HomepageUiState(
     val contentScreen: ContentScreen = ContentScreen.HOME,
     val closeToMe: Boolean = false,
     val isLocating: Boolean = false,
+    val isSearching: Boolean = false,
+    val searchError: String? = null,
     val locationError: Boolean = false,
     val userLocation: GeoLocation? = null,
     val lastSearchConfig: HomeSearchConfig = HomeSearchConfig()

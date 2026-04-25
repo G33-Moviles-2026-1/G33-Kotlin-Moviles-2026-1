@@ -12,10 +12,7 @@ class AuthInterceptor(
 
         if (!NetworkMonitor.isOnline.value) {
             NetworkMonitor.forceRetryConnection()
-            val isRecovered = NetworkMonitor.verifyConnectionNow()
-            if (!isRecovered) {
-                throw NoInternetException("Aborted: Device is currently offline.")
-            }
+            throw NoInternetException("Aborted: Device is currently offline.")
         }
 
         val request = chain.request()

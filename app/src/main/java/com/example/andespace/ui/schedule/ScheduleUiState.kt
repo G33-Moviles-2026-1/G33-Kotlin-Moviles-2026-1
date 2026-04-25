@@ -24,5 +24,5 @@ data class ScheduleUiState(
     val isShowingRecommendations: Boolean = false,
     val recommendationsData: DayRoomRecommendationsOut? = null,
     val classIdToDelete: String? = null,
-    val showDeleteScheduleConfirm: Boolean = false
+    val showDeleteScheduleConfirm: Boolean = false,
 )

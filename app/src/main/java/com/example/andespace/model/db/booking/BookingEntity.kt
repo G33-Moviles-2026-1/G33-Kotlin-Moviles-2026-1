@@ -1,4 +1,4 @@
-package com.example.andespace.data.db
+package com.example.andespace.model.db.booking
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

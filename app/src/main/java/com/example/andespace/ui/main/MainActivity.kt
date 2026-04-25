@@ -61,9 +61,9 @@ import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
-import com.example.andespace.ui.homepage.MainClassroomsScreen
 import com.example.andespace.ui.navigation.NavigationScreen
 import com.example.andespace.ui.navigation.NavigationViewModel
+import com.example.andespace.ui.homepage.HomePageScreen
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
@@ -106,6 +106,7 @@ fun AndeSpaceApp(
     val detailRoomViewModel: DetailRoomViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val navigationViewModel: NavigationViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val recommendationsViewModel: com.example.andespace.ui.recommendations.RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
 
     DisposableEffect(lifecycleOwner) {
@@ -253,12 +254,13 @@ fun AndeSpaceApp(
             when (uiState.currentDestination) {
 
                 AppDestinations.CLASSROOMS -> {
-                    MainClassroomsScreen(
+                    HomePageScreen(
                         homepageViewModel = homepageViewModel,
                         resultsViewModel = resultsViewModel,
                         detailRoomViewModel = detailRoomViewModel,
                         bookingsViewModel = bookingsViewModel,
                         favoritesViewModel = favoritesViewModel,
+                        recommendationsViewModel = recommendationsViewModel,
                         isUserLoggedIn = uiState.isLoggedIn,
                         onRequireLogin = { viewModel.requestLoginRequiredDialog() },
                         onBookingCreatedNavigate = {

@@ -9,14 +9,14 @@ import com.example.andespace.model.dto.MyBookingsResponse
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
-import com.example.andespace.model.dto.UserFreeSlotsResponse
 import com.example.andespace.model.dto.DayRoomRecommendationsOut
+import com.example.andespace.model.dto.InteractionPayload
 import com.example.andespace.model.dto.ManualScheduleIn
 import com.example.andespace.model.dto.NavigationPathResponse
 import com.example.andespace.model.dto.NavigationPathSearchParams
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.ScheduleClassesOut
-import com.example.andespace.model.dto.WeeklyScheduleOut
+import com.example.andespace.ui.recommendations.RoomSearchItemOut
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -69,11 +69,6 @@ interface ApiService {
         @Query("date_value") dateValue: String
     ): Response<RoomDto>
 
-    @GET("schedule/free-slots")
-    suspend fun getUserFreeSlots(
-        @Query("date") date: String
-    ): Response<UserFreeSlotsResponse>
-
     @GET("bookings/mine")
     suspend fun getMyBookings(): Response<MyBookingsResponse>
 
@@ -85,14 +80,22 @@ interface ApiService {
     @GET("schedule/classes")
     suspend fun getScheduleClasses(): Response<ScheduleClassesOut>
 
+    @GET("recommendations/auto-search")
+    suspend fun getAutoSearchRecommendations(
+        @Query("target_date") targetDate: String,
+        @Query("since") since: String,
+        @Query("until") until: String,
+        @Query("top_k") topK: Int
+    ): List<RoomSearchItemOut>
+
+    @POST("recommendations/interact")
+    suspend fun submitRoomInteraction(
+        @Body payload: InteractionPayload
+    )
+
     @Multipart
     @POST("schedule/upload/ics")
     suspend fun uploadIcsFile(@Part file: MultipartBody.Part): Response<Any>
-
-    @GET("schedule/week")
-    suspend fun getWeeklySchedule(
-        @Query("date") date: String? = null
-    ): Response<WeeklyScheduleOut>
 
     @POST("schedule/upload/manual")
     suspend fun uploadManualSchedule(

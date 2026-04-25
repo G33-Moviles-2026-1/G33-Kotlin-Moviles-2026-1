@@ -1,27 +1,24 @@
-package com.example.andespace.di
+package com.example.andespace
 
 import android.content.Context
-import com.example.andespace.data.db.SyncActionDao
+import androidx.room.Room
 import com.example.andespace.data.network.ApiService
+import com.example.andespace.data.network.AuthInterceptor
+import com.example.andespace.data.network.SessionCookieJar
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.BookingRepository
 import com.example.andespace.data.repository.FavoritesRepository
+import com.example.andespace.data.repository.RecommendationsRepository
 import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.data.repository.SyncManager
 import com.example.andespace.data.repository.ThemePreferencesRepository
-import androidx.room.Room
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.andespace.BuildConfig
-import com.example.andespace.data.db.AnalyticsDao
-import com.example.andespace.data.db.BookingDao
-import com.example.andespace.data.db.FavoritesDao
-import com.example.andespace.data.db.SyncDatabase
-import com.example.andespace.data.network.AuthInterceptor
-import com.example.andespace.data.network.SessionCookieJar
-import com.example.andespace.data.repository.NavigationRepository
+import com.example.andespace.model.db.SyncDatabase
+import com.example.andespace.model.db.booking.BookingDao
+import com.example.andespace.model.db.favorites.FavoritesDao
+import com.example.andespace.model.db.sync.AnalyticsDao
+import com.example.andespace.model.db.sync.SyncActionDao
 import com.google.gson.Gson
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -33,6 +30,7 @@ interface AppContainer {
     val authRepository: AuthRepository
     val analyticsRepository: AnalyticsRepository
     val roomRepository: RoomRepository
+    val recommendationsRepository: RecommendationsRepository
     val scheduleRepository: ScheduleRepository
     val bookingRepository: BookingRepository
     val favoritesRepository: FavoritesRepository
@@ -46,55 +44,13 @@ interface AppContainer {
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
-    private val migration2To3 = object : Migration(2, 3) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL(
-                """
-                CREATE TABLE IF NOT EXISTS `favorite_rooms` (
-                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                    `userKey` TEXT NOT NULL,
-                    `roomId` TEXT NOT NULL,
-                    `name` TEXT,
-                    `building` TEXT,
-                    `buildingCode` TEXT,
-                    `capacity` INTEGER,
-                    `utilitiesJson` TEXT NOT NULL
-                )
-                """.trimIndent()
-            )
-            db.execSQL(
-                "CREATE UNIQUE INDEX IF NOT EXISTS `index_favorite_rooms_userKey_roomId` ON `favorite_rooms` (`userKey`, `roomId`)"
-            )
-        }
-    }
-
-    private val migration3To4 = object : Migration(3, 4) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL(
-                """
-                CREATE TABLE IF NOT EXISTS `bookings` (
-                    `id` TEXT PRIMARY KEY NOT NULL,
-                    `roomId` TEXT NOT NULL,
-                    `date` TEXT NOT NULL,
-                    `startTime` TEXT NOT NULL,
-                    `endTime` TEXT NOT NULL,
-                    `purpose` TEXT NOT NULL,
-                    `status` TEXT NOT NULL,
-                    `createdAt` TEXT
-                )
-                """.trimIndent()
-            )
-        }
-    }
-
     private val syncDatabase: SyncDatabase by lazy {
         Room.databaseBuilder(
             context,
             SyncDatabase::class.java,
             "andespace_sync_database"
         )
-            .addMigrations(migration2To3, migration3To4)
-            .fallbackToDestructiveMigration(false)
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
 
@@ -145,6 +101,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             context = context
         )
     }
+
+    override val recommendationsRepository: RecommendationsRepository by lazy {
+        RecommendationsRepository(apiService)
+    }
+
+
 
     override val themePreferencesRepository: ThemePreferencesRepository by lazy {
         ThemePreferencesRepository(context)
