@@ -50,6 +50,7 @@ fun ResultsScreen(
     val rooms = resultsUiState.rooms
     val totalPages = resultsUiState.totalPages
     val isSearching = resultsUiState.isSearching
+    val showOfflinePlaceholder = resultsUiState.showOfflinePlaceholder
 
     val onFavoriteClick: (RoomDto) -> Unit = { room ->
         if (isUserLoggedIn) {
