@@ -33,7 +33,6 @@ import com.example.andespace.ui.homepage.HomepageViewModel
 @Composable
 fun ResultsScreen(
     modifier: Modifier = Modifier,
-    favoriteIds: Set<String> = emptySet(),
     resultsViewModel: ResultsViewModel,
     favoritesViewModel: FavoritesViewModel,
     detailRoomViewModel: DetailRoomViewModel,
@@ -43,6 +42,8 @@ fun ResultsScreen(
 ) {
     val listState = rememberLazyListState()
     val resultsUiState by resultsViewModel.uiState.collectAsState()
+    val favoritesUiState by favoritesViewModel.uiState.collectAsState()
+    val favoriteIds = favoritesUiState.favoriteIds
 
 
     val currentPage = resultsUiState.currentPage
