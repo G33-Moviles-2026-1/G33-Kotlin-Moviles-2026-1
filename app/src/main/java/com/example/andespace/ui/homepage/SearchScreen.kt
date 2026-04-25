@@ -79,8 +79,6 @@ import java.time.ZoneOffset
 @Composable
 fun HomeSearchScreen(
     modifier: Modifier = Modifier,
-    isSearching: Boolean = false,
-    searchError: String? = null,
     resultsViewModel: ResultsViewModel,
     homepageViewModel: HomepageViewModel
 ) {
@@ -94,6 +92,8 @@ fun HomeSearchScreen(
     val isLocating = homepageUiState.isLocating
     val locationError = homepageUiState.locationError
     val userLocation = homepageUiState.userLocation
+    val isSearching = homepageUiState.isSearching
+    val searchError = homepageUiState.searchError
 
     var showFilterSheet by remember { mutableStateOf(false) }
     var selectedUtilities by remember(lastSearchConfig.utilityDisplayNames) {

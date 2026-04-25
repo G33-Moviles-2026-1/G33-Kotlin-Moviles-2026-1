@@ -22,11 +22,11 @@ class HomepageViewModel(
     }
 
     fun onShowResults() {
-        _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS) }
+        _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS, isSearching = false) }
     }
 
     fun cacheLastSearchConfig(params: HomeSearchParams) {
-        _uiState.update { it.copy(lastSearchConfig = params.toSearchConfig()) }
+        _uiState.update { it.copy(lastSearchConfig = params.toSearchConfig(), isSearching = true) }
     }
 
     fun onShowRoomDetailScreen() {
