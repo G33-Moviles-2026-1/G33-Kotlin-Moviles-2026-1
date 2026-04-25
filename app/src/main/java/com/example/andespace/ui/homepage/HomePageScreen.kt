@@ -35,7 +35,8 @@ fun HomePageScreen(
     when (homepageState.contentScreen) {
         ContentScreen.HOME -> HomeSearchScreen(
             homepageViewModel = homepageViewModel,
-            resultsViewModel = resultsViewModel
+            resultsViewModel = resultsViewModel,
+            recommendationsViewModel = recommendationsViewModel
         )
 
         ContentScreen.RESULTS -> ResultsScreen(
@@ -66,7 +67,9 @@ fun HomePageScreen(
         }
 
         ContentScreen.AUTO_SEARCH -> {
-            RecommendationsScreen(viewModel = recommendationsViewModel)
+            RecommendationsScreen(
+                viewModel = recommendationsViewModel,
+                onBackClick = { homepageViewModel.resetToHome() })
         }
 
     }

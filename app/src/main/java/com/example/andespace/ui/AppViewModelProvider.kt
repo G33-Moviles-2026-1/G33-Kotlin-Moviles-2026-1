@@ -66,7 +66,9 @@ object AppViewModelProvider {
         }
         initializer {
             RecommendationsViewModel(
-                repository = andeSpaceApplication().container.recommendationsRepository
+                repository = andeSpaceApplication().container.recommendationsRepository,
+                favoritesRepository = andeSpaceApplication().container.favoritesRepository,
+                bookingsRepository = andeSpaceApplication().container.bookingRepository
             )
         }
 
