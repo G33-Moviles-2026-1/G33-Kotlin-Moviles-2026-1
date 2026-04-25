@@ -60,6 +60,7 @@ import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun LoadMakeBookingScreen(
@@ -104,15 +105,20 @@ private fun formatSlotLabel(window: RoomWeeklyAvailabilityDto): String {
 
 private fun parseApiDateToMillis(dateValue: String): Long {
     return try {
-        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateValue)?.time
-            ?: System.currentTimeMillis()
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        sdf.parse(dateValue)?.time ?: System.currentTimeMillis()
     } catch (_: Exception) {
         System.currentTimeMillis()
     }
 }
 
 private fun millisToApiDate(millis: Long): String {
-    return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
+    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+    return sdf.format(Date(millis))
 }
 
 @Composable

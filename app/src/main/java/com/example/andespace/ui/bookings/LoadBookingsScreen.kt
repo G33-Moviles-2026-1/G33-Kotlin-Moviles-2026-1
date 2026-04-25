@@ -73,6 +73,7 @@ import com.example.andespace.ui.theme.LightYellow
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
@@ -84,7 +85,8 @@ fun LoadBookingsScreen(
     onDeleteBooking: (BookingDto) -> Unit,
     onEditBooking: (BookingDto) -> Unit,
     onSaveBooking: (CreateBookingRequest, String) -> Unit,
-    onCancelEdit: () -> Unit
+    onCancelEdit: () -> Unit,
+    onConsumeSyncMessage: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var lastShownError by remember { mutableStateOf<String?>(null) }
@@ -110,6 +112,15 @@ fun LoadBookingsScreen(
             withDismissAction = true,
             duration = SnackbarDuration.Short
         )
+    }
+
+    LaunchedEffect(uiState.syncMessage) {
+        val message = uiState.syncMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = message,
+            duration = SnackbarDuration.Long
+        )
+        onConsumeSyncMessage()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -319,7 +330,12 @@ private fun formatTime(hour: Int, minute: Int): String =
 
 private val dateDisplayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-private fun formatDateMillis(millis: Long): String = dateDisplayFormat.format(millis)
+private fun formatDateMillis(millis: Long): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+    return sdf.format(Date(millis))
+}
 
 private fun parseDateToMillis(dateStr: String): Long {
     return try {
@@ -558,18 +574,9 @@ private fun EditBookingScreen(
 
             Button(
                 onClick = {
-                    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                        timeInMillis = selectedDateMillis
-                    }
-                    val dateStr = String.format(
-                        "%04d-%02d-%02d",
-                        cal.get(Calendar.YEAR),
-                        cal.get(Calendar.MONTH) + 1,
-                        cal.get(Calendar.DAY_OF_MONTH)
-                    )
                     val request = CreateBookingRequest(
                         roomId = booking.roomId,
-                        date = dateStr,
+                        date = formatDateMillis(selectedDateMillis),
                         startTime = "%02d:%02d:00".format(sinceHour, sinceMinute),
                         endTime = "%02d:%02d:00".format(untilHour, untilMinute),
                         purpose = purpose

@@ -4,6 +4,10 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.andespace.model.dto.BookingDto
 
+enum class SyncStatus {
+    SYNCED, PENDING_CREATE, PENDING_DELETE
+}
+
 @Entity(tableName = "bookings")
 data class BookingEntity(
     @PrimaryKey val id: String,
@@ -13,10 +17,11 @@ data class BookingEntity(
     val endTime: String,
     val purpose: String,
     val status: String,
-    val createdAt: String?
+    val createdAt: String?,
+    val syncStatus: SyncStatus = SyncStatus.SYNCED
 )
 
-fun BookingDto.toEntity() = BookingEntity(
+fun BookingDto.toEntity(syncStatus: SyncStatus = SyncStatus.SYNCED) = BookingEntity(
     id = id,
     roomId = roomId,
     date = date,
@@ -24,7 +29,8 @@ fun BookingDto.toEntity() = BookingEntity(
     endTime = endTime,
     purpose = purpose,
     status = status,
-    createdAt = createdAt
+    createdAt = createdAt,
+    syncStatus = syncStatus
 )
 
 fun BookingEntity.toDto() = BookingDto(

@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.location.LocationSensor
 import com.example.andespace.data.repository.NavigationRepository
-import com.example.andespace.model.dto.NavigationPathSearchParams
+import com.example.andespace.model.navigation.NavigationRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,8 +18,12 @@ class NavigationViewModel(
     private val _uiState = MutableStateFlow(NavigationUiState())
     val uiState: StateFlow<NavigationUiState> = _uiState.asStateFlow()
 
+    init {
+        restoreNavigationState()
+    }
+
     fun onFromClassroomChange(fromClassroom: String) {
-        _uiState.update { it.copy(fromClassroom = fromClassroom) }
+        _uiState.update { it.copy(fromClassroom = fromClassroom, isUsingGpsOrigin = false) }
     }
 
     fun onToClassroomChange(toClassroom: String) {
@@ -32,22 +36,13 @@ class NavigationViewModel(
         _uiState.update { it.copy(isLoading = true, error = null) }
 
         viewModelScope.launch {
-            val result = repository.getNavigationPath(
-                NavigationPathSearchParams(
-                    fromClassroom = initClassroom,
-                    toClassroom = endClassroom
-                )
+            val result = repository.getRoute(
+                origin = initClassroom,
+                destination = endClassroom,
+                isUsingGpsOrigin = _uiState.value.isUsingGpsOrigin
             )
-            result.onSuccess { response ->
-                _uiState.update {
-                    it.copy(
-                        fromClassroom = response.fromClassroom,
-                        toClassroom = response.toClassroom,
-                        instructions = response.steps,
-                        totalTimeSeconds = response.totalTime,
-                        isLoading = false
-                    )
-                }
+            result.onSuccess { routeResult ->
+                applyRouteResult(routeResult.route, routeResult.fromCache, routeResult.canGoBack, routeResult.canGoForward, routeResult.isUsingGpsOrigin)
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
@@ -63,22 +58,13 @@ class NavigationViewModel(
         _uiState.update { it.copy(isLocating = true, error = null) }
 
         viewModelScope.launch {
-            val location = locationSensor.getCurrentLocation()
-            if (location == null) {
+            val result = repository.resolveOriginFromGpsIfNeeded(locationSensor)
+            result.onSuccess { origin ->
                 _uiState.update {
                     it.copy(
-                        isLocating = false,
-                        error = "Could not get your current location."
-                    )
-                }
-                return@launch
-            }
-
-            val result = repository.getNearestNavigationNode(location.latitude, location.longitude)
-            result.onSuccess { nearestNode ->
-                _uiState.update {
-                    it.copy(
-                        fromClassroom = nearestNode.buildingCode,
+                        fromClassroom = origin,
+                        origin = origin,
+                        isUsingGpsOrigin = true,
                         isLocating = false,
                         error = null
                     )
@@ -87,10 +73,83 @@ class NavigationViewModel(
                 _uiState.update {
                     it.copy(
                         isLocating = false,
+                        isUsingGpsOrigin = false,
                         error = error.message ?: "Could not determine your nearest location"
                     )
                 }
             }
+        }
+    }
+
+    fun goBack() {
+        viewModelScope.launch {
+            repository.getRouteFromHistoryBack().onSuccess { routeResult ->
+                val currentRoute = routeResult ?: return@onSuccess
+                applyRouteResult(
+                    route = currentRoute.route,
+                    fromCache = currentRoute.fromCache,
+                    canGoBack = currentRoute.canGoBack,
+                    canGoForward = currentRoute.canGoForward,
+                    isUsingGpsOrigin = currentRoute.isUsingGpsOrigin
+                )
+            }
+        }
+    }
+
+    fun goForward() {
+        viewModelScope.launch {
+            repository.getRouteFromHistoryForward().onSuccess { routeResult ->
+                val currentRoute = routeResult ?: return@onSuccess
+                applyRouteResult(
+                    route = currentRoute.route,
+                    fromCache = currentRoute.fromCache,
+                    canGoBack = currentRoute.canGoBack,
+                    canGoForward = currentRoute.canGoForward,
+                    isUsingGpsOrigin = currentRoute.isUsingGpsOrigin
+                )
+            }
+        }
+    }
+
+    fun restoreNavigationState() {
+        viewModelScope.launch {
+            repository.restoreNavigationState().onSuccess { routeResult ->
+                val currentRoute = routeResult ?: return@onSuccess
+                applyRouteResult(
+                    route = currentRoute.route,
+                    fromCache = currentRoute.fromCache,
+                    canGoBack = currentRoute.canGoBack,
+                    canGoForward = currentRoute.canGoForward,
+                    isUsingGpsOrigin = currentRoute.isUsingGpsOrigin
+                )
+            }
+        }
+    }
+
+    private fun applyRouteResult(
+        route: NavigationRoute,
+        fromCache: Boolean,
+        canGoBack: Boolean,
+        canGoForward: Boolean,
+        isUsingGpsOrigin: Boolean
+    ) {
+        _uiState.update {
+            it.copy(
+                fromClassroom = route.origin,
+                toClassroom = route.destination,
+                origin = route.origin,
+                destination = route.destination,
+                instructions = route.steps,
+                steps = route.steps,
+                totalTimeSeconds = route.totalTimeSeconds,
+                estimatedTimeSeconds = route.totalTimeSeconds,
+                isLoading = false,
+                isFromCache = fromCache,
+                canGoBack = canGoBack,
+                canGoForward = canGoForward,
+                isUsingGpsOrigin = isUsingGpsOrigin,
+                error = null
+            )
         }
     }
 }
