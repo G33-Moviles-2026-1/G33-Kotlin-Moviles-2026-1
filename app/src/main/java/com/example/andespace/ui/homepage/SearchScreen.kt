@@ -73,6 +73,7 @@ import com.example.andespace.data.location.GeoLocation
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.RoomUtility
 import com.example.andespace.ui.components.CustomYellowButton
+import com.example.andespace.ui.recommendations.RecommendationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.theme.PrimaryYellow
 import java.time.DayOfWeek
@@ -86,7 +87,8 @@ import kotlinx.coroutines.launch
 fun HomeSearchScreen(
     modifier: Modifier = Modifier,
     resultsViewModel: ResultsViewModel,
-    homepageViewModel: HomepageViewModel
+    homepageViewModel: HomepageViewModel,
+    recommendationsViewModel: RecommendationsViewModel
 ) {
     val context = LocalContext.current
     val locationSensor = remember(context) { FusedLocationSensor(context.applicationContext) }
@@ -188,7 +190,9 @@ fun HomeSearchScreen(
                         }
                     )
                 },
-                onAutoSearchClick = { homepageViewModel.onShowAutoSearch() },
+                onAutoSearchClick = {
+                    recommendationsViewModel.startAutoSearch()
+                    homepageViewModel.onShowAutoSearch() },
                 hasSelectedUtilities = selectedUtilities.isNotEmpty(),
                 onResetFilters = { selectedUtilities = emptySet() },
                 onShowMessage = { message ->
@@ -214,7 +218,6 @@ fun HomeSearchScreen(
 private fun formatTime(hour: Int, minute: Int): String =
     "%02d:%02d".format(hour, minute)
 
-/** Material3 usa la fecha local a medianoche en UTC para cada día del calendario. */
 private fun formatDateMillis(millis: Long): String =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
 
@@ -601,7 +604,7 @@ private fun SearchCard(
 
         Spacer(modifier = Modifier.height(12.dp))
         CustomYellowButton(
-            text = "✨ Auto Search (ML) ✨",
+            text = "Auto Search",
             enabled = !isSearching && !isSearchBlockedByLocation,
             onClick = onAutoSearchClick
         )

@@ -1,6 +1,5 @@
 package com.example.andespace.ui.recommendations
 
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -12,33 +11,156 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.andespace.ui.components.TimeSlotSelector
+import com.example.andespace.model.dto.InteractionAction
+import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomSearchItemOut
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecommendationsScreen(
-    viewModel: RecommendationsViewModel
+    viewModel: RecommendationsViewModel,
+    onBackClick: () -> Unit
 ) {
+    val purposes = remember {
+        listOf(
+            "study_alone" to "Study Alone",
+            "study_small_group" to "Study Small Group",
+            "chill_alone" to "Chill Alone",
+            "hangout_friends" to "Hangout Friends",
+            "tutoring_big_group" to "Tutoring Big Group"
+        )
+    }
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    if (uiState.showBookingDialog && uiState.currentRoom != null) {
+        val currentRoomDto = uiState.currentRoom!!.toRoomDto()
+        var expanded by remember { mutableStateOf(false) }
+
+        val selectedDisplay = purposes.find { it.first == uiState.bookingPurpose }?.second ?: ""
+
+        AlertDialog(
+            onDismissRequest = { viewModel.closeBookingDialog() },
+            title = { Text("Quick Book: ${currentRoomDto.id}") },
+            text = {
+                Column {
+                    Text("Select Time Slot", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    var expandedTime by remember { mutableStateOf(false) }
+                    val matchingWindows = uiState.currentRoom?.matching_windows ?: emptyList()
+
+                    val selectedSlotDisplay = uiState.selectedBookingSlot?.let {
+                        "${it.start.substringBeforeLast(":")} - ${it.end.substringBeforeLast(":")}"
+                    } ?: "No slots available"
+
+                    ExposedDropdownMenuBox(
+                        expanded = expandedTime,
+                        onExpandedChange = { expandedTime = !expandedTime }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedSlotDisplay,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedTime,
+                            onDismissRequest = { expandedTime = false }
+                        ) {
+                            if (matchingWindows.isEmpty()) {
+                                DropdownMenuItem(text = { Text("No valid slots") }, onClick = {})
+                            }
+                            matchingWindows.forEach { window ->
+                                val displayTime = "${window.start.substringBeforeLast(":")} - ${window.end.substringBeforeLast(":")}"
+                                DropdownMenuItem(
+                                    text = { Text(displayTime) },
+                                    onClick = {
+                                        viewModel.updateBookingSlot(window)
+                                        expandedTime = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("Select Purpose", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedDisplay,
+                            onValueChange = {},
+                            readOnly = true,
+                            placeholder = { Text("Meeting Purpose") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            purposes.forEach { (key, display) ->
+                                DropdownMenuItem(
+                                    text = { Text(display) },
+                                    onClick = {
+                                        viewModel.updateBookingPurpose(key)
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    if (uiState.bookingError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.bookingError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.confirmQuickBooking(currentRoomDto) },
+                    enabled = uiState.bookingPurpose.isNotBlank() && !uiState.isBookingInProgress
+                ) {
+                    if (uiState.isBookingInProgress) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text("Confirm")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.closeBookingDialog() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 16.dp)
         ) {
-            if (uiState.isSearchActive) {
-                IconButton(
-                    onClick = { viewModel.resetSearch() },
-                    modifier = Modifier.align(Alignment.CenterStart)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
-
             Text(
-                text = "Auto Search ✨",
+                text = "Auto Search",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -50,56 +172,46 @@ fun RecommendationsScreen(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 16.dp)
         ) {
-            Crossfade(targetState = uiState.isSearchActive, label = "SearchState") { isActive ->
-                if (!isActive) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        TimeSlotSelector(
-                            selectedDate = uiState.selectedDate,
-                            selectedStartTime = uiState.selectedStartTime,
-                            onDateChange = viewModel::updateDateSelection,
-                            onTimeChange = viewModel::updateTimeSelection
-                        )
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        Button(
-                            onClick = { viewModel.startAutoSearch() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            enabled = uiState.selectedStartTime != null
-                        ) {
-                            Text("Find the perfect room")
+            if (uiState.isLoading && uiState.recommendations.isEmpty()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+            else if (uiState.currentRoom != null) {
+                val currentRoomOut = uiState.currentRoom!!
+                val currentRoomDto = currentRoomOut.toRoomDto()
+                val isFavorite = currentRoomOut.room_id in uiState.favoriteIds
+                RoomRecommendationCard(
+                    room = currentRoomDto,
+                    isFavorite = isFavorite,
+                    onSkip = {
+                        if (isFavorite) {
+                            viewModel.nextRoom()
+                        } else {
+                            viewModel.onInteract(InteractionAction.SKIP)
                         }
-                    }
-                } else {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    } else if (uiState.currentRoom != null) {
-                        RoomRecommendationCard(
-                            room = uiState.currentRoom!!,
-                            onSkip = { viewModel.onInteract(InteractionAction.SKIP) },
-                            onFavorite = { viewModel.onInteract(InteractionAction.FAVORITE) },
-                            onBook = { viewModel.onInteract(InteractionAction.BOOK) }
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = Color.Green
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("You've seen all recommendations!")
-                            Spacer(modifier = Modifier.height(8.dp))
-                            TextButton(onClick = { viewModel.resetSearch() }) {
-                                Text("Search Again")
-                            }
-                        }
+                    },
+                    onFavorite = { viewModel.toggleFavorite(currentRoomDto, isFavorite) },
+                    onBook = { viewModel.openBookingDialog() }
+                )
+            }
+            else if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+            else {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = Color.Green
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("We don't have more recommendations for you. Try again Tomorrow.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = onBackClick) {
+                        Text("Go Back")
                     }
                 }
             }
@@ -109,7 +221,8 @@ fun RecommendationsScreen(
 
 @Composable
 fun RoomRecommendationCard(
-    room: RoomSearchItemOut,
+    room: RoomDto,
+    isFavorite: Boolean,
     onSkip: () -> Unit,
     onFavorite: () -> Unit,
     onBook: () -> Unit
@@ -131,12 +244,28 @@ fun RoomRecommendationCard(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Recommended for you", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "Recommended for you",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = room.room_id, style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Bold)
-                Text(text = room.building_name, style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    text = room.id,
+                    style = MaterialTheme.typography.displayLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                (room.building ?: room.buildingCode)?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "Capacity: ${room.capacity} people", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = "Capacity: ${room.capacity} people",
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         }
         Row(
@@ -144,12 +273,25 @@ fun RoomRecommendationCard(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            FloatingActionButton(onClick = onSkip, containerColor = MaterialTheme.colorScheme.errorContainer) {
-                Icon(Icons.Default.Close, contentDescription = "Skip")
+            FloatingActionButton(
+                onClick = onSkip,
+                containerColor = if (isFavorite) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Check else Icons.Default.Close,
+                    contentDescription = if (isFavorite) "Next" else "Skip",
+                    tint = if (isFavorite) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                )
             }
-
-            FloatingActionButton(onClick = onFavorite, containerColor = MaterialTheme.colorScheme.secondaryContainer) {
-                Icon(Icons.Default.FavoriteBorder, contentDescription = "Favorite")
+            FloatingActionButton(
+                onClick = onFavorite,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSecondaryContainer
+                )
             }
 
             ExtendedFloatingActionButton(
@@ -164,3 +306,15 @@ fun RoomRecommendationCard(
         }
     }
 }
+
+fun RoomSearchItemOut.toRoomDto(): RoomDto {
+    return RoomDto(
+        id = this.room_id,
+        name = this.room_number,
+        building = this.building_name,
+        capacity = this.capacity,
+        buildingCode = this.building_code,
+        utilities = this.utilities,
+    )
+}
+

@@ -6,7 +6,6 @@ import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.andespace.data.sync.BookingSyncWorker
 import com.example.andespace.model.db.booking.BookingDao
 import com.example.andespace.model.db.booking.BookingEntity
 import com.example.andespace.model.db.booking.SyncStatus
@@ -16,11 +15,13 @@ import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.shared.ApiException
 import com.example.andespace.data.repository.shared.httpErrorMessage
+import com.example.andespace.data.sync.BookingSyncWorker
 import com.example.andespace.model.db.sync.PendingSyncAction
 import com.example.andespace.model.db.sync.SyncActionDao
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.google.gson.Gson
+import org.json.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -61,15 +62,15 @@ class BookingRepository(
             val response = apiService.getMyBookings()
             if (response.isSuccessful) {
                 val remoteBookings = response.body()?.items.orEmpty()
-                
+
                 // Get local bookings
                 val localBookings = bookingDao.getAllBookings()
-                
+
                 // Strategy to avoid duplicates:
                 // 1. Identify pending creates that match a remote booking by content (Room, Date, Time)
                 // 2. Remove those local pending creates because the remote one is the "truth"
                 val pendingCreates = localBookings.filter { it.syncStatus == SyncStatus.PENDING_CREATE }.toMutableList()
-                
+
                 val duplicatesToRemove = mutableListOf<BookingEntity>()
                 for (pending in pendingCreates) {
                     val match = remoteBookings.find { remote ->
@@ -82,13 +83,13 @@ class BookingRepository(
                         duplicatesToRemove.add(pending)
                     }
                 }
-                
+
                 pendingCreates.removeAll(duplicatesToRemove)
-                
+
                 bookingDao.clearAll()
                 bookingDao.insertAll(remoteBookings.map { it.toEntity() })
                 bookingDao.insertAll(pendingCreates)
-                
+
                 Result.success(Unit)
             } else {
                 val code = response.code()
@@ -149,7 +150,14 @@ class BookingRepository(
                 } else {
                     enqueueBookingAction(ACTION_CREATE_BOOKING, gson.toJson(request))
                     scheduleSync()
-                    Result.failure(Exception("OFFLINE_SYNC_PENDING"))
+                    val errorString = response.errorBody()?.string()
+                    val realErrorMessage = try {
+                        val jsonObject = JSONObject(errorString ?: "")
+                        jsonObject.getString("detail")
+                    } catch (e: Exception) {
+                        httpErrorMessage(response.code())
+                    }
+                    Result.failure(Exception(realErrorMessage))
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "createBooking exception=${e.message}", e)
