@@ -144,66 +144,66 @@ fun HomeSearchScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .padding(top = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Where do you\nwant to go?",
-            style = MaterialTheme.typography.titleMedium.copy(fontSize = 28.sp),
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .padding(top = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Where do you\nwant to go?",
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 28.sp),
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-        Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-        SearchCard(
-            selectedUtilities = selectedUtilities,
-            isSearching = isSearching,
-            searchError = searchError,
-            closeToMe = closeToMe,
-            isLocating = isLocating,
-            locationError = locationError,
-            userLocation = userLocation,
-            lastSearchConfig = lastSearchConfig,
-            onRequestCurrentLocation = { homepageViewModel.requestCurrentLocation(locationSensor) },
-            onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
-            onCloseToMeDisabled = {homepageViewModel.onCloseToMeDisabled()},
-            onClearLocationError = { homepageViewModel.clearLocationError() },
-            onFilterClick = {
-                homepageViewModel.onFiltersOpened()
-                showFilterSheet = true
-            },
-            onSearchClick = { params ->
-                homepageViewModel.cacheLastSearchConfig(params)
-                resultsViewModel.onSearchClick(
-                    params = params,
-                    onNavigateToResults = { shouldNavigate ->
-                        if (shouldNavigate) {
-                            homepageViewModel.onShowResults()
+            SearchCard(
+                selectedUtilities = selectedUtilities,
+                isSearching = isSearching,
+                searchError = searchError,
+                closeToMe = closeToMe,
+                isLocating = isLocating,
+                locationError = locationError,
+                userLocation = userLocation,
+                lastSearchConfig = lastSearchConfig,
+                onRequestCurrentLocation = { homepageViewModel.requestCurrentLocation(locationSensor) },
+                onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
+                onCloseToMeDisabled = { homepageViewModel.onCloseToMeDisabled() },
+                onClearLocationError = { homepageViewModel.clearLocationError() },
+                onFilterClick = {
+                    homepageViewModel.onFiltersOpened()
+                    showFilterSheet = true
+                },
+                onSearchClick = { params ->
+                    homepageViewModel.cacheLastSearchConfig(params)
+                    resultsViewModel.onSearchClick(
+                        params = params,
+                        onNavigateToResults = { shouldNavigate ->
+                            if (shouldNavigate) {
+                                homepageViewModel.onShowResults()
+                            }
                         }
-                    }
-                )
-            },
-            onAutoSearchClick = { homepageViewModel.onShowAutoSearch() }
-            hasSelectedUtilities = selectedUtilities.isNotEmpty(),
-            onResetFilters = { selectedUtilities = emptySet() },
-            onShowMessage = { message ->
-                if (message == lastShownError) return@SearchCard
-                lastShownError = message
-                snackbarScope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = message,
-                        withDismissAction = true,
-                        duration = SnackbarDuration.Short
                     )
+                },
+                onAutoSearchClick = { homepageViewModel.onShowAutoSearch() },
+                hasSelectedUtilities = selectedUtilities.isNotEmpty(),
+                onResetFilters = { selectedUtilities = emptySet() },
+                onShowMessage = { message ->
+                    if (message == lastShownError) return@SearchCard
+                    lastShownError = message
+                    snackbarScope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = message,
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Short
+                        )
+                    }
                 }
-            }
-        )
-    }
+            )
+        }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
