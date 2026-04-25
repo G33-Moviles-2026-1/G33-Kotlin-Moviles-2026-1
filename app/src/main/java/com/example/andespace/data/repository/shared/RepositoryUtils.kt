@@ -3,6 +3,14 @@ package com.example.andespace.data.repository.shared
 import com.example.andespace.data.network.ApiService
 import org.json.JSONObject
 
+object RepositoryMessages {
+    const val GENERIC_ERROR = "Something went wrong. Please try again."
+    const val NO_INTERNET = "No internet connection. Please check your network and try again."
+    const val DELETE_BOOKING_FAILED = "Could not delete the booking. Please try again."
+    const val SAVE_BOOKING_FAILED = "Could not save the booking. Please try again."
+    const val FAVORITES_SYNC_FAILED = "Couldn't sync favorites right now. Showing local favorites."
+}
+
 fun extractErrorMessage(errorBody: String?, defaultCode: Int): String {
     if (!errorBody.isNullOrEmpty()) {
         return try {
@@ -29,13 +37,13 @@ fun httpErrorMessage(code: Int): String = when (code) {
     422 -> "The submitted information is not valid."
     429 -> "Too many requests. Please wait a moment and try again."
     500, 502, 503 -> "The server is temporarily unavailable. Please try again later."
-    else -> "Something went wrong. Please try again."
+    else -> RepositoryMessages.GENERIC_ERROR
 }
 
 class ApiException(message: String) : Exception(message) {
     override val message: String
         get() = super.message?.removePrefix("java.lang.Exception: ")?.trim()
-            ?: "Something went wrong. Please try again."
+            ?: RepositoryMessages.GENERIC_ERROR
 }
 
 class ScheduleValidator(
@@ -53,7 +61,7 @@ class ScheduleValidator(
                 Result.failure(ApiException(backendMessage))
             }
         } catch (_: Exception) {
-            Result.failure(ApiException("No internet connection. Please check your network and try again."))
+            Result.failure(ApiException(RepositoryMessages.NO_INTERNET))
         }
     }
 }
