@@ -13,3 +13,10 @@ data class NavigationPathSearchParams(
     @SerializedName("from_room") val fromClassroom:String? = null,
     @SerializedName("to_room") val toClassroom: String? = null,
 )
+
+data class NavigationNearestNodeResponse(
+    @SerializedName("id") val id: String,
+    @SerializedName("building_code") val buildingCode: String,
+    @SerializedName("floor") val floor: Int,
+    @SerializedName("node_type") val nodeType: String
+)

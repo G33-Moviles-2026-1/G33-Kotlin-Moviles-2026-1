@@ -2,6 +2,7 @@ package com.example.andespace.ui.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.location.LocationSensor
 import com.example.andespace.data.repository.NavigationRepository
 import com.example.andespace.model.dto.NavigationPathSearchParams
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,14 @@ class NavigationViewModel(
 
     private val _uiState = MutableStateFlow(NavigationUiState())
     val uiState: StateFlow<NavigationUiState> = _uiState.asStateFlow()
+
+    fun onFromClassroomChange(fromClassroom: String) {
+        _uiState.update { it.copy(fromClassroom = fromClassroom) }
+    }
+
+    fun onToClassroomChange(toClassroom: String) {
+        _uiState.update { it.copy(toClassroom = toClassroom) }
+    }
 
     fun getInstructions(initClassroom: String, endClassroom: String) {
         if (initClassroom.isBlank() || endClassroom.isBlank()) return
@@ -44,6 +53,41 @@ class NavigationViewModel(
                     it.copy(
                         isLoading = false,
                         error = error.message ?: "An unknown error occurred"
+                    )
+                }
+            }
+        }
+    }
+
+    fun useCurrentLocationAsFromClassroom(locationSensor: LocationSensor) {
+        _uiState.update { it.copy(isLocating = true, error = null) }
+
+        viewModelScope.launch {
+            val location = locationSensor.getCurrentLocation()
+            if (location == null) {
+                _uiState.update {
+                    it.copy(
+                        isLocating = false,
+                        error = "Could not get your current location."
+                    )
+                }
+                return@launch
+            }
+
+            val result = repository.getNearestNavigationNode(location.latitude, location.longitude)
+            result.onSuccess { nearestNode ->
+                _uiState.update {
+                    it.copy(
+                        fromClassroom = nearestNode.buildingCode,
+                        isLocating = false,
+                        error = null
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLocating = false,
+                        error = error.message ?: "Could not determine your nearest location"
                     )
                 }
             }

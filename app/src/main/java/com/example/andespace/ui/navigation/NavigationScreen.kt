@@ -1,5 +1,9 @@
 package com.example.andespace.ui.navigation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -46,6 +52,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
+import com.example.andespace.data.location.FusedLocationSensor
 import com.example.andespace.ui.theme.PrimaryYellow
 
 @Composable
@@ -54,9 +63,33 @@ fun NavigationScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by navigationViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val locationSensor = remember(context) { FusedLocationSensor(context.applicationContext) }
     
-    var fromClassroom by remember { mutableStateOf("") }
-    var toClassroom by remember { mutableStateOf("") }
+    var fromClassroom by remember { mutableStateOf(uiState.fromClassroom ?: "") }
+    var toClassroom by remember { mutableStateOf(uiState.toClassroom ?: "") }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            navigationViewModel.useCurrentLocationAsFromClassroom(locationSensor)
+        }
+    }
+
+    LaunchedEffect(uiState.fromClassroom) {
+        uiState.fromClassroom?.let {
+            fromClassroom = it
+        }
+    }
+
+    LaunchedEffect(uiState.toClassroom) {
+        uiState.toClassroom?.let {
+            toClassroom = it
+        }
+    }
 
     // Pagination state
     var currentPage by remember { mutableIntStateOf(0) }
@@ -87,15 +120,52 @@ fun NavigationScreen(
 
         CustomNavigationTextField(
             value = fromClassroom,
-            onValueChange = { fromClassroom = it },
+            onValueChange = {
+                fromClassroom = it
+                navigationViewModel.onFromClassroomChange(it)
+            },
             placeholder = "ML 340",
             trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.MyLocation,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
+                IconButton(
+                    onClick = {
+                        val alreadyGranted =
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED ||
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                        if (alreadyGranted) {
+                            navigationViewModel.useCurrentLocationAsFromClassroom(locationSensor)
+                        } else {
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        }
+                    },
+                    enabled = !uiState.isLocating
+                ) {
+                    if (uiState.isLocating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.MyLocation,
+                            contentDescription = "Use current location",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
             }
         )
 
@@ -147,8 +217,7 @@ fun NavigationScreen(
 
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(320.dp),
+                .fillMaxWidth(),
             contentAlignment = if (uiState.isLoading) Alignment.Center else Alignment.TopCenter
         ) {
             if (uiState.isLoading) {
@@ -165,7 +234,7 @@ fun NavigationScreen(
                     text = "Enter classrooms and click the button to see the path.",
                     style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 40.dp)
+//                    modifier = Modifier.padding(top = 40.dp)
                 )
             } else {
                 val pagedInstructions = uiState.instructions.windowed(stepsPerPage, stepsPerPage, true)
@@ -181,10 +250,7 @@ fun NavigationScreen(
                             text = step
                         )
                     }
-                    
-                    Spacer(modifier = Modifier.weight(1f))
 
-                    // Pagination Controls
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
@@ -195,7 +261,7 @@ fun NavigationScreen(
                             enabled = currentPage > 0
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ChevronLeft, 
+                                imageVector = Icons.Default.ChevronLeft,
                                 contentDescription = "Previous",
                                 tint = if (currentPage > 0) MaterialTheme.colorScheme.onSurface else Color.Gray
                             )
@@ -210,7 +276,7 @@ fun NavigationScreen(
                             enabled = currentPage < totalPages - 1
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ChevronRight, 
+                                imageVector = Icons.Default.ChevronRight,
                                 contentDescription = "Next",
                                 tint = if (currentPage < totalPages - 1) MaterialTheme.colorScheme.onSurface else Color.Gray
                             )

@@ -53,7 +53,10 @@ fun HomePageScreen(
                 favoritesViewModel = favoritesViewModel,
                 homepageViewModel = homepageViewModel,
                 isUserLoggedIn = isUserLoggedIn,
-                onRequireLogin = onRequireLogin
+                onRequireLogin = onRequireLogin,
+                onNavigateToNavigation = {
+                    homepageViewModel.onNavigateToNavigation(it)
+                }
             )
         }
 

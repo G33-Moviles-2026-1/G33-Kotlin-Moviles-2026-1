@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -108,6 +109,16 @@ fun AndeSpaceApp(
     val navigationViewModel: NavigationViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val recommendationsViewModel: com.example.andespace.ui.recommendations.RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
+
+    val navigateToNavByRoomId by homepageViewModel.onNavigateToNavigation.collectAsState()
+
+    LaunchedEffect(navigateToNavByRoomId) {
+        navigateToNavByRoomId?.let { roomId ->
+            navigationViewModel.onToClassroomChange(roomId)
+            viewModel.onDestinationChanged(AppDestinations.NAVIGATION)
+            homepageViewModel.onNavigationHandled()
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -385,13 +396,5 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             text = name,
             style = MaterialTheme.typography.headlineMedium
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AndeSpaceTheme {
-        Greeting("Android")
     }
 }

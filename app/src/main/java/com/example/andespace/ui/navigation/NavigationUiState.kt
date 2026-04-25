@@ -6,5 +6,6 @@ data class NavigationUiState(
     val instructions: List<String> = emptyList(),
     val totalTimeSeconds: Int = 0,
     val isLoading: Boolean = false,
+    val isLocating: Boolean = false,
     val error: String? = null
 )
