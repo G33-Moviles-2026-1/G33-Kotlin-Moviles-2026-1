@@ -55,25 +55,25 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalContext
 import com.example.andespace.data.location.FusedLocationSensor
+import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.theme.PrimaryYellow
 
 @Composable
 fun NavigationScreen(
-    navigationViewModel: NavigationViewModel,
-    modifier: Modifier = Modifier
+    navigationViewModel: NavigationViewModel, modifier: Modifier = Modifier
 ) {
     val uiState by navigationViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val locationSensor = remember(context) { FusedLocationSensor(context.applicationContext) }
-    
+
     var fromClassroom by remember { mutableStateOf(uiState.fromClassroom ?: "") }
     var toClassroom by remember { mutableStateOf(uiState.toClassroom ?: "") }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val granted =
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) {
             navigationViewModel.useCurrentLocationAsFromClassroom(locationSensor)
         }
@@ -94,7 +94,8 @@ fun NavigationScreen(
     // Pagination state
     var currentPage by remember { mutableIntStateOf(0) }
     val stepsPerPage = 3
-    val totalPages = if (uiState.instructions.isEmpty()) 0 else (uiState.instructions.size + stepsPerPage - 1) / stepsPerPage
+    val totalPages =
+        if (uiState.instructions.isEmpty()) 0 else (uiState.instructions.size + stepsPerPage - 1) / stepsPerPage
 
     Column(
         modifier = modifier
@@ -110,64 +111,53 @@ fun NavigationScreen(
             text = "Where Are You?",
             modifier = Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 24.sp, fontWeight = FontWeight.Bold
             ),
             textAlign = TextAlign.Start
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        CustomNavigationTextField(
-            value = fromClassroom,
-            onValueChange = {
-                fromClassroom = it
-                navigationViewModel.onFromClassroomChange(it)
-            },
-            placeholder = "ML 340",
-            trailingIcon = {
-                IconButton(
-                    onClick = {
-                        val alreadyGranted =
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.ACCESS_FINE_LOCATION
-                            ) == PackageManager.PERMISSION_GRANTED ||
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                            ) == PackageManager.PERMISSION_GRANTED
+        CustomNavigationTextField(value = fromClassroom, onValueChange = {
+            fromClassroom = it
+            navigationViewModel.onFromClassroomChange(it)
+        }, placeholder = "ML 340", trailingIcon = {
+            IconButton(
+                onClick = {
+                    val alreadyGranted = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
 
-                        if (alreadyGranted) {
-                            navigationViewModel.useCurrentLocationAsFromClassroom(locationSensor)
-                        } else {
-                            locationPermissionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.ACCESS_COARSE_LOCATION
-                                )
-                            )
-                        }
-                    },
-                    enabled = !uiState.isLocating
-                ) {
-                    if (uiState.isLocating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    if (alreadyGranted) {
+                        navigationViewModel.useCurrentLocationAsFromClassroom(locationSensor)
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.MyLocation,
-                            contentDescription = "Use current location",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
+                        locationPermissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
                         )
                     }
+                }, enabled = !uiState.isLocating
+            ) {
+                if (uiState.isLocating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.MyLocation,
+                        contentDescription = "Use current location",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
-        )
+        })
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -175,8 +165,7 @@ fun NavigationScreen(
             text = "Where Do You Want to Go?",
             modifier = Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 24.sp, fontWeight = FontWeight.Bold
             ),
             textAlign = TextAlign.Start
         )
@@ -184,9 +173,7 @@ fun NavigationScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         CustomNavigationTextField(
-            value = toClassroom,
-            onValueChange = { toClassroom = it },
-            placeholder = "C 404"
+            value = toClassroom, onValueChange = { toClassroom = it }, placeholder = "C 404"
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -197,10 +184,8 @@ fun NavigationScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Follow these steps:",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
+                text = "Follow these steps:", style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 20.sp, fontWeight = FontWeight.Bold
                 )
             )
             if (uiState.instructions.isNotEmpty() && !uiState.isLoading) {
@@ -213,11 +198,20 @@ fun NavigationScreen(
             }
         }
 
+        if (uiState.isFromCache) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Cached route",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = if (uiState.isLoading) Alignment.Center else Alignment.TopCenter
         ) {
             if (uiState.isLoading) {
@@ -233,11 +227,11 @@ fun NavigationScreen(
                 Text(
                     text = "Enter classrooms and click the button to see the path.",
                     style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray),
-                    textAlign = TextAlign.Center,
-//                    modifier = Modifier.padding(top = 40.dp)
+                    textAlign = TextAlign.Center
                 )
             } else {
-                val pagedInstructions = uiState.instructions.windowed(stepsPerPage, stepsPerPage, true)
+                val pagedInstructions =
+                    uiState.instructions.windowed(stepsPerPage, stepsPerPage, true)
                 val currentSteps = pagedInstructions.getOrNull(currentPage) ?: emptyList()
 
                 Column(
@@ -246,8 +240,7 @@ fun NavigationScreen(
                 ) {
                     currentSteps.forEachIndexed { index, step ->
                         StepItem(
-                            number = currentPage * stepsPerPage + index + 1,
-                            text = step
+                            number = currentPage * stepsPerPage + index + 1, text = step
                         )
                     }
 
@@ -288,29 +281,16 @@ fun NavigationScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
-            onClick = { 
+        CustomYellowButton(
+            text = "Show me the way", onClick = {
                 navigationViewModel.getInstructions(fromClassroom, toClassroom)
                 currentPage = 0
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryYellow,
-                contentColor = Color.Black
-            ),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                text = "Show me the way",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
+            })
+        Spacer(modifier = Modifier.height(30.dp))
+
     }
 }
+
 
 @Composable
 fun StepItem(number: Int, text: String) {
@@ -321,8 +301,7 @@ fun StepItem(number: Int, text: String) {
         border = BorderStroke(1.dp, PrimaryYellow.copy(alpha = 0.3f))
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
@@ -331,10 +310,8 @@ fun StepItem(number: Int, text: String) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = number.toString(),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                    text = number.toString(), style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold, color = Color.Black
                     )
                 )
             }
@@ -362,12 +339,10 @@ fun CustomNavigationTextField(
             .height(56.dp)
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.CenterStart
+            .padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
         ) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (value.isEmpty()) {
@@ -383,8 +358,7 @@ fun CustomNavigationTextField(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface
                     ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface)
                 )

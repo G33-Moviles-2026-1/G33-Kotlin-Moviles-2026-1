@@ -42,6 +42,7 @@ interface AppContainer {
     val syncDao: SyncActionDao
     val favoritesDao: FavoritesDao
     val bookingDao: BookingDao
+    val gson: Gson
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -60,7 +61,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
 
-    private val gson: Gson by lazy {
+    override val gson: Gson by lazy {
         Gson()
     }
 
@@ -134,7 +135,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val bookingRepository: BookingRepository by lazy {
-        BookingRepository(apiService, bookingDao, syncDao, gson)
+        BookingRepository(apiService, bookingDao, syncDao, gson, context)
     }
 
     override val scheduleRepository: ScheduleRepository by lazy {
@@ -142,7 +143,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val navigationRepository: NavigationRepository by lazy {
-        NavigationRepository(apiService)
+        NavigationRepository(apiService, context, gson)
     }
 
     override val syncManager: SyncManager by lazy {

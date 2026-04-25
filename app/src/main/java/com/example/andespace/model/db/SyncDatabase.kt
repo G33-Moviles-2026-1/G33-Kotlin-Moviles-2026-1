@@ -15,7 +15,7 @@ import com.example.andespace.model.db.sync.SyncActionDao
 @SuppressLint("RestrictedApi")
 @Database(
     entities = [PendingSyncAction::class, PendingAnalyticsEvent::class, FavoriteRoomEntity::class, BookingEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class SyncDatabase : RoomDatabase() {

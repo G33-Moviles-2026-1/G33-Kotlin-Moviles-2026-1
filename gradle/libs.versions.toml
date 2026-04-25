@@ -19,8 +19,10 @@ foundationLayout = "1.10.6"
 material3 = "1.4.0"
 ksp = "2.0.21-1.0.28"
 room = "2.7.1"
+work = "2.10.0"
 
 [libraries]
+androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
