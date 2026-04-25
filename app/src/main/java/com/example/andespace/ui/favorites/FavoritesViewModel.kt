@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.FavoritesRepository
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.model.dto.RoomDto
-import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,7 +91,7 @@ class FavoritesViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = UserMessages.FAVORITES_SYNC_FAILED
+                            errorMessage = RepositoryMessages.FAVORITES_SYNC_FAILED
                         )
                     }
                 }
@@ -126,6 +126,52 @@ class FavoritesViewModel(
                     .onSuccess { analyticsRepository.trackFavoriteEvent(room, added = true) }
             }
         }
+    }
+
+    fun removeFavoriteWithUndo(room: RoomDto) {
+        if (room.id !in _uiState.value.favoriteIds) return
+
+        _uiState.update { state ->
+            state.copy(
+                favoriteIds = state.favoriteIds - room.id,
+                favoriteRooms = state.favoriteRooms.filter { it.id != room.id },
+                pendingUndoRoom = room,
+                undoEventId = state.undoEventId + 1
+            )
+        }
+        persistFavorites()
+
+        viewModelScope.launch {
+            repository.deleteFavorite(room.id)
+                .onSuccess { analyticsRepository.trackFavoriteEvent(room, added = false) }
+        }
+    }
+
+    fun undoRemoveFavorite() {
+        val room = _uiState.value.pendingUndoRoom ?: return
+        val isAlreadyFavorite = room.id in _uiState.value.favoriteIds
+        if (isAlreadyFavorite) {
+            clearPendingUndo()
+            return
+        }
+
+        _uiState.update { state ->
+            state.copy(
+                favoriteIds = state.favoriteIds + room.id,
+                favoriteRooms = state.favoriteRooms + room,
+                pendingUndoRoom = null
+            )
+        }
+        persistFavorites()
+
+        viewModelScope.launch {
+            repository.addFavorite(room)
+                .onSuccess { analyticsRepository.trackFavoriteEvent(room, added = true) }
+        }
+    }
+
+    fun clearPendingUndo() {
+        _uiState.update { it.copy(pendingUndoRoom = null) }
     }
 
     fun clearFavorites() {

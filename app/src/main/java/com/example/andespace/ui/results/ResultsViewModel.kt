@@ -132,7 +132,8 @@ class ResultsViewModel(
                                 currentPage = page,
                                 totalPages = pages,
                                 errorMessage = null,
-                                showingCachedResults = false
+                                showingCachedResults = false,
+                                showOfflinePlaceholder = false
                             )
                         }
                         if (fromHomepageAttempt && page == 1) {
@@ -159,7 +160,8 @@ class ResultsViewModel(
                                         currentPage = 1,
                                         totalPages = cachedTotalPages,
                                         errorMessage = "No internet connection. Showing the cached results from your last search.",
-                                        showingCachedResults = true
+                                        showingCachedResults = true,
+                                        showOfflinePlaceholder = false
                                     )
                                 }
                                 onNavigateToResults(true)
@@ -167,11 +169,13 @@ class ResultsViewModel(
                                 _uiState.update {
                                     it.copy(
                                         isSearching = false,
+                                        rooms = emptyList(),
                                         errorMessage = "No internet connection. Please check your connection and try again.",
-                                        showingCachedResults = false
+                                        showingCachedResults = false,
+                                        showOfflinePlaceholder = true
                                     )
                                 }
-                                onNavigateToResults(false)
+                                onNavigateToResults(true)
                             }
                             return@fold
                         }
@@ -180,8 +184,10 @@ class ResultsViewModel(
                             _uiState.update {
                                 it.copy(
                                     isSearching = false,
+                                    rooms = emptyList(),
                                     errorMessage = "More results require an internet connection. Please check your connection and try again.",
-                                    showingCachedResults = false
+                                    showingCachedResults = false,
+                                    showOfflinePlaceholder = true
                                 )
                             }
                             return@fold
@@ -198,7 +204,8 @@ class ResultsViewModel(
                                     currentPage = page,
                                     totalPages = cachedTotalPages,
                                     errorMessage = "No internet connection. Showing cached results for page $page.",
-                                    showingCachedResults = true
+                                    showingCachedResults = true,
+                                    showOfflinePlaceholder = false
                                 )
                             }
                         } else {
@@ -206,7 +213,8 @@ class ResultsViewModel(
                                 it.copy(
                                     isSearching = false,
                                     errorMessage = friendlyError(error.message),
-                                    showingCachedResults = false
+                                    showingCachedResults = false,
+                                    showOfflinePlaceholder = false
                                 )
                             }
                         }

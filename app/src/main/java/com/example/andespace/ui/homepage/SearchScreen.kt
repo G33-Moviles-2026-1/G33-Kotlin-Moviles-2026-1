@@ -41,6 +41,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -49,9 +52,11 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +80,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeSearchScreen(
@@ -96,6 +102,9 @@ fun HomeSearchScreen(
     val searchError = homepageUiState.searchError
 
     var showFilterSheet by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+    var lastShownError by remember { mutableStateOf<String?>(null) }
     var selectedUtilities by remember(lastSearchConfig.utilityDisplayNames) {
         mutableStateOf(lastSearchConfig.utilityDisplayNames)
     }
@@ -107,52 +116,97 @@ fun HomeSearchScreen(
         )
     }
 
-    Column(
+    LaunchedEffect(searchError) {
+        val message = searchError ?: return@LaunchedEffect
+        if (message == lastShownError) return@LaunchedEffect
+        lastShownError = message
+        snackbarHostState.showSnackbar(
+            message = message,
+            withDismissAction = true,
+            duration = SnackbarDuration.Short
+        )
+    }
+
+    LaunchedEffect(locationError) {
+        if (!locationError) return@LaunchedEffect
+        val message = "Could not get your location. Enable GPS and try again."
+        if (message == lastShownError) return@LaunchedEffect
+        lastShownError = message
+        snackbarHostState.showSnackbar(
+            message = message,
+            withDismissAction = true,
+            duration = SnackbarDuration.Short
+        )
+    }
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 24.dp)
-            .padding(top = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Where do you\nwant to go?",
-            style = MaterialTheme.typography.titleMedium.copy(fontSize = 28.sp),
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .padding(top = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Where do you\nwant to go?",
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 28.sp),
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-        Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-        SearchCard(
-            selectedUtilities = selectedUtilities,
-            isSearching = isSearching,
-            searchError = searchError,
-            closeToMe = closeToMe,
-            isLocating = isLocating,
-            locationError = locationError,
-            userLocation = userLocation,
-            lastSearchConfig = lastSearchConfig,
-            onRequestCurrentLocation = { homepageViewModel.requestCurrentLocation(locationSensor) },
-            onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
-            onCloseToMeDisabled = {homepageViewModel.onCloseToMeDisabled()},
-            onClearLocationError = { homepageViewModel.clearLocationError() },
-            onFilterClick = {
-                homepageViewModel.onFiltersOpened()
-                showFilterSheet = true
-            },
-            onSearchClick = { params ->
-                homepageViewModel.cacheLastSearchConfig(params)
-                resultsViewModel.onSearchClick(
-                    params = params,
-                    onNavigateToResults = { shouldNavigate ->
-                        if (shouldNavigate) {
-                            homepageViewModel.onShowResults()
+            SearchCard(
+                selectedUtilities = selectedUtilities,
+                isSearching = isSearching,
+                searchError = searchError,
+                closeToMe = closeToMe,
+                isLocating = isLocating,
+                locationError = locationError,
+                userLocation = userLocation,
+                lastSearchConfig = lastSearchConfig,
+                onRequestCurrentLocation = { homepageViewModel.requestCurrentLocation(locationSensor) },
+                onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
+                onCloseToMeDisabled = { homepageViewModel.onCloseToMeDisabled() },
+                onClearLocationError = { homepageViewModel.clearLocationError() },
+                onFilterClick = {
+                    homepageViewModel.onFiltersOpened()
+                    showFilterSheet = true
+                },
+                onSearchClick = { params ->
+                    homepageViewModel.cacheLastSearchConfig(params)
+                    resultsViewModel.onSearchClick(
+                        params = params,
+                        onNavigateToResults = { shouldNavigate ->
+                            if (shouldNavigate) {
+                                homepageViewModel.onShowResults()
+                            }
                         }
+                    )
+                },
+                onAutoSearchClick = { homepageViewModel.onShowAutoSearch() },
+                hasSelectedUtilities = selectedUtilities.isNotEmpty(),
+                onResetFilters = { selectedUtilities = emptySet() },
+                onShowMessage = { message ->
+                    if (message == lastShownError) return@SearchCard
+                    lastShownError = message
+                    snackbarScope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = message,
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Short
+                        )
                     }
-                )
-            },
-            onAutoSearchClick = { homepageViewModel.onShowAutoSearch() }
+                }
+            )
+        }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 }
@@ -200,7 +254,10 @@ private fun SearchCard(
     onCloseToMeDisabled: () -> Unit,
     onClearLocationError: () -> Unit,
     onFilterClick: () -> Unit,
+    hasSelectedUtilities: Boolean,
+    onResetFilters: () -> Unit,
     onSearchClick: (HomeSearchParams) -> Unit,
+    onShowMessage: (String) -> Unit,
     onAutoSearchClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -242,6 +299,24 @@ private fun SearchCard(
     var missingTimeError by remember { mutableStateOf<String?>(null) }
     var showSincePicker by remember { mutableStateOf(false) }
     var showUntilPicker by remember { mutableStateOf(false) }
+
+    fun resetFiltersToDefault() {
+        classroomInput = ""
+        selectedDateMillis = parseDateMillisOrDefault(null)
+        sinceHour = 8
+        sinceMinute = 0
+        untilHour = 18
+        untilMinute = 0
+        sinceSet = false
+        untilSet = false
+        missingTimeError = null
+        showSincePicker = false
+        showUntilPicker = false
+        showDatePicker = false
+        onResetFilters()
+        onCloseToMeDisabled()
+        onClearLocationError()
+    }
 
     if (showSincePicker) {
         TimePickerDialog(
@@ -360,11 +435,20 @@ private fun SearchCard(
                 )
             }
             IconButton(onClick = onFilterClick) {
-                AssetIcon(
-                    assetPath = "icons/filters.svg",
-                    contentDescription = "Filters",
-                    modifier = Modifier.size(20.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (hasSelectedUtilities) PrimaryYellow else androidx.compose.ui.graphics.Color.Transparent
+                        )
+                        .padding(6.dp)
+                ) {
+                    AssetIcon(
+                        assetPath = "icons/filters.svg",
+                        contentDescription = "Filters",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
@@ -475,26 +559,11 @@ private fun SearchCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
         }
-        if (locationError) {
-            Text(
-                text = "Could not get your location. Enable GPS and try again.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-        }
+        if (locationError) Spacer(modifier = Modifier.height(4.dp))
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        val displayedError = missingTimeError ?: searchError
-        if (displayedError != null) {
-            Text(
-                text = displayedError,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+        if (missingTimeError != null || searchError != null) Spacer(modifier = Modifier.height(8.dp))
         val isSearchBlockedByLocation = closeToMe && isLocating
         CustomYellowButton(
             text = when {
@@ -507,6 +576,7 @@ private fun SearchCard(
                 if (!isSearching) {
                     if (!sinceSet || !untilSet) {
                         missingTimeError = "You must select both times (Since and Until) to search."
+                        onShowMessage(missingTimeError!!)
                         return@CustomYellowButton
                     }
                     missingTimeError = null
@@ -535,6 +605,12 @@ private fun SearchCard(
             enabled = !isSearching && !isSearchBlockedByLocation,
             onClick = onAutoSearchClick
         )
+        TextButton(
+            onClick = { resetFiltersToDefault() },
+            enabled = !isSearching
+        ) {
+            Text("Reset filters")
+        }
     }
 }
 
