@@ -11,7 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.andespace.model.dto.InteractionAction
 import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomSearchItemOut
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,8 +43,51 @@ fun RecommendationsScreen(
             title = { Text("Quick Book: ${currentRoomDto.id}") },
             text = {
                 Column {
-                    Text("Time: ${uiState.selectedStartTime} - ${uiState.selectedEndTime}")
+                    Text("Select Time Slot", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    var expandedTime by remember { mutableStateOf(false) }
+                    val matchingWindows = uiState.currentRoom?.matching_windows ?: emptyList()
+
+                    val selectedSlotDisplay = uiState.selectedBookingSlot?.let {
+                        "${it.start.substringBeforeLast(":")} - ${it.end.substringBeforeLast(":")}"
+                    } ?: "No slots available"
+
+                    ExposedDropdownMenuBox(
+                        expanded = expandedTime,
+                        onExpandedChange = { expandedTime = !expandedTime }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedSlotDisplay,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedTime,
+                            onDismissRequest = { expandedTime = false }
+                        ) {
+                            if (matchingWindows.isEmpty()) {
+                                DropdownMenuItem(text = { Text("No valid slots") }, onClick = {})
+                            }
+                            matchingWindows.forEach { window ->
+                                val displayTime = "${window.start.substringBeforeLast(":")} - ${window.end.substringBeforeLast(":")}"
+                                DropdownMenuItem(
+                                    text = { Text(displayTime) },
+                                    onClick = {
+                                        viewModel.updateBookingSlot(window)
+                                        expandedTime = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("Select Purpose", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     ExposedDropdownMenuBox(
                         expanded = expanded,
@@ -52,12 +97,9 @@ fun RecommendationsScreen(
                             value = selectedDisplay,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Meeting Purpose") },
-                            placeholder = { Text("Select a purpose") },
+                            placeholder = { Text("Meeting Purpose") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         ExposedDropdownMenu(
                             expanded = expanded,
@@ -73,6 +115,15 @@ fun RecommendationsScreen(
                                 )
                             }
                         }
+                    }
+
+                    if (uiState.bookingError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.bookingError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             },
@@ -121,20 +172,31 @@ fun RecommendationsScreen(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 16.dp)
         ) {
-            if (uiState.isLoading) {
+            if (uiState.isLoading && uiState.recommendations.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.currentRoom != null) {
+            }
+            else if (uiState.currentRoom != null) {
                 val currentRoomOut = uiState.currentRoom!!
                 val currentRoomDto = currentRoomOut.toRoomDto()
                 val isFavorite = currentRoomOut.room_id in uiState.favoriteIds
                 RoomRecommendationCard(
                     room = currentRoomDto,
                     isFavorite = isFavorite,
-                    onSkip = { viewModel.onInteract(InteractionAction.SKIP) },
+                    onSkip = {
+                        if (isFavorite) {
+                            viewModel.nextRoom()
+                        } else {
+                            viewModel.onInteract(InteractionAction.SKIP)
+                        }
+                    },
                     onFavorite = { viewModel.toggleFavorite(currentRoomDto, isFavorite) },
                     onBook = { viewModel.openBookingDialog() }
                 )
-            } else {
+            }
+            else if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+            else {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -146,7 +208,7 @@ fun RecommendationsScreen(
                         tint = Color.Green
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("You have seen all recommendations for this time slot.")
+                    Text("We don't have more recommendations for you. Try again Tomorrow.")
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(onClick = onBackClick) {
                         Text("Go Back")
@@ -213,12 +275,14 @@ fun RoomRecommendationCard(
         ) {
             FloatingActionButton(
                 onClick = onSkip,
-                containerColor = MaterialTheme.colorScheme.errorContainer
+                containerColor = if (isFavorite) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Skip")
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Check else Icons.Default.Close,
+                    contentDescription = if (isFavorite) "Next" else "Skip",
+                    tint = if (isFavorite) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                )
             }
-
-            // Dynamically change the icon based on local favorite state
             FloatingActionButton(
                 onClick = onFavorite,
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -253,3 +317,4 @@ fun RoomSearchItemOut.toRoomDto(): RoomDto {
         utilities = this.utilities,
     )
 }
+

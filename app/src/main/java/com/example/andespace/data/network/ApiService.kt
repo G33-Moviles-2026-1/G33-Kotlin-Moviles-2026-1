@@ -2,6 +2,7 @@ package com.example.andespace.data.network
 
 import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
+import com.example.andespace.model.dto.AutoSearchRequest
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.GetFavoritesResponse
@@ -14,10 +15,9 @@ import com.example.andespace.model.dto.InteractionPayload
 import com.example.andespace.model.dto.ManualScheduleIn
 import com.example.andespace.model.dto.NavigationNearestNodeResponse
 import com.example.andespace.model.dto.NavigationPathResponse
-import com.example.andespace.model.dto.NavigationPathSearchParams
 import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.model.dto.RoomSearchItemOut
 import com.example.andespace.model.dto.ScheduleClassesOut
-import com.example.andespace.ui.recommendations.RoomSearchItemOut
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -81,12 +81,9 @@ interface ApiService {
     @GET("schedule/classes")
     suspend fun getScheduleClasses(): Response<ScheduleClassesOut>
 
-    @GET("recommendations/auto-search")
+    @POST("recommendations/auto-search")
     suspend fun getAutoSearchRecommendations(
-        @Query("target_date") targetDate: String,
-        @Query("since") since: String,
-        @Query("until") until: String,
-        @Query("top_k") topK: Int
+        @Body request: AutoSearchRequest
     ): List<RoomSearchItemOut>
 
     @POST("recommendations/interact")

@@ -6,55 +6,25 @@ import com.example.andespace.data.repository.BookingRepository
 import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.data.repository.RecommendationsRepository
 import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.InteractionAction
 import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.model.dto.TimeWindowOut
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-
-data class TimeWindowOut(val start: String, val end: String)
-data class RoomSearchItemOut(
-    val room_id: String,
-    val room_number: String?,
-    val building_name: String,
-    val building_code: String,
-    val capacity: Int,
-    val matching_windows: List<TimeWindowOut> = emptyList(),
-    val utilities: List<String> = emptyList(),
-)
-enum class InteractionAction { SKIP, FAVORITE, BOOK }
-
-data class RecommendationsUiState(
-    val selectedDate: LocalDate = LocalDate.now(),
-    val selectedStartTime: LocalTime? = null,
-    val selectedEndTime: LocalTime? = null,
-    val isLoading: Boolean = false,
-    val recommendations: List<RoomSearchItemOut> = emptyList(),
-    val currentIndex: Int = 0,
-    val favoriteIds: Set<String> = emptySet(),
-    val error: String? = null,
-    val isSearchActive: Boolean = false,
-    val showBookingDialog: Boolean = false,
-    val bookingPurpose: String = "",
-    val isBookingInProgress: Boolean = false
-) {
-    val currentRoom: RoomSearchItemOut?
-        get() = recommendations.getOrNull(currentIndex)
-}
 
 class RecommendationsViewModel(
     private val repository: RecommendationsRepository,
     private val favoritesRepository: FavoritesRepository,
     private val bookingsRepository: BookingRepository
 ) : ViewModel() {
-
+    private var isFetchingMore = false
     private val _uiState = MutableStateFlow(RecommendationsUiState())
-    val uiState: StateFlow<RecommendationsUiState> = _uiState.asStateFlow()
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+    val uiState: StateFlow<RecommendationsUiState> = _uiState.asStateFlow()
     fun toggleFavorite(room: RoomDto, isCurrentlyFavorite: Boolean) {
         _uiState.update { state ->
             val updatedFavorites = if (isCurrentlyFavorite) {
@@ -75,26 +45,73 @@ class RecommendationsViewModel(
             }
         }
     }
-    fun updateTimeSelection(start: LocalTime, end: LocalTime) {
-        _uiState.update { it.copy(selectedStartTime = start, selectedEndTime = end) }
+
+    fun nextRoom() {
+        val state = _uiState.value
+        val nextIndex = state.currentIndex + 1
+
+        _uiState.update { it.copy(currentIndex = nextIndex) }
+
+        if (nextIndex >= _uiState.value.recommendations.size - 2) {
+            fetchMoreRooms()
+        }
+    }
+
+    private fun fetchMoreRooms() {
+        if (isFetchingMore) return
+        isFetchingMore = true
+
+        _uiState.update { it.copy(isLoading = true) }
+
+        viewModelScope.launch {
+            try {
+                val currentState = _uiState.value
+                val seenRoomIds = currentState.recommendations.map { it.room_id }
+
+                val newResults = repository.getAutoSearchRecommendations(
+                    targetDate = currentState.selectedDate.toString(),
+                    targetTime = currentState.selectedTime.format(timeFormatter),
+                    topK = 3,
+                    excludeIds = seenRoomIds
+                )
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        recommendations = it.recommendations + newResults
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
+            } finally {
+                isFetchingMore = false
+            }
+        }
     }
 
     fun startAutoSearch() {
         val state = _uiState.value
-        if (state.selectedStartTime == null || state.selectedEndTime == null) return
-
         _uiState.update { it.copy(isLoading = true, isSearchActive = true, error = null) }
 
         viewModelScope.launch {
             try {
+                val localFavorites = favoritesRepository.getLocalFavorites()
+                val currentFavoriteIds = localFavorites.map { it.id }.toSet()
+
                 val results = repository.getAutoSearchRecommendations(
-                    targetDate = state.selectedDate,
-                    since = state.selectedStartTime,
-                    until = state.selectedEndTime,
-                    topK = 3
+                    targetDate = state.selectedDate.toString(),
+                    targetTime = state.selectedTime.format(timeFormatter),
+                    topK = 3,
+                    excludeIds = emptyList()
                 )
+
                 _uiState.update {
-                    it.copy(isLoading = false, recommendations = results, currentIndex = 0)
+                    it.copy(
+                        isLoading = false,
+                        recommendations = results,
+                        currentIndex = 0,
+                        favoriteIds = currentFavoriteIds
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
@@ -104,7 +121,17 @@ class RecommendationsViewModel(
 
 
     fun openBookingDialog() {
+        val state = _uiState.value
         _uiState.update { it.copy(showBookingDialog = true, bookingPurpose = "") }
+        val firstValidSlot = state.currentRoom?.matching_windows?.firstOrNull()
+        _uiState.update {
+            it.copy(
+                showBookingDialog = true,
+                bookingPurpose = "",
+                bookingError = null,
+                selectedBookingSlot = firstValidSlot
+            )
+        }
     }
 
     fun closeBookingDialog() {
@@ -115,21 +142,22 @@ class RecommendationsViewModel(
         _uiState.update { it.copy(bookingPurpose = purpose) }
     }
 
+    fun updateBookingSlot(slot: TimeWindowOut) {
+        _uiState.update { it.copy(selectedBookingSlot = slot, bookingError = null) }
+    }
+
     fun confirmQuickBooking(room: RoomDto) {
         val state = _uiState.value
-        if (state.selectedStartTime == null || state.selectedEndTime == null || state.bookingPurpose.isBlank()) return
-
-        _uiState.update { it.copy(isBookingInProgress = true) }
+        val slot = state.selectedBookingSlot ?: return
+        if (state.bookingPurpose.isBlank()) return
+        _uiState.update { it.copy(isBookingInProgress = true, bookingError = null) }
 
         viewModelScope.launch {
-            val exactWindow = state.currentRoom?.matching_windows?.firstOrNull()
-            val finalStartTime = exactWindow?.start ?: state.selectedStartTime.format(timeFormatter)
-            val finalEndTime = exactWindow?.end ?: state.selectedEndTime.format(timeFormatter)
             val request = CreateBookingRequest(
                 roomId = room.id,
                 date = state.selectedDate.toString(),
-                startTime = finalStartTime,
-                endTime = finalEndTime,
+                startTime = slot.start,
+                endTime = slot.end,
                 purpose = state.bookingPurpose
             )
 
@@ -140,12 +168,17 @@ class RecommendationsViewModel(
                         it.copy(
                             isBookingInProgress = false,
                             showBookingDialog = false,
-                            currentIndex = it.currentIndex + 1
                         )
                     }
+                    nextRoom()
                 }
-                .onFailure {
-                    _uiState.update { it.copy(isBookingInProgress = false) }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isBookingInProgress = false,
+                            bookingError = error.message ?: "The booking could not be confirmed."
+                        )
+                    }
                 }
         }
     }
@@ -155,12 +188,17 @@ class RecommendationsViewModel(
         val targetRoomId = roomId ?: state.currentRoom?.room_id ?: return
         viewModelScope.launch {
             try {
-                repository.submitInteraction(targetRoomId, action, state.selectedDate, state.selectedStartTime!!)
+                repository.submitInteraction(
+                    targetRoomId,
+                    action,
+                    targetDate = state.selectedDate,
+                    slotStart = state.selectedTime
+                )
             } catch (e: Exception) { }
         }
 
         if (action == InteractionAction.SKIP) {
-            _uiState.update { it.copy(currentIndex = it.currentIndex + 1) }
+            nextRoom()
         }
     }
 

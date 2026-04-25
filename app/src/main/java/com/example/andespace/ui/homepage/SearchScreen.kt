@@ -73,7 +73,6 @@ import com.example.andespace.data.location.GeoLocation
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.RoomUtility
 import com.example.andespace.ui.components.CustomYellowButton
-import com.example.andespace.ui.recommendations.AutoSearchDialog
 import com.example.andespace.ui.recommendations.RecommendationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.theme.PrimaryYellow
@@ -93,7 +92,6 @@ fun HomeSearchScreen(
 ) {
     val context = LocalContext.current
     val locationSensor = remember(context) { FusedLocationSensor(context.applicationContext) }
-    var showAutoSearchDialog by remember { mutableStateOf(false) }
     val homepageUiState by homepageViewModel.uiState.collectAsState()
 
 
@@ -117,17 +115,6 @@ fun HomeSearchScreen(
             selectedOptions = selectedUtilities,
             onSelectedOptionsChange = { selectedUtilities = it },
             onDismiss = { showFilterSheet = false }
-        )
-    }
-    if (showAutoSearchDialog) {
-        AutoSearchDialog(
-            onDismiss = { showAutoSearchDialog = false },
-            onConfirm = { start, end ->
-                showAutoSearchDialog = false
-                recommendationsViewModel.updateTimeSelection(start, end)
-                recommendationsViewModel.startAutoSearch()
-                homepageViewModel.onShowAutoSearch()
-            }
         )
     }
 
@@ -203,7 +190,9 @@ fun HomeSearchScreen(
                         }
                     )
                 },
-                onAutoSearchClick = { showAutoSearchDialog = true },
+                onAutoSearchClick = {
+                    recommendationsViewModel.startAutoSearch()
+                    homepageViewModel.onShowAutoSearch() },
                 hasSelectedUtilities = selectedUtilities.isNotEmpty(),
                 onResetFilters = { selectedUtilities = emptySet() },
                 onShowMessage = { message ->
