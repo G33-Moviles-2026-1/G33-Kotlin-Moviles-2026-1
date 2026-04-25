@@ -69,6 +69,7 @@ object AppViewModelProvider {
                 repository = andeSpaceApplication().container.navigationRepository
             )
         }
+        initializer {
             RecommendationsViewModel(
                 repository = andeSpaceApplication().container.recommendationsRepository
             )
