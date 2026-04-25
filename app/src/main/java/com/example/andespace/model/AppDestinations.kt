@@ -14,6 +14,8 @@ enum class AppDestinations(
     FAVORITES("Favorites", assetIconPath = "icons/favorites.svg"),
     BOOKINGS("Bookings", assetIconPath = "icons/bookings.svg"),
     SCHEDULE("My Schedule", assetIconPath = "icons/schedule.svg"),
+
+    NAVIGATION("Navigation", assetIconPath = "icons/navigation.svg"),
     LOGIN("Log In", icon = Icons.Default.Lock),
     REGISTER("Register", icon = Icons.Default.PersonAdd)
 }

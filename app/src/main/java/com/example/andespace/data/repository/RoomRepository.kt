@@ -59,7 +59,10 @@ class RoomRepository(private val apiService: ApiService) {
                     Result.success(body)
                 } else {
                     val rawErrorBody = response.errorBody()?.string()
-                    Log.e(TAG, "searchRooms error code=${response.code()}, backend_message=$rawErrorBody")
+                    Log.e(
+                        TAG,
+                        "searchRooms error code=${response.code()}, backend_message=$rawErrorBody"
+                    )
                     Result.failure(Exception(extractErrorMessage(rawErrorBody, response.code())))
                 }
             } catch (e: Exception) {
@@ -86,5 +89,4 @@ class RoomRepository(private val apiService: ApiService) {
     } catch (_: Exception) {
         Result.failure(Exception("No internet connection. Please check your network and try again."))
     }
-
 }

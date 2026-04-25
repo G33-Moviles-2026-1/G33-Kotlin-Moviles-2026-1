@@ -12,6 +12,9 @@ import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.DayRoomRecommendationsOut
 import com.example.andespace.model.dto.InteractionPayload
 import com.example.andespace.model.dto.ManualScheduleIn
+import com.example.andespace.model.dto.NavigationNearestNodeResponse
+import com.example.andespace.model.dto.NavigationPathResponse
+import com.example.andespace.model.dto.NavigationPathSearchParams
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.ScheduleClassesOut
 import com.example.andespace.ui.recommendations.RoomSearchItemOut
@@ -121,5 +124,18 @@ interface ApiService {
 
     @DELETE("favorites/{roomId}")
     suspend fun deleteFavorite(@Path("roomId") roomId: String): Response<Unit>
+
+    @GET("navigation/path")
+    suspend fun getNavigationPath(
+        @Query("from_room") fromRoom: String?,
+        @Query("to_room") toRoom: String?
+    ): Response<NavigationPathResponse>
+
+    @GET("navigation/nearest-node")
+    suspend fun getNearestNavigationNode(
+        @Query("lat") latitude: Double,
+        @Query("lon") longitude: Double
+    ): Response<NavigationNearestNodeResponse>
+
 }
 

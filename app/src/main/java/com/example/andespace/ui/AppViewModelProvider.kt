@@ -11,6 +11,7 @@ import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.main.MainViewModel
+import com.example.andespace.ui.navigation.NavigationViewModel
 import com.example.andespace.ui.recommendations.RecommendationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.ScheduleViewModel
@@ -52,7 +53,6 @@ object AppViewModelProvider {
                 analyticsRepository = andeSpaceApplication().container.analyticsRepository
             )
         }
-
         initializer {
             DetailRoomViewModel(
                 repository = andeSpaceApplication().container.roomRepository,
@@ -62,6 +62,11 @@ object AppViewModelProvider {
             FavoritesViewModel(
                 repository = andeSpaceApplication().container.favoritesRepository,
                 analyticsRepository = andeSpaceApplication().container.analyticsRepository
+            )
+        }
+        initializer {
+            NavigationViewModel(
+                repository = andeSpaceApplication().container.navigationRepository
             )
         }
         initializer {

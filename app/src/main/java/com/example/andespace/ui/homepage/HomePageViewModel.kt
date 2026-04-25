@@ -17,6 +17,17 @@ class HomepageViewModel(
     private val _uiState = MutableStateFlow(HomepageUiState())
     val uiState: StateFlow<HomepageUiState> = _uiState.asStateFlow()
 
+    private val _onNavigateToNavigation = MutableStateFlow<String?>(null)
+    val onNavigateToNavigation: StateFlow<String?> = _onNavigateToNavigation.asStateFlow()
+
+    fun onNavigateToNavigation(roomId: String) {
+        _onNavigateToNavigation.value = roomId
+    }
+
+    fun onNavigationHandled() {
+        _onNavigateToNavigation.value = null
+    }
+
     fun resetToHome() {
         _uiState.update { it.copy(contentScreen = ContentScreen.HOME) }
     }

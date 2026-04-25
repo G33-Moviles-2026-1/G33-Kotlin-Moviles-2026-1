@@ -7,7 +7,6 @@ import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.RoomDto
-import com.example.andespace.model.dto.RoomTimeWindowDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

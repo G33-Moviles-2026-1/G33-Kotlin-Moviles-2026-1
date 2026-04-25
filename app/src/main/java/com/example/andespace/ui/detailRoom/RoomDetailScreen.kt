@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -60,7 +62,8 @@ fun RoomDetailScreen(
     detailRoomViewModel: DetailRoomViewModel,
     isUserLoggedIn: Boolean,
     onRequireLogin: () -> Unit,
-    homepageViewModel: HomepageViewModel
+    homepageViewModel: HomepageViewModel,
+    onNavigateToNavigation: (String) -> Unit
 ) {
     val detailRoomUiState by detailRoomViewModel.uiState.collectAsState()
     val favoritesUiState by favoritesViewModel.uiState.collectAsState()
@@ -321,6 +324,35 @@ fun RoomDetailScreen(
                     text = "Book Room",
                     style = MaterialTheme.typography.titleMedium
                 )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = { onNavigateToNavigation(room.id) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp)
+                    .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(14.dp)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Get Directions",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(18.dp))
         }

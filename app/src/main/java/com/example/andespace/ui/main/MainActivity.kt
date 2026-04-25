@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -38,10 +39,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
@@ -61,6 +62,8 @@ import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
 import com.example.andespace.ui.homepage.HomepageViewModel
+import com.example.andespace.ui.navigation.NavigationScreen
+import com.example.andespace.ui.navigation.NavigationViewModel
 import com.example.andespace.ui.homepage.HomePageScreen
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
@@ -92,19 +95,30 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AndeSpaceApp(
-    viewModel: MainViewModel,
-    homepageViewModel: HomepageViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    scheduleViewModel: ScheduleViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    favoritesViewModel: FavoritesViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: MainViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val homepageViewModel: HomepageViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val scheduleViewModel: ScheduleViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val favoritesViewModel: FavoritesViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val resultsViewModel: ResultsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val detailRoomViewModel: DetailRoomViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val navigationViewModel: NavigationViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val recommendationsViewModel: com.example.andespace.ui.recommendations.RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
+
+    val navigateToNavByRoomId by homepageViewModel.onNavigateToNavigation.collectAsState()
+
+    LaunchedEffect(navigateToNavByRoomId) {
+        navigateToNavByRoomId?.let { roomId ->
+            navigationViewModel.onToClassroomChange(roomId)
+            viewModel.onDestinationChanged(AppDestinations.NAVIGATION)
+            homepageViewModel.onNavigationHandled()
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -323,6 +337,12 @@ fun AndeSpaceApp(
                         }
                     )
                 }
+
+                AppDestinations.NAVIGATION -> {
+                    NavigationScreen(
+                        navigationViewModel = navigationViewModel
+                    )
+                }
             }
 
             if (uiState.isUserMenuExpanded) {
@@ -376,13 +396,5 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             text = name,
             style = MaterialTheme.typography.headlineMedium
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AndeSpaceTheme {
-        Greeting("Android")
     }
 }
