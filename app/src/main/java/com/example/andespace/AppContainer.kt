@@ -5,11 +5,13 @@ import androidx.room.Room
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.AuthInterceptor
 import com.example.andespace.data.network.SessionCookieJar
+import com.example.andespace.data.repository.AccountRepository
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.BookingRepository
 import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.data.repository.NavigationRepository
+import com.example.andespace.data.repository.NotificationsRepository
 import com.example.andespace.data.repository.RecommendationsRepository
 import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.data.repository.ScheduleRepository
@@ -18,6 +20,7 @@ import com.example.andespace.data.repository.ThemePreferencesRepository
 import com.example.andespace.model.db.SyncDatabase
 import com.example.andespace.model.db.booking.BookingDao
 import com.example.andespace.model.db.favorites.FavoritesDao
+import com.example.andespace.model.db.notification.NotificationDao
 import com.example.andespace.model.db.sync.AnalyticsDao
 import com.example.andespace.model.db.sync.SyncActionDao
 import com.google.gson.Gson
@@ -37,11 +40,14 @@ interface AppContainer {
     val favoritesRepository: FavoritesRepository
     val navigationRepository: NavigationRepository
     val themePreferencesRepository: ThemePreferencesRepository
+    val notificationsRepository: NotificationsRepository
+    val accountRepository: AccountRepository
     val syncManager: SyncManager
     val analyticsDao: AnalyticsDao
     val syncDao: SyncActionDao
     val favoritesDao: FavoritesDao
     val bookingDao: BookingDao
+    val notificationDao: NotificationDao
     val gson: Gson
 }
 
@@ -124,6 +130,18 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val bookingDao: BookingDao by lazy {
         syncDatabase.bookingDao()
+    }
+
+    override val notificationDao: NotificationDao by lazy {
+        syncDatabase.notificationDao()
+    }
+
+    override val notificationsRepository: NotificationsRepository by lazy {
+        NotificationsRepository(apiService, notificationDao)
+    }
+
+    override val accountRepository: AccountRepository by lazy {
+        AccountRepository(apiService, context)
     }
 
     override val analyticsRepository: AnalyticsRepository by lazy {
