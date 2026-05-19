@@ -1,6 +1,8 @@
 package com.example.andespace.data.network
 
 import com.example.andespace.model.dto.AddFavoriteRequest
+import com.example.andespace.model.dto.AddFriendRequest
+import com.example.andespace.model.dto.GetFriendsResponse
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.AutoSearchRequest
 import com.example.andespace.model.dto.BookingDto
@@ -126,6 +128,15 @@ interface ApiService {
 
     @DELETE("favorites/{roomId}")
     suspend fun deleteFavorite(@Path("roomId") roomId: String): Response<Unit>
+
+    @POST("friends/")
+    suspend fun addFriend(@Body request: AddFriendRequest): Response<Unit>
+
+    @GET("friends/mine")
+    suspend fun getMyFriends(): Response<GetFriendsResponse>
+
+    @DELETE("friends/{username}")
+    suspend fun deleteFriend(@Path("username") username: String): Response<Unit>
 
     @GET("navigation/path")
     suspend fun getNavigationPath(

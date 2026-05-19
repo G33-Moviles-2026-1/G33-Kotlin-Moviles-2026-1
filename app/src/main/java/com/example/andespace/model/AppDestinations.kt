@@ -20,5 +20,6 @@ enum class AppDestinations(
     LOGIN("Log In", icon = Icons.Default.Lock),
     REGISTER("Register", icon = Icons.Default.PersonAdd),
     ACCOUNT_SETTINGS("Account Settings", icon = Icons.Default.Person),
+    FRIENDS("Friends", icon = Icons.Default.Person),
     SETTINGS("Settings", icon = Icons.Default.Settings)
 }

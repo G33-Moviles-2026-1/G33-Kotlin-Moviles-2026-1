@@ -62,6 +62,8 @@ import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
+import com.example.andespace.ui.friends.FriendsScreen
+import com.example.andespace.ui.friends.FriendsViewModel
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.navigation.NavigationScreen
 import com.example.andespace.ui.navigation.NavigationViewModel
@@ -114,6 +116,7 @@ fun AndeSpaceApp(
     val recommendationsViewModel: com.example.andespace.ui.recommendations.RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val notificationsViewModel: NotificationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val accountViewModel: AccountViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val friendsViewModel: FriendsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
 
     val navigateToNavByRoomId by homepageViewModel.onNavigateToNavigation.collectAsState()
@@ -235,11 +238,11 @@ fun AndeSpaceApp(
                     scheduleViewModel.clearScheduleData()
                     favoritesViewModel.clearFavorites()
                 },
-                onProfileClick = {
+                onMyAccountClick = {
                     viewModel.onDestinationChanged(AppDestinations.ACCOUNT_SETTINGS)
                 },
-                onSettingsClick = {
-                    viewModel.onDestinationChanged(AppDestinations.SETTINGS)
+                onFriendsClick = {
+                    viewModel.onDestinationChanged(AppDestinations.FRIENDS)
                 }
             )
         },
@@ -368,6 +371,10 @@ fun AndeSpaceApp(
                         themeMode = uiState.themeMode,
                         onThemeModeChange = { viewModel.setThemeMode(it) }
                     )
+                }
+
+                AppDestinations.FRIENDS -> {
+                    FriendsScreen(viewModel = friendsViewModel)
                 }
 
                 AppDestinations.SETTINGS -> {
