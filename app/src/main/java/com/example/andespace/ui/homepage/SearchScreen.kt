@@ -88,7 +88,9 @@ fun HomeSearchScreen(
     modifier: Modifier = Modifier,
     resultsViewModel: ResultsViewModel,
     homepageViewModel: HomepageViewModel,
-    recommendationsViewModel: RecommendationsViewModel
+    recommendationsViewModel: RecommendationsViewModel,
+    isUserLoggedIn: Boolean,
+    onRequireLogin: () -> Unit
 ) {
     val context = LocalContext.current
     val locationSensor = remember(context) { FusedLocationSensor(context.applicationContext) }
@@ -175,6 +177,8 @@ fun HomeSearchScreen(
                 onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
                 onCloseToMeDisabled = { homepageViewModel.onCloseToMeDisabled() },
                 onClearLocationError = { homepageViewModel.clearLocationError() },
+                isUserLoggedIn = isUserLoggedIn,
+                onRequireLogin = onRequireLogin,
                 onFilterClick = {
                     homepageViewModel.onFiltersOpened()
                     showFilterSheet = true
@@ -261,7 +265,9 @@ private fun SearchCard(
     onResetFilters: () -> Unit,
     onSearchClick: (HomeSearchParams) -> Unit,
     onShowMessage: (String) -> Unit,
-    onAutoSearchClick: () -> Unit
+    onAutoSearchClick: () -> Unit,
+    isUserLoggedIn: Boolean,
+    onRequireLogin: () -> Unit
 ) {
     val context = LocalContext.current
     var classroomInput by remember(lastSearchConfig.classroom) { mutableStateOf(lastSearchConfig.classroom) }
@@ -606,7 +612,12 @@ private fun SearchCard(
         CustomYellowButton(
             text = "Auto Search",
             enabled = !isSearching && !isSearchBlockedByLocation,
-            onClick = onAutoSearchClick
+            onClick =
+                if (isUserLoggedIn){
+                    onAutoSearchClick
+                } else{
+                    onRequireLogin
+                }
         )
         TextButton(
             onClick = { resetFiltersToDefault() },

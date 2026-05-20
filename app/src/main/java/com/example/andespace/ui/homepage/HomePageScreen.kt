@@ -36,7 +36,9 @@ fun HomePageScreen(
         ContentScreen.HOME -> HomeSearchScreen(
             homepageViewModel = homepageViewModel,
             resultsViewModel = resultsViewModel,
-            recommendationsViewModel = recommendationsViewModel
+            recommendationsViewModel = recommendationsViewModel,
+            isUserLoggedIn = isUserLoggedIn,
+            onRequireLogin = onRequireLogin
         )
 
         ContentScreen.RESULTS -> ResultsScreen(

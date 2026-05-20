@@ -37,20 +37,21 @@ class ScheduleViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                val data = repository.getRoomRecommendationsForDay(dateString)
+                val result = repository.getRoomRecommendationsForDay(dateString)
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isShowingRecommendations = true,
-                        recommendationsData = data
+                        recommendationsData = result
                     )
                 }
             } catch (_: Exception) {
                 _uiState.update {
                     it.copy(
-                    isLoading = false,
-                    isShowingRecommendations = true,
-                    recommendationsData = null
+                        isLoading = false,
+                        isShowingRecommendations = true,
+                        recommendationsData = null
                     )
                 }
             }
@@ -95,7 +96,7 @@ class ScheduleViewModel(
             val result = repository.uploadIcs(context, uri)
 
             result.onSuccess {
-                repository.syncEntireScheduleFromBackend()
+                repository.syncEntireScheduleFromBackend(showSuccessMessage = true)
 
                 _uiState.update { it.copy(isLoading = false, hasSchedule = true) }
                 onSuccess()
@@ -110,7 +111,7 @@ class ScheduleViewModel(
     fun forceRefreshScheduleFromBackend() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            repository.syncEntireScheduleFromBackend()
+            repository.syncEntireScheduleFromBackend(showSuccessMessage = true)
             loadSchedule()
         }
     }
