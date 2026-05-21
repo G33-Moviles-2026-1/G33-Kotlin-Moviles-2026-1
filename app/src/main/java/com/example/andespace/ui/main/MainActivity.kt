@@ -1,4 +1,4 @@
-package com.example.andespace.ui.main
+﻿package com.example.andespace.ui.main
 
 import android.content.Context
 import android.hardware.Sensor
@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -53,6 +52,8 @@ import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.AppViewModelProvider
+import com.example.andespace.ui.account.AccountSettingsScreen
+import com.example.andespace.ui.account.AccountViewModel
 import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
 import com.example.andespace.ui.bookings.BookingsViewModel
@@ -67,10 +68,13 @@ import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.navigation.NavigationScreen
 import com.example.andespace.ui.navigation.NavigationViewModel
 import com.example.andespace.ui.homepage.HomePageScreen
+import com.example.andespace.ui.notifications.NotificationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
+import com.example.andespace.ui.settings.SettingsScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
+import androidx.compose.material3.Icon
 
 
 class MainActivity : ComponentActivity() {
@@ -107,6 +111,8 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
     val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val navigationViewModel: NavigationViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val recommendationsViewModel: com.example.andespace.ui.recommendations.RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val notificationsViewModel: NotificationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val accountViewModel: AccountViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val navigateToNavByRoomId by homepageViewModel.onNavigateToNavigation.collectAsState()
@@ -219,10 +225,15 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
                 isMenuExpanded = uiState.isUserMenuExpanded,
-                themeMode = uiState.themeMode,
-                onThemeModeChange = { viewModel.setThemeMode(it) },
+                isNotificationsPopupExpanded = uiState.isNotificationsPopupExpanded,
+                notifications = uiState.notifications,
+                unreadNotificationsCount = uiState.unreadNotificationsCount,
                 onAccountClick = { viewModel.expandUserMenu() },
                 onDismissMenu = { viewModel.closeUserMenu() },
+                onNotificationsClick = { viewModel.toggleNotificationsPopup() },
+                onDismissNotificationsPopup = { viewModel.dismissNotificationsPopup() },
+                onMarkAsRead = { id -> viewModel.markNotificationAsRead(id) },
+                onMarkAllAsRead = { viewModel.markAllNotificationsRead() },
                 onLoginClick = {
                     viewModel.onDestinationChanged(AppDestinations.LOGIN)
                 },
@@ -233,6 +244,12 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
                     viewModel.onLogOut()
                     scheduleViewModel.clearScheduleData()
                     favoritesViewModel.clearFavorites()
+                },
+                onProfileClick = {
+                    viewModel.onDestinationChanged(AppDestinations.ACCOUNT_SETTINGS)
+                },
+                onSettingsClick = {
+                    viewModel.onDestinationChanged(AppDestinations.SETTINGS)
                 }
             )
         },
@@ -353,6 +370,23 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
                         navigationViewModel = navigationViewModel
                     )
                 }
+
+                AppDestinations.ACCOUNT_SETTINGS -> {
+                    AccountSettingsScreen(
+                        viewModel = accountViewModel,
+                        onNavigateBack = { viewModel.onDestinationChanged(AppDestinations.CLASSROOMS) },
+                        themeMode = uiState.themeMode,
+                        onThemeModeChange = { viewModel.setThemeMode(it) }
+                    )
+                }
+
+                AppDestinations.SETTINGS -> {
+                    SettingsScreen(
+                        themeMode = uiState.themeMode,
+                        onThemeModeChange = { viewModel.setThemeMode(it) },
+                        onNavigateBack = { viewModel.onDestinationChanged(AppDestinations.CLASSROOMS) }
+                    )
+                }
             }
 
             if (uiState.isUserMenuExpanded) {
@@ -364,6 +398,17 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { viewModel.closeUserMenu() }
+                )
+            }
+
+            if (uiState.isNotificationsPopupExpanded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { viewModel.dismissNotificationsPopup() }
                 )
             }
         }

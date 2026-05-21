@@ -5,6 +5,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.andespace.AndeSpaceApplication
+import com.example.andespace.ui.account.AccountViewModel
 import com.example.andespace.ui.auth.AuthViewModel
 import com.example.andespace.ui.bookings.BookingsViewModel
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
@@ -12,6 +13,7 @@ import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.main.MainViewModel
 import com.example.andespace.ui.navigation.NavigationViewModel
+import com.example.andespace.ui.notifications.NotificationsViewModel
 import com.example.andespace.ui.recommendations.RecommendationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.ScheduleViewModel
@@ -23,7 +25,8 @@ object AppViewModelProvider {
             MainViewModel(
                 authRepository = andeSpaceApplication().container.authRepository,
                 analyticsRepository = andeSpaceApplication().container.analyticsRepository,
-                themePreferencesRepository = andeSpaceApplication().container.themePreferencesRepository
+                themePreferencesRepository = andeSpaceApplication().container.themePreferencesRepository,
+                notificationsRepository = andeSpaceApplication().container.notificationsRepository
             )
         }
         initializer {
@@ -74,6 +77,16 @@ object AppViewModelProvider {
                 repository = andeSpaceApplication().container.recommendationsRepository,
                 favoritesRepository = andeSpaceApplication().container.favoritesRepository,
                 bookingsRepository = andeSpaceApplication().container.bookingRepository
+            )
+        }
+        initializer {
+            NotificationsViewModel(
+                repository = andeSpaceApplication().container.notificationsRepository
+            )
+        }
+        initializer {
+            AccountViewModel(
+                repository = andeSpaceApplication().container.accountRepository
             )
         }
 
