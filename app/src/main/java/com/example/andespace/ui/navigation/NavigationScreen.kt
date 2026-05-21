@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -200,12 +201,23 @@ fun NavigationScreen(
 
         if (uiState.isFromCache) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Cached route",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodySmall,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
-            )
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.WifiOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Showing cached route",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -216,13 +228,6 @@ fun NavigationScreen(
         ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(color = PrimaryYellow)
-            } else if (uiState.error != null) {
-                Text(
-                    text = uiState.error!!,
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
-                )
             } else if (uiState.instructions.isEmpty()) {
                 Text(
                     text = "Enter classrooms and click the button to see the path.",

@@ -14,6 +14,5 @@ data class NavigationUiState(
     val isFromCache: Boolean = false,
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,
-    val isUsingGpsOrigin: Boolean = false,
-    val error: String? = null
+    val isUsingGpsOrigin: Boolean = false
 )

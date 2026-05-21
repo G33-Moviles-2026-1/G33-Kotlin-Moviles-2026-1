@@ -4,9 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -22,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.andespace.ui.common.UserMessages
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.components.RoomCard
 import com.example.andespace.ui.components.PaginationFooter
@@ -47,11 +52,11 @@ fun ResultsScreen(
 
 
     val currentPage = resultsUiState.currentPage
-    val errorMessage = resultsUiState.errorMessage
     val rooms = resultsUiState.rooms
     val totalPages = resultsUiState.totalPages
     val isSearching = resultsUiState.isSearching
     val showOfflinePlaceholder = resultsUiState.showOfflinePlaceholder
+    val showingCachedResults = resultsUiState.showingCachedResults
 
     val onFavoriteClick: (RoomDto) -> Unit = { room ->
         if (isUserLoggedIn) {
@@ -80,15 +85,26 @@ fun ResultsScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            if (errorMessage != null && rooms.isNotEmpty()) {
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
+            if (showingCachedResults) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.WifiOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Showing cached results",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
             when {
                 showOfflinePlaceholder -> {
@@ -112,7 +128,7 @@ fun ResultsScreen(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                             Text(
-                                text = errorMessage ?: "Please check your connection and try again.",
+                                text = UserMessages.RESULTS_NO_CONNECTION,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -120,24 +136,6 @@ fun ResultsScreen(
                         }
                     }
                 }
-                errorMessage != null && rooms.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .padding(horizontal = 24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-                }
-
                 else -> {
                     LazyColumn(
                         modifier = Modifier
