@@ -12,8 +12,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.andespace.model.dto.RoomDto
@@ -25,7 +23,6 @@ fun MainFavoritesScreen(
 ) {
     val uiState by favoritesViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var lastShownError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         favoritesViewModel.onFavoritesScreenOpened()
@@ -44,17 +41,6 @@ fun MainFavoritesScreen(
         } else {
             favoritesViewModel.clearPendingUndo()
         }
-    }
-
-    LaunchedEffect(uiState.errorMessage) {
-        val message = uiState.errorMessage ?: return@LaunchedEffect
-        if (message == lastShownError) return@LaunchedEffect
-        lastShownError = message
-        snackbarHostState.showSnackbar(
-            message = message,
-            withDismissAction = true,
-            duration = SnackbarDuration.Short
-        )
     }
 
     if (uiState.isLoading) {

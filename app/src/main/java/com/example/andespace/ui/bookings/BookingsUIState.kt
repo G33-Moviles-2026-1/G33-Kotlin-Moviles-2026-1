@@ -15,7 +15,6 @@ data class BookingsUIState(
     val isRefreshing: Boolean = false,
     val isSaving: Boolean = false,
     val isCreating: Boolean = false,
-    val createError: String? = null,
     val bookingCreatedSuccess: Boolean = false,
     val requiresLogin: Boolean = false,
     val isShowingCached: Boolean = false

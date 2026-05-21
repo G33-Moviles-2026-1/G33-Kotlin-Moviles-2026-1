@@ -105,13 +105,20 @@ class BookingRepository(
     suspend fun getMyBookings(): Result<List<BookingDto>> = withContext(Dispatchers.IO) {
         // Cache-then-network: This method can be used for explicit refresh
         // but the main data source is the 'bookings' Flow.
-        refreshBookings().onSuccess {
-             return@withContext Result.success(bookingDao.getAllBookings().map { it.toDto() })
-        }.onFailure {
-            val cached = bookingDao.getAllBookings().map { it.toDto() }
-            if (cached.isNotEmpty()) return@withContext Result.success(cached)
-        }
-        Result.failure(Exception(RepositoryMessages.BOOKING_LOAD_FAILED))
+        var refreshError: Throwable? = null
+        refreshBookings()
+            .onSuccess {
+                return@withContext Result.success(bookingDao.getAllBookings().map { it.toDto() })
+            }
+            .onFailure { error ->
+                refreshError = error
+                val cached = bookingDao.getAllBookings().map { it.toDto() }
+                if (cached.isNotEmpty()) return@withContext Result.success(cached)
+            }
+        Result.failure(
+            refreshError?.let { Exception(it.message ?: RepositoryMessages.BOOKING_LOAD_FAILED) }
+                ?: Exception(RepositoryMessages.BOOKING_LOAD_FAILED)
+        )
     }
 
     suspend fun createBooking(request: CreateBookingRequest): Result<BookingDto> =

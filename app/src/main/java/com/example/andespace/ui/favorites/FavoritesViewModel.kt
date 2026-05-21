@@ -8,6 +8,7 @@ import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.ui.common.SnackbarManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,8 +35,7 @@ class FavoritesViewModel(
             _uiState.value = FavoritesUiState(
                 favoriteRooms = localRooms,
                 favoriteIds = localRooms.map { it.id }.toSet(),
-                isLoading = false,
-                errorMessage = null
+                isLoading = false
             )
         }
 
@@ -59,8 +59,7 @@ class FavoritesViewModel(
                 _uiState.value = FavoritesUiState(
                     favoriteRooms = localRooms,
                     favoriteIds = localRooms.map { it.id }.toSet(),
-                    isLoading = false,
-                    errorMessage = null
+                    isLoading = false
                 )
             }
 
@@ -79,8 +78,7 @@ class FavoritesViewModel(
                     _uiState.value = FavoritesUiState(
                         favoriteRooms = merged,
                         favoriteIds = merged.map { it.id }.toSet(),
-                        isLoading = false,
-                        errorMessage = null
+                        isLoading = false
                     )
 
                     // 2. Tell the repository to save it!
@@ -88,12 +86,10 @@ class FavoritesViewModel(
                 },
                 onFailure = { e ->
                     Log.e(TAG, "refreshFromBackend -> backend failed: ${e.message}")
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = RepositoryMessages.FAVORITES_SYNC_FAILED
-                        )
-                    }
+                    _uiState.update { it.copy(isLoading = false) }
+                    SnackbarManager.showMessage(
+                        e.message ?: RepositoryMessages.GENERIC_ERROR
+                    )
                 }
             )
         }

@@ -6,6 +6,7 @@ import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.data.repository.BookingRepository
 import com.example.andespace.data.network.NetworkMonitor
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.ui.common.SnackbarManager
 import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,7 +61,9 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                         it.copy(isLoading = false, requiresLogin = isSessionExpired)
                     }
                     if (!isSessionExpired) {
-                        SnackbarManager.showMessage(error.message ?: UserMessages.GENERIC_ERROR)
+                        SnackbarManager.showMessage(
+                            error.message ?: RepositoryMessages.GENERIC_ERROR
+                        )
                     }
                 }
         }
@@ -95,7 +98,9 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                     if (error.message == "OFFLINE_SYNC_PENDING") {
                         SnackbarManager.showMessage(UserMessages.BOOKING_PENDING_SYNC)
                     } else {
-                        SnackbarManager.showMessage(UserMessages.DELETE_BOOKING_FAILED)
+                        SnackbarManager.showMessage(
+                            error.message ?: RepositoryMessages.GENERIC_ERROR
+                        )
                     }
                 }
         }
@@ -109,7 +114,9 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
             val deletePendingSync = deleteResult.exceptionOrNull()?.message == "OFFLINE_SYNC_PENDING"
             if (deleteResult.isFailure && !deletePendingSync) {
                 _uiState.update { it.copy(isSaving = false) }
-                SnackbarManager.showMessage(UserMessages.DELETE_BOOKING_FAILED)
+                SnackbarManager.showMessage(
+                    deleteResult.exceptionOrNull()?.message ?: RepositoryMessages.GENERIC_ERROR
+                )
                 return@launch
             }
 
@@ -136,7 +143,9 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                         SnackbarManager.showMessage(UserMessages.BOOKING_PENDING_SYNC)
                     } else {
                         _uiState.update { it.copy(isSaving = false) }
-                        SnackbarManager.showMessage(UserMessages.SAVE_BOOKING_FAILED)
+                        SnackbarManager.showMessage(
+                            error.message ?: RepositoryMessages.GENERIC_ERROR
+                        )
                     }
                 }
         }
@@ -153,7 +162,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
 
     fun onCreateBooking(request: CreateBookingRequest) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isCreating = true, createError = null) }
+            _uiState.update { it.copy(isCreating = true) }
             repository.createBooking(request)
                 .onSuccess {
                     _uiState.update {
@@ -167,9 +176,10 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                         }
                         SnackbarManager.showMessage(UserMessages.BOOKING_PENDING_SYNC)
                     } else {
-                        _uiState.update {
-                            it.copy(isCreating = false, createError = error.message ?: UserMessages.GENERIC_ERROR)
-                        }
+                        _uiState.update { it.copy(isCreating = false) }
+                        SnackbarManager.showMessage(
+                            error.message ?: RepositoryMessages.GENERIC_ERROR
+                        )
                     }
                 }
         }

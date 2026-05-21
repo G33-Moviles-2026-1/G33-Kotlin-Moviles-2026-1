@@ -41,9 +41,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -52,11 +49,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +67,7 @@ import com.example.andespace.ui.main.AssetIcon
 import com.example.andespace.data.location.GeoLocation
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.RoomUtility
+import com.example.andespace.ui.common.SnackbarManager
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.recommendations.RecommendationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
@@ -81,7 +77,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
-import kotlinx.coroutines.launch
 
 @Composable
 fun HomeSearchScreen(
@@ -95,20 +90,15 @@ fun HomeSearchScreen(
     val context = LocalContext.current
     val locationSensor = remember(context) { FusedLocationSensor(context.applicationContext) }
     val homepageUiState by homepageViewModel.uiState.collectAsState()
-
+    val resultsUiState by resultsViewModel.uiState.collectAsState()
 
     val lastSearchConfig = homepageUiState.lastSearchConfig
     val closeToMe = homepageUiState.closeToMe
     val isLocating = homepageUiState.isLocating
-    val locationError = homepageUiState.locationError
     val userLocation = homepageUiState.userLocation
-    val isSearching = homepageUiState.isSearching
-    val searchError = homepageUiState.searchError
+    val isSearching = resultsUiState.isSearching
 
     var showFilterSheet by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val snackbarScope = rememberCoroutineScope()
-    var lastShownError by remember { mutableStateOf<String?>(null) }
     var selectedUtilities by remember(lastSearchConfig.utilityDisplayNames) {
         mutableStateOf(lastSearchConfig.utilityDisplayNames)
     }
@@ -117,29 +107,6 @@ fun HomeSearchScreen(
             selectedOptions = selectedUtilities,
             onSelectedOptionsChange = { selectedUtilities = it },
             onDismiss = { showFilterSheet = false }
-        )
-    }
-
-    LaunchedEffect(searchError) {
-        val message = searchError ?: return@LaunchedEffect
-        if (message == lastShownError) return@LaunchedEffect
-        lastShownError = message
-        snackbarHostState.showSnackbar(
-            message = message,
-            withDismissAction = true,
-            duration = SnackbarDuration.Short
-        )
-    }
-
-    LaunchedEffect(locationError) {
-        if (!locationError) return@LaunchedEffect
-        val message = "Could not get your location. Enable GPS and try again."
-        if (message == lastShownError) return@LaunchedEffect
-        lastShownError = message
-        snackbarHostState.showSnackbar(
-            message = message,
-            withDismissAction = true,
-            duration = SnackbarDuration.Short
         )
     }
 
@@ -167,16 +134,13 @@ fun HomeSearchScreen(
             SearchCard(
                 selectedUtilities = selectedUtilities,
                 isSearching = isSearching,
-                searchError = searchError,
                 closeToMe = closeToMe,
                 isLocating = isLocating,
-                locationError = locationError,
                 userLocation = userLocation,
                 lastSearchConfig = lastSearchConfig,
                 onRequestCurrentLocation = { homepageViewModel.requestCurrentLocation(locationSensor) },
                 onLocationPermissionDenied = { homepageViewModel.onLocationPermissionDenied() },
                 onCloseToMeDisabled = { homepageViewModel.onCloseToMeDisabled() },
-                onClearLocationError = { homepageViewModel.clearLocationError() },
                 isUserLoggedIn = isUserLoggedIn,
                 onRequireLogin = onRequireLogin,
                 onFilterClick = {
@@ -198,24 +162,9 @@ fun HomeSearchScreen(
                     recommendationsViewModel.startAutoSearch()
                     homepageViewModel.onShowAutoSearch() },
                 hasSelectedUtilities = selectedUtilities.isNotEmpty(),
-                onResetFilters = { selectedUtilities = emptySet() },
-                onShowMessage = { message ->
-                    if (message == lastShownError) return@SearchCard
-                    lastShownError = message
-                    snackbarScope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = message,
-                            withDismissAction = true,
-                            duration = SnackbarDuration.Short
-                        )
-                    }
-                }
+                onResetFilters = { selectedUtilities = emptySet() }
             )
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 
@@ -250,21 +199,17 @@ private fun parseHourMinute(value: String?): Pair<Int, Int>? {
 private fun SearchCard(
     selectedUtilities: Set<String>,
     isSearching: Boolean = false,
-    searchError: String? = null,
     closeToMe: Boolean,
     isLocating: Boolean,
-    locationError: Boolean,
     userLocation: GeoLocation?,
     lastSearchConfig: HomeSearchConfig,
     onRequestCurrentLocation: () -> Unit,
     onLocationPermissionDenied: () -> Unit,
     onCloseToMeDisabled: () -> Unit,
-    onClearLocationError: () -> Unit,
     onFilterClick: () -> Unit,
     hasSelectedUtilities: Boolean,
     onResetFilters: () -> Unit,
     onSearchClick: (HomeSearchParams) -> Unit,
-    onShowMessage: (String) -> Unit,
     onAutoSearchClick: () -> Unit,
     isUserLoggedIn: Boolean,
     onRequireLogin: () -> Unit
@@ -324,7 +269,6 @@ private fun SearchCard(
         showDatePicker = false
         onResetFilters()
         onCloseToMeDisabled()
-        onClearLocationError()
     }
 
     if (showSincePicker) {
@@ -532,7 +476,6 @@ private fun SearchCard(
             Checkbox(
                 checked = closeToMe,
                 onCheckedChange = { checked ->
-                    onClearLocationError()
                     if (checked) {
                         val alreadyGranted =
                             ContextCompat.checkSelfPermission(
@@ -568,11 +511,8 @@ private fun SearchCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
         }
-        if (locationError) Spacer(modifier = Modifier.height(4.dp))
-
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (missingTimeError != null || searchError != null) Spacer(modifier = Modifier.height(8.dp))
         val isSearchBlockedByLocation = closeToMe && isLocating
         CustomYellowButton(
             text = when {
@@ -585,7 +525,7 @@ private fun SearchCard(
                 if (!isSearching) {
                     if (!sinceSet || !untilSet) {
                         missingTimeError = "You must select both times (Since and Until) to search."
-                        onShowMessage(missingTimeError!!)
+                        SnackbarManager.showMessage(missingTimeError!!)
                         return@CustomYellowButton
                     }
                     missingTimeError = null

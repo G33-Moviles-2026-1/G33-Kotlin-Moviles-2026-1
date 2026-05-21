@@ -6,7 +6,6 @@ data class FavoritesUiState(
     val favoriteRooms: List<RoomDto> = emptyList(),
     val favoriteIds: Set<String> = emptySet(),
     val isLoading: Boolean = true,
-    val errorMessage: String? = null,
     val pendingUndoRoom: RoomDto? = null,
     val undoEventId: Int = 0
 )

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.RoomRepository
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.ui.common.SnackbarManager
@@ -217,7 +218,9 @@ class ResultsViewModel(
                                     showOfflinePlaceholder = false
                                 )
                             }
-                            SnackbarManager.showMessage(error.message ?: UserMessages.RESULTS_LOAD_FAILED)
+                            SnackbarManager.showMessage(
+                                error.message ?: RepositoryMessages.GENERIC_ERROR
+                            )
                         }
                     }
                 )

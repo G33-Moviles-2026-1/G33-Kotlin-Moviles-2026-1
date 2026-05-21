@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.location.LocationSensor
 import com.example.andespace.data.repository.AnalyticsRepository
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.model.HomeSearchParams
+import com.example.andespace.ui.common.SnackbarManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,11 +35,11 @@ class HomepageViewModel(
     }
 
     fun onShowResults() {
-        _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS, isSearching = false) }
+        _uiState.update { it.copy(contentScreen = ContentScreen.RESULTS) }
     }
 
     fun cacheLastSearchConfig(params: HomeSearchParams) {
-        _uiState.update { it.copy(lastSearchConfig = params.toSearchConfig(), isSearching = true) }
+        _uiState.update { it.copy(lastSearchConfig = params.toSearchConfig()) }
     }
 
     fun onShowRoomDetailScreen() {
@@ -74,16 +76,11 @@ class HomepageViewModel(
         }
     }
 
-    fun clearLocationError() {
-        _uiState.update { it.copy(locationError = false) }
-    }
-
     fun onCloseToMeDisabled() {
         _uiState.update {
             it.copy(
                 closeToMe = false,
                 isLocating = false,
-                locationError = false,
                 userLocation = null
             )
         }
@@ -94,18 +91,17 @@ class HomepageViewModel(
             it.copy(
                 closeToMe = false,
                 isLocating = false,
-                locationError = true,
                 userLocation = null
             )
         }
+        SnackbarManager.showMessage(RepositoryMessages.LOCATION_FAILED)
     }
 
     fun requestCurrentLocation(locationSensor: LocationSensor) {
         _uiState.update {
             it.copy(
                 closeToMe = true,
-                isLocating = true,
-                locationError = false
+                isLocating = true
             )
         }
 
@@ -116,7 +112,6 @@ class HomepageViewModel(
                     it.copy(
                         closeToMe = true,
                         isLocating = false,
-                        locationError = false,
                         userLocation = location
                     )
                 }
@@ -125,10 +120,10 @@ class HomepageViewModel(
                     it.copy(
                         closeToMe = false,
                         isLocating = false,
-                        locationError = true,
                         userLocation = null
                     )
                 }
+                SnackbarManager.showMessage(RepositoryMessages.LOCATION_FAILED)
             }
         }
     }

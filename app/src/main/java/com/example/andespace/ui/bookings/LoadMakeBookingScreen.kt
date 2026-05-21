@@ -91,7 +91,6 @@ fun LoadMakeBookingScreen(
         availableWindows = windows,
         isLoadingSlots = detailRoomUiState.isLoadingAvailability,
         isCreating = bookingsUiState.isCreating,
-        errorMessage = bookingsUiState.createError,
         onDateChanged = onDateChange,
         onBook = onCreateBooking
     )
@@ -128,7 +127,6 @@ private fun LoadMakeBookingContent(
     availableWindows: List<RoomWeeklyAvailabilityDto>,
     isLoadingSlots: Boolean,
     isCreating: Boolean,
-    errorMessage: String?,
     onDateChanged: (String) -> Unit,
     onBook: (CreateBookingRequest) -> Unit,
     modifier: Modifier = Modifier
@@ -352,15 +350,6 @@ private fun LoadMakeBookingContent(
             ),
             modifier = Modifier.fillMaxWidth()
         )
-
-        errorMessage?.let {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = it,
-                color = Color(0xFFD32F2F),
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
 
         Spacer(modifier = Modifier.weight(1f))
 
