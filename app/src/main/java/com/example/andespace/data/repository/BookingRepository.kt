@@ -42,11 +42,30 @@ class BookingRepository(
         const val ACTION_DELETE_BOOKING = "DELETE_BOOKING"
     }
 
-    val bookings: Flow<List<BookingDto>> = bookingDao.getAllBookingsFlow().map { entities ->
-        entities
-            .filter { it.syncStatus != SyncStatus.PENDING_DELETE }
-            .map { it.toDto() }
+    val bookings: Flow<List<BookingDto>> = bookingDao.getVisibleBookingsFlow().map { entities ->
+        entities.map { it.toDto() }
     }
+
+    private data class BookingContentKey(
+        val roomId: String,
+        val date: String,
+        val start5: String,
+        val end5: String
+    )
+
+    private fun BookingDto.contentKey() = BookingContentKey(
+        roomId = roomId,
+        date = date,
+        start5 = startTime.take(5),
+        end5 = endTime.take(5)
+    )
+
+    private fun BookingEntity.contentKey() = BookingContentKey(
+        roomId = roomId,
+        date = date,
+        start5 = startTime.take(5),
+        end5 = endTime.take(5)
+    )
 
     private fun scheduleSync() {
         val constraints = Constraints.Builder()
@@ -63,33 +82,34 @@ class BookingRepository(
             val response = apiService.getMyBookings()
             if (response.isSuccessful) {
                 val remoteBookings = response.body()?.items.orEmpty()
-
-                // Get local bookings
                 val localBookings = bookingDao.getAllBookings()
 
-                // Strategy to avoid duplicates:
-                // 1. Identify pending creates that match a remote booking by content (Room, Date, Time)
-                // 2. Remove those local pending creates because the remote one is the "truth"
-                val pendingCreates = localBookings.filter { it.syncStatus == SyncStatus.PENDING_CREATE }.toMutableList()
+                val remoteContentKeys = remoteBookings.map { it.contentKey() }.toHashSet()
+                val pendingCreates = localBookings
+                    .filter { it.syncStatus == SyncStatus.PENDING_CREATE }
+                    .toMutableList()
 
-                val duplicatesToRemove = mutableListOf<BookingEntity>()
-                for (pending in pendingCreates) {
-                    val match = remoteBookings.find { remote ->
-                        remote.roomId == pending.roomId &&
-                        remote.date == pending.date &&
-                        remote.startTime.take(5) == pending.startTime.take(5) &&
-                        remote.endTime.take(5) == pending.endTime.take(5)
-                    }
-                    if (match != null) {
-                        duplicatesToRemove.add(pending)
-                    }
+                val duplicatesToRemove = pendingCreates.filter { pending ->
+                    pending.contentKey() in remoteContentKeys
+                }
+                pendingCreates.removeAll(duplicatesToRemove.toSet())
+
+                duplicatesToRemove.forEach { bookingDao.deleteById(it.id) }
+
+                val remoteEntities = remoteBookings.map { it.toEntity() }
+                val remoteIds = remoteEntities.map { it.id }.toHashSet()
+                bookingDao.insertAll(remoteEntities)
+
+                if (pendingCreates.isNotEmpty()) {
+                    bookingDao.insertAll(pendingCreates)
                 }
 
-                pendingCreates.removeAll(duplicatesToRemove)
-
-                bookingDao.clearAll()
-                bookingDao.insertAll(remoteBookings.map { it.toEntity() })
-                bookingDao.insertAll(pendingCreates)
+                val staleSyncedIds = localBookings
+                    .filter { it.syncStatus == SyncStatus.SYNCED && it.id !in remoteIds }
+                    .map { it.id }
+                if (staleSyncedIds.isNotEmpty()) {
+                    bookingDao.deleteByIds(staleSyncedIds)
+                }
 
                 Result.success(Unit)
             } else {
@@ -106,9 +126,9 @@ class BookingRepository(
         // Cache-then-network: This method can be used for explicit refresh
         // but the main data source is the 'bookings' Flow.
         refreshBookings().onSuccess {
-             return@withContext Result.success(bookingDao.getAllBookings().map { it.toDto() })
+             return@withContext Result.success(bookingDao.getVisibleBookings().map { it.toDto() })
         }.onFailure {
-            val cached = bookingDao.getAllBookings().map { it.toDto() }
+            val cached = bookingDao.getVisibleBookings().map { it.toDto() }
             if (cached.isNotEmpty()) return@withContext Result.success(cached)
         }
         Result.failure(Exception(RepositoryMessages.BOOKING_LOAD_FAILED))

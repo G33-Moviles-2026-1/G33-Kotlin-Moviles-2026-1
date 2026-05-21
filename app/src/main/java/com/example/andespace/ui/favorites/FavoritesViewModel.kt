@@ -3,7 +3,6 @@ package com.example.andespace.ui.favorites
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.data.repository.shared.RepositoryMessages
@@ -39,16 +38,6 @@ class FavoritesViewModel(
             )
         }
 
-        viewModelScope.launch {
-            var wasOnline = NetworkMonitor.isOnline.value
-            NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline && !wasOnline) {
-                    repository.syncPendingFavoriteActions()
-                    refreshFromBackend(force = true)
-                }
-                wasOnline = isOnline
-            }
-        }
     }
 
     fun refreshFromBackend(force: Boolean = false) {

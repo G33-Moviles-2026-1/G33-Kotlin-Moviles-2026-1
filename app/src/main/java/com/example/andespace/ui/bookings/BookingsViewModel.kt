@@ -21,22 +21,17 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
     init {
         observeBookings()
         loadBookings()
-        observeNetwork()
     }
 
     private fun observeBookings() {
         viewModelScope.launch {
             repository.bookings.collect { bookings ->
-                _uiState.update { it.copy(bookings = bookings) }
-            }
-        }
-    }
-
-    private fun observeNetwork() {
-        viewModelScope.launch {
-            NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline) {
-                    refreshBookings()
+                _uiState.update {
+                    it.copy(
+                        bookings = bookings,
+                        isRefreshing = false,
+                        isShowingCached = !NetworkMonitor.isOnline.value
+                    )
                 }
             }
         }
@@ -63,14 +58,6 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                         SnackbarManager.showMessage(error.message ?: UserMessages.GENERIC_ERROR)
                     }
                 }
-        }
-    }
-
-    private fun refreshBookings() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true) }
-            repository.refreshBookings()
-            _uiState.update { it.copy(isRefreshing = false, isShowingCached = false) }
         }
     }
 

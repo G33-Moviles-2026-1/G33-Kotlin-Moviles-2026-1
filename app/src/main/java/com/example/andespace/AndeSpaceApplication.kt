@@ -2,6 +2,7 @@ package com.example.andespace
 
 import android.app.Application
 import com.example.andespace.data.network.NetworkMonitor
+import com.example.andespace.data.network.OnlineRecoveryCoordinator
 
 class AndeSpaceApplication : Application() {
 
@@ -11,6 +12,11 @@ class AndeSpaceApplication : Application() {
         super.onCreate()
         NetworkMonitor.register(this, BuildConfig.API_BASE_URL)
         container = DefaultAppContainer(this)
-        container.syncManager
+        OnlineRecoveryCoordinator.start(
+            syncManager = container.syncManager,
+            friendsRepository = container.friendsRepository,
+            notificationsRepository = container.notificationsRepository,
+            favoritesRepository = container.favoritesRepository
+        )
     }
 }

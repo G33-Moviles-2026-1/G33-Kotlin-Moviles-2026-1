@@ -2,7 +2,7 @@ package com.example.andespace.ui.friends
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.network.NetworkMonitor
+import com.example.andespace.data.network.OnlineRecoveryCoordinator
 import com.example.andespace.data.repository.AccountRepository
 import com.example.andespace.data.repository.FriendsLocalSnapshot
 import com.example.andespace.data.repository.FriendsRepository
@@ -25,6 +25,8 @@ class FriendsViewModel(
     private val accountRepository: AccountRepository
 ) : ViewModel() {
 
+    private val scheduleDateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
+
     private val _uiState = MutableStateFlow(FriendsUiState())
     val uiState: StateFlow<FriendsUiState> = _uiState.asStateFlow()
 
@@ -38,15 +40,15 @@ class FriendsViewModel(
             }
         }
         viewModelScope.launch {
-            var wasOnline = NetworkMonitor.isOnline.value
-            NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline && !wasOnline) {
-                    viewModelScope.launch {
-                        repository.syncPendingFriendActions()
-                        refreshAll()
-                    }
+            OnlineRecoveryCoordinator.recoveryCompleted.collect {
+                applyLocalSnapshot(repository.loadLocalSnapshot())
+                _uiState.update {
+                    it.copy(
+                        isLoadingFriends = false,
+                        isLoadingRequests = false,
+                        isLoadingSuggestions = false
+                    )
                 }
-                wasOnline = isOnline
             }
         }
         refreshAll()
@@ -54,7 +56,6 @@ class FriendsViewModel(
 
     fun refreshAll() {
         viewModelScope.launch {
-            applyLocalSnapshot(repository.loadLocalSnapshot())
             _uiState.update {
                 it.copy(
                     isLoadingFriends = true,
@@ -67,13 +68,9 @@ class FriendsViewModel(
             repository.refreshAllParallel()
                 .onSuccess { bundle ->
                     repository.persistNetworkBundle(bundle)
-                    val local = repository.loadLocalSnapshot()
+                    applyLocalSnapshot(repository.loadLocalSnapshot())
                     _uiState.update {
                         it.copy(
-                            friendsList = local.friends,
-                            incomingRequests = local.incoming,
-                            outgoingRequests = local.outgoing,
-                            suggestions = local.suggestions,
                             isLoadingFriends = false,
                             isLoadingRequests = false,
                             isLoadingSuggestions = false,
@@ -82,6 +79,7 @@ class FriendsViewModel(
                     }
                 }
                 .onFailure { error ->
+                    applyLocalSnapshot(repository.loadLocalSnapshot())
                     _uiState.update {
                         it.copy(
                             isLoadingFriends = false,
@@ -188,8 +186,7 @@ class FriendsViewModel(
                 .onSuccess {
                     _uiState.update { it.copy(searchQuery = "") }
                     SnackbarManager.showMessage("Friend request sent")
-                    applyLocalSnapshot(repository.loadLocalSnapshot())
-                    refreshAll()
+                    reloadLocalFriendsState()
                 }
                 .onFailure { showBackendError(it) }
         }
@@ -209,7 +206,7 @@ class FriendsViewModel(
                         )
                     }
                     SnackbarManager.showMessage("Friend request sent")
-                    applyLocalSnapshot(repository.loadLocalSnapshot())
+                    reloadLocalFriendsState()
                 }
                 .onFailure { showBackendError(it) }
         }
@@ -220,8 +217,7 @@ class FriendsViewModel(
             repository.acceptFriendRequest(email)
                 .onSuccess {
                     SnackbarManager.showMessage("Friend request accepted")
-                    applyLocalSnapshot(repository.loadLocalSnapshot())
-                    refreshAll()
+                    reloadLocalFriendsState()
                 }
                 .onFailure { showBackendError(it) }
         }
@@ -230,10 +226,7 @@ class FriendsViewModel(
     fun declineFriendRequest(email: String) {
         viewModelScope.launch {
             repository.deleteFriendship(email)
-                .onSuccess {
-                    applyLocalSnapshot(repository.loadLocalSnapshot())
-                    refreshAll()
-                }
+                .onSuccess { reloadLocalFriendsState() }
                 .onFailure { showBackendError(it) }
         }
     }
@@ -241,9 +234,7 @@ class FriendsViewModel(
     fun cancelOutgoingRequest(email: String) {
         viewModelScope.launch {
             repository.deleteFriendship(email)
-                .onSuccess {
-                    applyLocalSnapshot(repository.loadLocalSnapshot())
-                }
+                .onSuccess { reloadLocalFriendsState() }
                 .onFailure { showBackendError(it) }
         }
     }
@@ -251,10 +242,7 @@ class FriendsViewModel(
     fun removeFriend(email: String) {
         viewModelScope.launch {
             repository.deleteFriendship(email)
-                .onSuccess {
-                    applyLocalSnapshot(repository.loadLocalSnapshot())
-                    refreshAll()
-                }
+                .onSuccess { reloadLocalFriendsState() }
                 .onFailure { showBackendError(it) }
         }
     }
@@ -279,8 +267,7 @@ class FriendsViewModel(
         val email = _uiState.value.selectedFriend?.email ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingSchedule = true, scheduleError = null, friendScheduleData = null) }
-            val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-            val dateString = _uiState.value.currentWeekDate.format(formatter)
+            val dateString = _uiState.value.currentWeekDate.format(scheduleDateFormatter)
             repository.getFriendWeeklySchedule(email, dateString)
                 .onSuccess { schedule ->
                     _uiState.update { it.copy(isLoadingSchedule = false, friendScheduleData = schedule) }
@@ -300,6 +287,12 @@ class FriendsViewModel(
     fun loadPreviousWeek() {
         _uiState.update { it.copy(currentWeekDate = it.currentWeekDate.minusDays(7)) }
         loadFriendSchedule()
+    }
+
+    private fun reloadLocalFriendsState() {
+        viewModelScope.launch {
+            applyLocalSnapshot(repository.loadLocalSnapshot())
+        }
     }
 
     private fun applyLocalSnapshot(snapshot: FriendsLocalSnapshot) {

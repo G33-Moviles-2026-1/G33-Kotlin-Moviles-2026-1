@@ -2,7 +2,6 @@ package com.example.andespace.data.repository
 
 import android.util.Log
 import com.example.andespace.data.network.ApiService
-import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.db.sync.AnalyticsDao
 import com.example.andespace.model.db.sync.SyncActionDao
 import com.example.andespace.model.dto.AnalyticsEventRequest
@@ -10,10 +9,6 @@ import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.ManualClassIn
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
@@ -27,19 +22,12 @@ class SyncManager(
     private val gson: Gson
 ) {
     private val syncMutex = Mutex()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    init {
-        scope.launch {
-            NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline) {
-                    try {
-                        flushQueue()
-                    } catch (e: Exception) {
-                        Log.e("SyncManager", "Critical failure during flush. Surviving.", e)
-                    }
-                }
-            }
+    suspend fun performOnlineRecovery() {
+        try {
+            flushQueue()
+        } catch (e: Exception) {
+            Log.e("SyncManager", "Critical failure during flush. Surviving.", e)
         }
     }
 

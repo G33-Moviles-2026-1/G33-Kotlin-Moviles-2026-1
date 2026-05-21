@@ -7,6 +7,9 @@ import androidx.room.Query
 
 @Dao
 interface FriendsDao {
+    @Query("SELECT * FROM cached_friends WHERE userKey = :userKey")
+    suspend fun getAllForUser(userKey: String): List<CachedFriendEntity>
+
     @Query("SELECT * FROM cached_friends WHERE userKey = :userKey AND role = :role")
     suspend fun getFriendsByRole(userKey: String, role: String): List<CachedFriendEntity>
 

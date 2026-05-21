@@ -2,7 +2,6 @@
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.NotificationsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +19,6 @@ class NotificationsViewModel(
     init {
         observeNotifications()
         loadNotifications()
-        observeNetwork()
     }
 
     private fun observeNotifications() {
@@ -29,16 +27,6 @@ class NotificationsViewModel(
                 val models = dtos.map { it.toUiModel() }
                 val unread = models.count { !it.isRead }
                 _uiState.update { it.copy(notifications = models, unreadCount = unread) }
-            }
-        }
-    }
-
-    private fun observeNetwork() {
-        viewModelScope.launch {
-            NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline && _uiState.value.isOffline) {
-                    loadNotifications()
-                }
             }
         }
     }

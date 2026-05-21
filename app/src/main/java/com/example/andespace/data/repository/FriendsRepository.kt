@@ -55,10 +55,19 @@ class FriendsRepository(
 
     suspend fun loadLocalSnapshot(): FriendsLocalSnapshot = withContext(Dispatchers.IO) {
         val userKey = getCurrentUserKey()
-        val friends = friendsDao.getFriendsByRole(userKey, FriendCacheRole.ACCEPTED).map { it.toFriendItemOut() }
-        val incoming = friendsDao.getFriendsByRole(userKey, FriendCacheRole.INCOMING).map { it.toFriendItemOut() }
-        val outgoing = friendsDao.getFriendsByRole(userKey, FriendCacheRole.OUTGOING).map { it.toOutgoingRequest() }
-        val rawSuggestions = friendsDao.getFriendsByRole(userKey, FriendCacheRole.SUGGESTION).map { it.username }
+        val cached = friendsDao.getAllForUser(userKey)
+        val friends = cached
+            .filter { it.role == FriendCacheRole.ACCEPTED }
+            .map { it.toFriendItemOut() }
+        val incoming = cached
+            .filter { it.role == FriendCacheRole.INCOMING }
+            .map { it.toFriendItemOut() }
+        val outgoing = cached
+            .filter { it.role == FriendCacheRole.OUTGOING }
+            .map { it.toOutgoingRequest() }
+        val rawSuggestions = cached
+            .filter { it.role == FriendCacheRole.SUGGESTION }
+            .map { it.username }
         val searchDraft = friendsDao.getSearchDraft(userKey).orEmpty()
         val myStatus = accountRepository.loadCachedProfile().status
         FriendsLocalSnapshot(
