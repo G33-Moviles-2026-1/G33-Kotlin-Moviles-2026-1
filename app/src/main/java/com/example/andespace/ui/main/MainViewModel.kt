@@ -1,13 +1,11 @@
-﻿package com.example.andespace.ui.main
+package com.example.andespace.ui.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.AuthRepository
-import com.example.andespace.data.repository.NotificationsRepository
 import com.example.andespace.data.repository.ThemePreferencesRepository
 import com.example.andespace.model.AppDestinations
-import com.example.andespace.ui.notifications.toUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,16 +15,13 @@ import kotlinx.coroutines.launch
 class MainViewModel(
     private val authRepository: AuthRepository,
     private val analyticsRepository: AnalyticsRepository,
-    private val themePreferencesRepository: ThemePreferencesRepository,
-    private val notificationsRepository: NotificationsRepository? = null
+    private val themePreferencesRepository: ThemePreferencesRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
     init {
         observeSavedThemeMode()
         checkExistingSession()
-        observeUnreadCount()
-        observeNotifications()
         viewModelScope.launch {
             authRepository.observeSessionState().collect { hasValidCookie ->
                 if (!hasValidCookie && _uiState.value.isLoggedIn) {
@@ -42,52 +37,6 @@ class MainViewModel(
                     authRepository.logout()
                 }
             }
-        }
-    }
-
-    private fun observeUnreadCount() {
-        notificationsRepository?.let { repo ->
-            viewModelScope.launch {
-                repo.unreadCount.collect { count ->
-                    _uiState.update { it.copy(unreadNotificationsCount = count) }
-                }
-            }
-        }
-    }
-
-    private fun observeNotifications() {
-        notificationsRepository?.let { repo ->
-            viewModelScope.launch {
-                repo.notifications.collect { dtos ->
-                    val models = dtos.map { it.toUiModel() }
-                    _uiState.update { it.copy(notifications = models) }
-                }
-            }
-        }
-    }
-
-    fun toggleNotificationsPopup() {
-        _uiState.update {
-            it.copy(
-                isNotificationsPopupExpanded = !it.isNotificationsPopupExpanded,
-                isUserMenuExpanded = false
-            )
-        }
-    }
-
-    fun dismissNotificationsPopup() {
-        _uiState.update { it.copy(isNotificationsPopupExpanded = false) }
-    }
-
-    fun markNotificationAsRead(id: String) {
-        viewModelScope.launch {
-            notificationsRepository?.markAsRead(id)
-        }
-    }
-
-    fun markAllNotificationsRead() {
-        viewModelScope.launch {
-            notificationsRepository?.markAllAsRead()
         }
     }
 
@@ -146,8 +95,7 @@ class MainViewModel(
             _uiState.update {
                 it.copy(
                     currentDestination = destination,
-                    isUserMenuExpanded = false,
-                    isNotificationsPopupExpanded = false
+                    isUserMenuExpanded = false
                 )
             }
             logScreenChange(destination.name)
@@ -178,8 +126,9 @@ class MainViewModel(
         }
     }
 
+
     fun expandUserMenu() {
-        _uiState.update { it.copy(isUserMenuExpanded = true, isNotificationsPopupExpanded = false) }
+        _uiState.update { it.copy(isUserMenuExpanded = true) }
     }
 
     fun closeUserMenu() {

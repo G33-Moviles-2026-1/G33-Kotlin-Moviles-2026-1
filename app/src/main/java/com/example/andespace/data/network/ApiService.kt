@@ -4,13 +4,9 @@ import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.AutoSearchRequest
 import com.example.andespace.model.dto.BookingDto
-import com.example.andespace.model.dto.ChangeEmailRequest
-import com.example.andespace.model.dto.ChangePasswordRequest
-import com.example.andespace.model.dto.ChangeStatusRequest
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.GetFavoritesResponse
 import com.example.andespace.model.dto.MyBookingsResponse
-import com.example.andespace.model.dto.NotificationsResponse
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
 import com.example.andespace.model.dto.RoomSearchRequest
 import com.example.andespace.model.dto.RoomSearchResponse
@@ -29,7 +25,6 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
-import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -138,24 +133,6 @@ interface ApiService {
         @Query("lat") latitude: Double,
         @Query("lon") longitude: Double
     ): Response<NavigationNearestNodeResponse>
-
-    @GET("notifications/")
-    suspend fun getNotifications(): Response<NotificationsResponse>
-
-    @PUT("notifications/{notificationId}/read")
-    suspend fun markNotificationRead(@Path("notificationId") id: String): Response<Unit>
-
-    @PUT("notifications/read-all")
-    suspend fun markAllNotificationsRead(): Response<Unit>
-
-    @PUT("me/password")
-    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
-
-    @PUT("me/email")
-    suspend fun changeEmail(@Body request: ChangeEmailRequest): Response<Unit>
-
-    @PUT("me/status")
-    suspend fun changeStatus(@Body request: ChangeStatusRequest): Response<Unit>
 
 }
 
