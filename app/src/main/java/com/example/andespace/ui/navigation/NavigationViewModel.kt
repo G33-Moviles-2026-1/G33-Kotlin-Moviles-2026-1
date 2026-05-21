@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.location.LocationSensor
 import com.example.andespace.data.repository.NavigationRepository
 import com.example.andespace.model.navigation.NavigationRoute
+import com.example.andespace.ui.common.SnackbarManager
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +35,14 @@ class NavigationViewModel(
     fun getInstructions(initClassroom: String, endClassroom: String) {
         if (initClassroom.isBlank() || endClassroom.isBlank()) return
 
-        _uiState.update { it.copy(isLoading = true, error = null) }
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                instructions = emptyList(),
+                totalTimeSeconds = 0,
+                isFromCache = false
+            )
+        }
 
         viewModelScope.launch {
             val result = repository.getRoute(
@@ -44,18 +53,14 @@ class NavigationViewModel(
             result.onSuccess { routeResult ->
                 applyRouteResult(routeResult.route, routeResult.fromCache, routeResult.canGoBack, routeResult.canGoForward, routeResult.isUsingGpsOrigin)
             }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = error.message ?: "An unknown error occurred"
-                    )
-                }
+                _uiState.update { it.copy(isLoading = false) }
+                SnackbarManager.showMessage(error.message ?: UserMessages.UNKNOWN_ERROR)
             }
         }
     }
 
     fun useCurrentLocationAsFromClassroom(locationSensor: LocationSensor) {
-        _uiState.update { it.copy(isLocating = true, error = null) }
+        _uiState.update { it.copy(isLocating = true) }
 
         viewModelScope.launch {
             val result = repository.resolveOriginFromGpsIfNeeded(locationSensor)
@@ -65,18 +70,12 @@ class NavigationViewModel(
                         fromClassroom = origin,
                         origin = origin,
                         isUsingGpsOrigin = true,
-                        isLocating = false,
-                        error = null
+                        isLocating = false
                     )
                 }
             }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isLocating = false,
-                        isUsingGpsOrigin = false,
-                        error = error.message ?: "Could not determine your nearest location"
-                    )
-                }
+                _uiState.update { it.copy(isLocating = false, isUsingGpsOrigin = false) }
+                SnackbarManager.showMessage(error.message ?: UserMessages.LOCATION_RESOLVE_FAILED)
             }
         }
     }
@@ -147,8 +146,7 @@ class NavigationViewModel(
                 isFromCache = fromCache,
                 canGoBack = canGoBack,
                 canGoForward = canGoForward,
-                isUsingGpsOrigin = isUsingGpsOrigin,
-                error = null
+                isUsingGpsOrigin = isUsingGpsOrigin
             )
         }
     }

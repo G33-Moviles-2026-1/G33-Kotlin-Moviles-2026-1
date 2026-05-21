@@ -35,6 +35,14 @@ object AppViewModelProvider {
                 repository = andeSpaceApplication().container.scheduleRepository,
             )
         }
+
+        initializer {
+            FriendsViewModel(
+                repository = andeSpaceApplication().container.friendsRepository,
+                accountRepository = andeSpaceApplication().container.accountRepository
+            )
+        }
+
         initializer {
             ResultsViewModel(
                 repository = andeSpaceApplication().container.roomRepository,
@@ -88,12 +96,6 @@ object AppViewModelProvider {
         initializer {
             AccountViewModel(
                 repository = andeSpaceApplication().container.accountRepository
-            )
-        }
-        initializer {
-            FriendsViewModel(
-                friendsRepository = andeSpaceApplication().container.friendsRepository,
-                accountRepository = andeSpaceApplication().container.accountRepository
             )
         }
 

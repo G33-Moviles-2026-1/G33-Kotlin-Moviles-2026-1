@@ -17,6 +17,13 @@ data class ScheduleClassOccurrenceOut(
     val end_time: String
 )
 
+data class UserShareScheduleUpdate(
+    val share_schedule: Boolean
+)
+
+data class UserShareScheduleOut(
+    val share_schedule: Boolean
+)
 data class ManualClassIn(
     val location_text: String? = null,
     val title: String,

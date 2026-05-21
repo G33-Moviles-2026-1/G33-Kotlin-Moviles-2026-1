@@ -64,8 +64,9 @@ fun AndeSpaceTopBar(
     onLoginClick: () -> Unit,
     onRegisterClick: () -> Unit,
     onLogOut: () -> Unit,
-    onMyAccountClick: () -> Unit = {},
-    onFriendsClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    onFriendsClick: () -> Unit,
+    onSettingsClick: () -> Unit = {}
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -168,9 +169,10 @@ fun AndeSpaceTopBar(
                                         CustomYellowButton("Log in", onLoginClick)
                                         CustomYellowButton("Register", onRegisterClick)
                                     } else {
-                                        CustomYellowButton("My account", onMyAccountClick)
+                                        CustomYellowButton("Profile", onProfileClick)
+                                        CustomYellowButton("Settings", onSettingsClick)
                                         CustomYellowButton("Friends", onFriendsClick)
-                                        CustomYellowButton("Sign Out", onLogOut)
+                                        CustomYellowButton("Log out", onLogOut)
                                     }
                                 }
                             }

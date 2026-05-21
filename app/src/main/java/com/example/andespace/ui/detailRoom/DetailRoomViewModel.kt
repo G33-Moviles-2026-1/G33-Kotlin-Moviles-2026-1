@@ -3,6 +3,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.data.repository.RoomRepository
+import com.example.andespace.ui.common.SnackbarManager
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +25,7 @@ class DetailRoomViewModel( private val repository: RoomRepository): ViewModel() 
                 room = room,
                 selectedDate = dateValue,
                 isLoadingAvailability = true,
-                availabilityError = null
+                hasAvailabilityError = false
             )
         }
         fetchRoomAvailability(roomId = room.id, dateValue = dateValue)
@@ -35,7 +37,7 @@ class DetailRoomViewModel( private val repository: RoomRepository): ViewModel() 
             it.copy(
                 selectedDate = dateValue,
                 isLoadingAvailability = true,
-                availabilityError = null
+                hasAvailabilityError = false
             )
         }
         fetchRoomAvailability(roomId = roomId, dateValue = dateValue)
@@ -50,27 +52,21 @@ class DetailRoomViewModel( private val repository: RoomRepository): ViewModel() 
                             it.copy(
                                 room = room,
                                 isLoadingAvailability = false,
-                                availabilityError = null
+                                hasAvailabilityError = false
                             )
                         }
                     },
                     onFailure = { error ->
+                        SnackbarManager.showMessage(error.message ?: UserMessages.AVAILABILITY_LOAD_FAILED)
                         _uiState.update {
                             it.copy(
                                 isLoadingAvailability = false,
-                                availabilityError = friendlyAvailabilityError(error.message)
+                                hasAvailabilityError = true
                             )
                         }
                     }
                 )
         }
-    }
-
-    private fun friendlyAvailabilityError(raw: String?): String = when {
-        raw == null -> "Could not load the room's availability. Please try again."
-        raw.startsWith("No internet connection") -> "No internet connection. Please check your network and try again."
-        raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
-        else -> "Could not load the room's availability. Please try again."
     }
 
     private fun currentDateApiValue(): String {

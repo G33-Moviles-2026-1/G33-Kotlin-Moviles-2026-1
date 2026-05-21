@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.andespace.model.RoomUtility
+import com.example.andespace.ui.common.UserMessages
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.theme.PrimaryYellow
@@ -71,7 +72,7 @@ fun RoomDetailScreen(
     val room = detailRoomUiState.room
     val selectedDate = detailRoomUiState.selectedDate
     val isLoadingAvailability = detailRoomUiState.isLoadingAvailability
-    val availabilityError = detailRoomUiState.availabilityError
+    val hasAvailabilityError = detailRoomUiState.hasAvailabilityError
     val favoriteIds = favoritesUiState.favoriteIds
     val isFavorite = detailRoomUiState.room?.id?.let { it in favoriteIds } ?: false
 
@@ -247,9 +248,9 @@ fun RoomDetailScreen(
                         )
                     }
 
-                    !availabilityError.isNullOrBlank() -> {
+                    hasAvailabilityError -> {
                         Text(
-                            text = availabilityError,
+                            text = UserMessages.AVAILABILITY_LOAD_FAILED,
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color(0xFFB3261E),
                             modifier = Modifier.padding(8.dp)

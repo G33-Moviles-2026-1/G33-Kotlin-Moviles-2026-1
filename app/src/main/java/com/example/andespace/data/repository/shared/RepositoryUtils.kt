@@ -9,6 +9,11 @@ object RepositoryMessages {
     const val DELETE_BOOKING_FAILED = "Could not delete the booking. Please try again."
     const val SAVE_BOOKING_FAILED = "Could not save the booking. Please try again."
     const val FAVORITES_SYNC_FAILED = "Couldn't sync favorites right now. Showing local favorites."
+    const val AVAILABILITY_LOAD_FAILED = "Could not load the room's availability. Please try again."
+    const val LOCATION_FAILED = "Could not get your current location."
+    const val LOCATION_RESOLVE_FAILED = "Could not determine your nearest location."
+    const val BOOKING_LOAD_FAILED = "Failed to load bookings."
+    const val BOOKING_CONFIRM_FAILED = "Error confirming booking."
 }
 
 fun extractErrorMessage(errorBody: String?, defaultCode: Int): String {

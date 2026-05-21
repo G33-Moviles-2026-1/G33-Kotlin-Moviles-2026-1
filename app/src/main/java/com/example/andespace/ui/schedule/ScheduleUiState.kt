@@ -25,4 +25,5 @@ data class ScheduleUiState(
     val recommendationsData: DayRoomRecommendationsOut? = null,
     val classIdToDelete: String? = null,
     val showDeleteScheduleConfirm: Boolean = false,
+    val isScheduleShared: Boolean = true
 )

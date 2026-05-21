@@ -6,7 +6,6 @@ data class ResultsUiState(
     val isSearching: Boolean = false,
     val rooms: List<RoomDto> = emptyList(),
     val hasUploadedSchedule: Boolean = false,
-    val errorMessage: String? = null,
     val selectedSearchDate: String? = null,
     val selectedRoom: RoomDto? = null,
     val resultsPageSize: Int = 20,

@@ -1,62 +1,97 @@
 package com.example.andespace.data.repository
 
-import android.util.Log
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.repository.shared.ApiException
 import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.data.repository.shared.extractErrorMessage
-import com.example.andespace.model.dto.AddFriendRequest
-import com.example.andespace.model.dto.FriendUiModel
+import com.example.andespace.model.dto.AcceptFriendshipRequest
+import com.example.andespace.model.dto.CreateFriendshipRequest
+import com.example.andespace.model.dto.FriendItemOut
+import com.example.andespace.model.dto.MyFriendsResponse
+import com.example.andespace.model.dto.WeeklyScheduleOut
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import retrofit2.Response
 
 class FriendsRepository(
     private val apiService: ApiService
 ) {
-    companion object {
-        private const val TAG = "FriendsRepository"
+    suspend fun getMyFriends(): Result<List<FriendItemOut>> = withContext(Dispatchers.IO) {
+        friendsListRequest { apiService.getMyFriends() }
     }
 
-    suspend fun getMyFriends(): Result<List<FriendUiModel>> = withContext(Dispatchers.IO) {
+    suspend fun getIncomingRequests(): Result<List<FriendItemOut>> = withContext(Dispatchers.IO) {
+        friendsListRequest { apiService.getIncomingRequests() }
+    }
+
+    suspend fun getSuggestions(): Result<List<String>> = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getMyFriends()
+            val response = apiService.getFriendSuggestions()
             if (response.isSuccessful) {
-                val friends = response.body()?.items.orEmpty().mapNotNull { it.toUiModel() }
-                Log.d(TAG, "getMyFriends -> ${friends.size} friends")
-                Result.success(friends)
+                Result.success(response.body() ?: emptyList())
             } else {
-                val msg = extractErrorMessage(response.errorBody()?.string(), response.code())
-                Log.e(TAG, "getMyFriends failed: $msg")
-                Result.failure(ApiException(msg))
+                Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "getMyFriends exception: ${e.message}", e)
+        } catch (_: Exception) {
             Result.failure(Exception(RepositoryMessages.NO_INTERNET))
         }
     }
 
-    suspend fun addFriend(username: String): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.addFriend(AddFriendRequest(username = username.trim()))
-            if (response.isSuccessful) {
-                Result.success(Unit)
-            } else {
-                Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
+    suspend fun getFriendWeeklySchedule(email: String, date: String): Result<WeeklyScheduleOut> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getFriendWeeklySchedule(targetEmail = email, date = date)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) Result.success(body)
+                    else Result.failure(ApiException(extractErrorMessage(null, response.code())))
+                } else {
+                    Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
+                }
+            } catch (_: Exception) {
+                Result.failure(Exception(RepositoryMessages.NO_INTERNET))
             }
-        } catch (e: Exception) {
+        }
+
+    suspend fun sendFriendRequest(email: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        unitRequest { apiService.sendFriendRequest(CreateFriendshipRequest(correo_amigo_2 = email.trim())) }
+    }
+
+    suspend fun acceptFriendRequest(email: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        unitRequest { apiService.acceptFriendRequest(AcceptFriendshipRequest(correo_amigo_1 = email)) }
+    }
+
+    suspend fun deleteFriendship(friendEmail: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.deleteFriendship(friendEmail)
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
+        } catch (_: Exception) {
             Result.failure(Exception(RepositoryMessages.NO_INTERNET))
         }
     }
 
-    suspend fun deleteFriend(username: String): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.deleteFriend(username)
+    private suspend fun friendsListRequest(
+        call: suspend () -> Response<MyFriendsResponse>
+    ): Result<List<FriendItemOut>> {
+        return try {
+            val response = call()
             if (response.isSuccessful) {
-                Result.success(Unit)
+                Result.success(response.body()?.items ?: emptyList())
             } else {
                 Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
+            Result.failure(Exception(RepositoryMessages.NO_INTERNET))
+        }
+    }
+
+    private suspend fun unitRequest(call: suspend () -> Response<Any>): Result<Boolean> {
+        return try {
+            val response = call()
+            if (response.isSuccessful) Result.success(true)
+            else Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
+        } catch (_: Exception) {
             Result.failure(Exception(RepositoryMessages.NO_INTERNET))
         }
     }

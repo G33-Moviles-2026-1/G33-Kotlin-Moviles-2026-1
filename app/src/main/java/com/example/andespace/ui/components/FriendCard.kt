@@ -1,4 +1,4 @@
-package com.example.andespace.ui.friends
+package com.example.andespace.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,11 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.andespace.model.dto.FriendUiModel
+import com.example.andespace.model.dto.FriendItemOut
 
 @Composable
 fun FriendCard(
-    friend: FriendUiModel,
+    friend: FriendItemOut,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -56,8 +56,8 @@ fun FriendCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FriendStatusIcon(
-                    status = friend.status,
-                    contentDescription = statusLabel(friend.status),
+                    status = friend.activityStatus,
+                    contentDescription = friendStatusLabel(friend.activityStatus),
                     modifier = Modifier.size(56.dp)
                 )
                 Text(
@@ -70,7 +70,7 @@ fun FriendCard(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = statusLabel(friend.status),
+                    text = friendStatusLabel(friend.activityStatus),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center

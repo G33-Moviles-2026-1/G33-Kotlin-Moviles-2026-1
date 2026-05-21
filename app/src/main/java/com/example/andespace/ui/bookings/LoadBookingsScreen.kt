@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -40,9 +41,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -85,12 +83,8 @@ fun LoadBookingsScreen(
     onDeleteBooking: (BookingDto) -> Unit,
     onEditBooking: (BookingDto) -> Unit,
     onSaveBooking: (CreateBookingRequest, String) -> Unit,
-    onCancelEdit: () -> Unit,
-    onConsumeSyncMessage: () -> Unit
+    onCancelEdit: () -> Unit
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    var lastShownError by remember { mutableStateOf<String?>(null) }
-
     LaunchedEffect(Unit) {
         onLoadBookings()
     }
@@ -103,31 +97,12 @@ fun LoadBookingsScreen(
 
     if (uiState.requiresLogin) return
 
-    LaunchedEffect(uiState.errorMessage) {
-        val message = uiState.errorMessage ?: return@LaunchedEffect
-        if (message == lastShownError) return@LaunchedEffect
-        lastShownError = message
-        snackbarHostState.showSnackbar(
-            message = message,
-            withDismissAction = true,
-            duration = SnackbarDuration.Short
-        )
-    }
-
-    LaunchedEffect(uiState.syncMessage) {
-        val message = uiState.syncMessage ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(
-            message = message,
-            duration = SnackbarDuration.Long
-        )
-        onConsumeSyncMessage()
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         when (uiState.contentScreen) {
             BookingsContentScreen.LIST -> MyBookingsScreen(
                 bookings = uiState.bookings,
                 isLoading = uiState.isLoading,
+                isShowingCached = uiState.isShowingCached,
                 onDeleteBooking = onDeleteBooking,
                 onEditBooking = onEditBooking
             )
@@ -143,10 +118,6 @@ fun LoadBookingsScreen(
                 }
             }
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 
@@ -154,6 +125,7 @@ fun LoadBookingsScreen(
 private fun MyBookingsScreen(
     bookings: List<BookingDto>,
     isLoading: Boolean,
+    isShowingCached: Boolean,
     modifier: Modifier = Modifier,
     onDeleteBooking: (BookingDto) -> Unit = {},
     onEditBooking: (BookingDto) -> Unit = {}
@@ -169,6 +141,28 @@ private fun MyBookingsScreen(
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
             modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
         )
+
+        if (isShowingCached) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.WifiOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Showing cached bookings",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
 
         if (isLoading && bookings.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

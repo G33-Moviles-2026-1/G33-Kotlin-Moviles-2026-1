@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.ScheduleNotFoundException
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.model.dto.ManualClassIn
+import com.example.andespace.ui.common.SnackbarManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,28 +32,58 @@ class ScheduleViewModel(
             _uiState.update { it.copy(hasSchedule = hasCached) }
         }
         loadSchedule()
+        fetchShareScheduleState()
     }
     fun loadRecommendations(dateString: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                val data = repository.getRoomRecommendationsForDay(dateString)
+                val result = repository.getRoomRecommendationsForDay(dateString)
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isShowingRecommendations = true,
-                        recommendationsData = data
+                        recommendationsData = result
                     )
                 }
             } catch (_: Exception) {
                 _uiState.update {
                     it.copy(
-                    isLoading = false,
-                    isShowingRecommendations = true,
-                    recommendationsData = null
+                        isLoading = false,
+                        isShowingRecommendations = true,
+                        recommendationsData = null
                     )
                 }
+            }
+        }
+    }
+
+    fun fetchShareScheduleState() {
+        viewModelScope.launch {
+            val result = repository.getShareScheduleState()
+            result.onSuccess { isShared ->
+                _uiState.update { it.copy(isScheduleShared = isShared) }
+            }.onFailure {
+            }
+        }
+    }
+
+    fun toggleShareSchedule() {
+        val currentVisibility = _uiState.value.isScheduleShared
+        val newVisibility = !currentVisibility
+
+        _uiState.update { it.copy(isScheduleShared = newVisibility) }
+
+        viewModelScope.launch {
+            val result = repository.updateShareSchedule(newVisibility)
+            result.onSuccess {
+                val statusMessage = if (newVisibility) "Schedule is now available to friends" else "Schedule is now hidden from friends"
+                SnackbarManager.showMessage(statusMessage)
+            }.onFailure { error ->
+                _uiState.update { it.copy(isScheduleShared = currentVisibility) }
+                SnackbarManager.showMessage(error.message ?: "Failed to update visibility")
             }
         }
     }
@@ -95,7 +126,7 @@ class ScheduleViewModel(
             val result = repository.uploadIcs(context, uri)
 
             result.onSuccess {
-                repository.syncEntireScheduleFromBackend()
+                repository.syncEntireScheduleFromBackend(showSuccessMessage = true)
 
                 _uiState.update { it.copy(isLoading = false, hasSchedule = true) }
                 onSuccess()
@@ -110,7 +141,7 @@ class ScheduleViewModel(
     fun forceRefreshScheduleFromBackend() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            repository.syncEntireScheduleFromBackend()
+            repository.syncEntireScheduleFromBackend(showSuccessMessage = true)
             loadSchedule()
         }
     }

@@ -23,6 +23,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -46,7 +48,6 @@ import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
-import com.example.andespace.BuildConfig
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.model.dto.RoomDto
@@ -57,30 +58,30 @@ import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
 import com.example.andespace.ui.bookings.BookingsViewModel
 import com.example.andespace.ui.bookings.MainBookingsScreen
+import com.example.andespace.ui.common.SnackbarManager
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
 import com.example.andespace.ui.favorites.MainFavoritesScreen
-import com.example.andespace.ui.friends.FriendsScreen
-import com.example.andespace.ui.friends.FriendsViewModel
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.navigation.NavigationScreen
 import com.example.andespace.ui.navigation.NavigationViewModel
 import com.example.andespace.ui.homepage.HomePageScreen
-import com.example.andespace.ui.notifications.NotificationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
 import com.example.andespace.ui.settings.SettingsScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 import androidx.compose.material3.Icon
+import com.example.andespace.ui.friends.FriendsMainScreen
+import com.example.andespace.ui.friends.FriendsViewModel
+import com.example.andespace.ui.recommendations.RecommendationsViewModel
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        NetworkMonitor.register(applicationContext, BuildConfig.API_BASE_URL)
         enableEdgeToEdge()
         setContent {
             val mainViewModel: MainViewModel = viewModel(factory = AppViewModelProvider.Factory)
@@ -100,9 +101,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AndeSpaceApp(
-    viewModel: MainViewModel
-) {
+fun AndeSpaceApp(viewModel: MainViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -113,13 +112,22 @@ fun AndeSpaceApp(
     val detailRoomViewModel: DetailRoomViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val navigationViewModel: NavigationViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    val recommendationsViewModel: com.example.andespace.ui.recommendations.RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    val notificationsViewModel: NotificationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val recommendationsViewModel: RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val accountViewModel: AccountViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    val friendsViewModel: FriendsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
-
+    val snackbarHostState = remember { SnackbarHostState() }
     val navigateToNavByRoomId by homepageViewModel.onNavigateToNavigation.collectAsState()
+    val friendsViewModel: FriendsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+
+    LaunchedEffect(Unit) {
+        SnackbarManager.messages.collect { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = "Got it",
+                duration = SnackbarDuration.Indefinite
+            )
+        }
+    }
 
     LaunchedEffect(navigateToNavByRoomId) {
         navigateToNavByRoomId?.let { roomId ->
@@ -214,6 +222,7 @@ fun AndeSpaceApp(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
@@ -238,11 +247,16 @@ fun AndeSpaceApp(
                     scheduleViewModel.clearScheduleData()
                     favoritesViewModel.clearFavorites()
                 },
-                onMyAccountClick = {
+                onProfileClick = {
                     viewModel.onDestinationChanged(AppDestinations.ACCOUNT_SETTINGS)
+                },
+                onSettingsClick = {
+                    viewModel.onDestinationChanged(AppDestinations.SETTINGS)
                 },
                 onFriendsClick = {
                     viewModel.onDestinationChanged(AppDestinations.FRIENDS)
+                    friendsViewModel.openMyFriends()
+                    friendsViewModel.refreshAll()
                 }
             )
         },
@@ -305,6 +319,7 @@ fun AndeSpaceApp(
                         viewModel.onLogin()
                         bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.checkScheduleStatus()
+                        scheduleViewModel.fetchShareScheduleState()
                         favoritesViewModel.refreshFromBackend(force = true)
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     }
@@ -315,6 +330,7 @@ fun AndeSpaceApp(
                         viewModel.onLogin()
                         bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.clearScheduleData()
+                        scheduleViewModel.fetchShareScheduleState()
                         favoritesViewModel.refreshFromBackend(force = true)
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     }
@@ -373,15 +389,17 @@ fun AndeSpaceApp(
                     )
                 }
 
-                AppDestinations.FRIENDS -> {
-                    FriendsScreen(viewModel = friendsViewModel)
-                }
-
                 AppDestinations.SETTINGS -> {
                     SettingsScreen(
                         themeMode = uiState.themeMode,
                         onThemeModeChange = { viewModel.setThemeMode(it) },
                         onNavigateBack = { viewModel.onDestinationChanged(AppDestinations.CLASSROOMS) }
+                    )
+                }
+
+                AppDestinations.FRIENDS -> {
+                    FriendsMainScreen(
+                        viewModel = friendsViewModel
                     )
                 }
             }
@@ -439,14 +457,4 @@ fun AssetIcon(
         modifier = modifier,
         tint = MaterialTheme.colorScheme.onSurface
     )
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = name,
-            style = MaterialTheme.typography.headlineMedium
-        )
-    }
 }

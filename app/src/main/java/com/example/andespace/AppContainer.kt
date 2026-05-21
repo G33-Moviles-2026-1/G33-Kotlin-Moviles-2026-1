@@ -34,12 +34,12 @@ interface AppContainer {
     val apiService: ApiService
     val authRepository: AuthRepository
     val analyticsRepository: AnalyticsRepository
+    val friendsRepository: FriendsRepository
     val roomRepository: RoomRepository
     val recommendationsRepository: RecommendationsRepository
     val scheduleRepository: ScheduleRepository
     val bookingRepository: BookingRepository
     val favoritesRepository: FavoritesRepository
-    val friendsRepository: FriendsRepository
     val navigationRepository: NavigationRepository
     val themePreferencesRepository: ThemePreferencesRepository
     val notificationsRepository: NotificationsRepository
@@ -103,6 +103,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         )
     }
 
+    override val friendsRepository: FriendsRepository by lazy {
+        FriendsRepository(
+            apiService = apiService
+        )
+    }
+
     override val favoritesRepository: FavoritesRepository by lazy {
         FavoritesRepository(
             apiService = apiService,
@@ -110,10 +116,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             syncActionDao = syncDao,
             context = context
         )
-    }
-
-    override val friendsRepository: FriendsRepository by lazy {
-        FriendsRepository(apiService = apiService)
     }
 
     override val recommendationsRepository: RecommendationsRepository by lazy {

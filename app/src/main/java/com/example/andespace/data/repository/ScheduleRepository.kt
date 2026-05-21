@@ -7,11 +7,16 @@ import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.repository.shared.ApiException
 import com.example.andespace.data.repository.shared.ScheduleValidator
 import com.example.andespace.data.repository.shared.extractErrorMessage
+import com.example.andespace.model.cache.RecommendationsCache
+import com.example.andespace.model.db.sync.PendingSyncAction
+import com.example.andespace.model.db.sync.SyncActionDao
 import com.example.andespace.model.dto.DayRoomRecommendationsOut
 import com.example.andespace.model.dto.ManualClassIn
 import com.example.andespace.model.dto.ManualScheduleIn
 import com.example.andespace.model.dto.ScheduleClassOccurrenceOut
+import com.example.andespace.model.dto.UserShareScheduleUpdate
 import com.example.andespace.model.dto.WeeklyScheduleOut
+import com.example.andespace.ui.common.SnackbarManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
@@ -30,9 +35,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.util.UUID
-import com.example.andespace.model.cache.RecommendationsCache
-import com.example.andespace.model.db.sync.PendingSyncAction
-import com.example.andespace.model.db.sync.SyncActionDao
+
 
 class ScheduleRepository(
     private val syncDao: SyncActionDao,
@@ -97,6 +100,32 @@ class ScheduleRepository(
         }
     }
 
+    suspend fun getShareScheduleState(): Result<Boolean> {
+        return try {
+            val response = apiService.getShareScheduleState()
+            if (response.isSuccessful) {
+                Result.success(response.body()?.share_schedule ?: true)
+            } else {
+                Result.failure(Exception("Failed to fetch schedule visibility."))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("No internet connection. Could not fetch visibility."))
+        }
+    }
+
+    suspend fun updateShareSchedule(isShared: Boolean): Result<Boolean> {
+        return try {
+            val response = apiService.updateShareSchedule(UserShareScheduleUpdate(isShared))
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Failed to update schedule visibility."))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("No internet connection. Could not update visibility."))
+        }
+    }
+
     suspend fun clearLocalCacheOnLogout() {
         fileMutex.withLock {
             try {
@@ -112,7 +141,7 @@ class ScheduleRepository(
         }
     }
 
-    suspend fun syncEntireScheduleFromBackend() {
+    suspend fun syncEntireScheduleFromBackend(showSuccessMessage: Boolean = false) {
         try {
             val response = apiService.getScheduleClasses()
             if (response.isSuccessful) {
@@ -210,6 +239,10 @@ class ScheduleRepository(
                         }
                     }
                     writeCacheToDisk(newCache)
+
+                    if (showSuccessMessage) {
+                        SnackbarManager.showMessage("Schedule Successfully Synced")
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -268,6 +301,7 @@ class ScheduleRepository(
                     )
                 )
                 Log.w(TAG, "Offline: Manual class queued for SyncManager.")
+                SnackbarManager.showMessage("Schedule modified locally but not synced")
             }
         }
     }
@@ -276,15 +310,15 @@ class ScheduleRepository(
         removeClassFromLocalCache(classId)
         repoScope.launch {
             try {
-                syncDeleteClassWithBackend(classId)
             } catch (e: Exception) {
                 syncDao.insertAction(PendingSyncAction(actionType = "DELETE_CLASS", payload = classId))
                 Log.w(TAG, "Offline: Class deletion queued for SyncManager.")
+                SnackbarManager.showMessage("Schedule modified locally but not synced")
             }
         }
     }
 
-    suspend fun deleteSchedule() {
+    fun deleteSchedule() {
         File(context.filesDir, SCHEDULE_FILE_NAME).delete()
         repoScope.launch {
             try {
@@ -292,6 +326,7 @@ class ScheduleRepository(
             } catch (e: Exception) {
                 syncDao.insertAction(PendingSyncAction(actionType = "DELETE_SCHEDULE", payload = ""))
                 Log.w(TAG, "Offline: Schedule deletion queued for SyncManager.")
+                SnackbarManager.showMessage("Schedule modified locally but not synced")
             }
         }
     }
@@ -444,20 +479,24 @@ class ScheduleRepository(
             }
         }
     suspend fun getRoomRecommendationsForDay(date: String): DayRoomRecommendationsOut {
+        try {
+            val response = apiService.getRoomRecommendationsForDay(date)
+            if (response.isSuccessful) {
+                val newRecommendations = response.body() ?: throw Exception("Empty recommendations body")
+                recommendationsCache.put(date, newRecommendations)
+                return newRecommendations
+            }
+        } catch (e: Exception) {
+        }
+
         val cachedRecommendations = recommendationsCache.get(date)
         if (cachedRecommendations != null) {
+            SnackbarManager.showMessage("Showing Stored Results")
             return cachedRecommendations
         }
 
-        val response = apiService.getRoomRecommendationsForDay(date)
-        if (!response.isSuccessful) {
-            throw Exception("Error ${response.code()}: Failed to fetch recommendations")
-        }
-        val newRecommendations = response.body() ?: throw Exception("Empty recommendations body")
-        recommendationsCache.put(date, newRecommendations)
-        return response.body() ?: throw Exception("Empty recommendations body")
+        throw Exception("No internet connection and no cached data available.")
     }
-
 
     suspend fun hasAnyCachedSchedule(): Boolean {
         return getLocalScheduleCache().isNotEmpty()
