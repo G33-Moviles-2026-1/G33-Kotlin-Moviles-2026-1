@@ -7,6 +7,8 @@ import com.example.andespace.data.repository.AnalyticsRepository
 import com.example.andespace.data.repository.RoomRepository
 import com.example.andespace.model.HomeSearchParams
 import com.example.andespace.model.dto.RoomDto
+import com.example.andespace.ui.common.SnackbarManager
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -92,7 +94,7 @@ class ResultsViewModel(
                 "requestSearchPage -> page=$page, limit=$pageSize, offset=$offset, classroom=${params.classroom}, date=${params.date}, since=${params.since}, until=${params.until}, closeToMe=${params.closeToMe}, utilities=${params.utilities}"
             )
 
-            _uiState.update { it.copy(isSearching = true, errorMessage = null) }
+            _uiState.update { it.copy(isSearching = true) }
 
             if (trackEvent) {
                 analyticsRepository.trackHomeEvent("home_search_submitted")
@@ -131,7 +133,6 @@ class ResultsViewModel(
                                 selectedSearchDate = params.date,
                                 currentPage = page,
                                 totalPages = pages,
-                                errorMessage = null,
                                 showingCachedResults = false,
                                 showOfflinePlaceholder = false
                             )
@@ -159,22 +160,22 @@ class ResultsViewModel(
                                         selectedSearchDate = cachedParams?.date ?: params.date,
                                         currentPage = 1,
                                         totalPages = cachedTotalPages,
-                                        errorMessage = "No internet connection. Showing the cached results from your last search.",
                                         showingCachedResults = true,
                                         showOfflinePlaceholder = false
                                     )
                                 }
+                                SnackbarManager.showMessage(UserMessages.RESULTS_CACHED)
                                 onNavigateToResults(true)
                             } else {
                                 _uiState.update {
                                     it.copy(
                                         isSearching = false,
                                         rooms = emptyList(),
-                                        errorMessage = "No internet connection. Please check your connection and try again.",
                                         showingCachedResults = false,
                                         showOfflinePlaceholder = true
                                     )
                                 }
+                                SnackbarManager.showMessage(UserMessages.RESULTS_NO_CONNECTION)
                                 onNavigateToResults(true)
                             }
                             return@fold
@@ -185,11 +186,11 @@ class ResultsViewModel(
                                 it.copy(
                                     isSearching = false,
                                     rooms = emptyList(),
-                                    errorMessage = "More results require an internet connection. Please check your connection and try again.",
                                     showingCachedResults = false,
                                     showOfflinePlaceholder = true
                                 )
                             }
+                            SnackbarManager.showMessage(UserMessages.RESULTS_MORE_PAGES_OFFLINE)
                             return@fold
                         }
 
@@ -203,20 +204,20 @@ class ResultsViewModel(
                                     selectedSearchDate = params.date,
                                     currentPage = page,
                                     totalPages = cachedTotalPages,
-                                    errorMessage = "No internet connection. Showing cached results for page $page.",
                                     showingCachedResults = true,
                                     showOfflinePlaceholder = false
                                 )
                             }
+                            SnackbarManager.showMessage("${UserMessages.RESULTS_CACHED_PAGE} $page.")
                         } else {
                             _uiState.update {
                                 it.copy(
                                     isSearching = false,
-                                    errorMessage = friendlyError(error.message),
                                     showingCachedResults = false,
                                     showOfflinePlaceholder = false
                                 )
                             }
+                            SnackbarManager.showMessage(error.message ?: UserMessages.RESULTS_LOAD_FAILED)
                         }
                     }
                 )
@@ -249,14 +250,6 @@ class ResultsViewModel(
         return raw.contains("internet", ignoreCase = true) ||
             raw.contains("network", ignoreCase = true) ||
             raw.contains("timeout", ignoreCase = true)
-    }
-
-    private fun friendlyError(raw: String?): String = when {
-        raw == null -> "Something went wrong. Please try again."
-        raw.startsWith("No internet connection") -> "No internet connection. Please check your network and try again."
-        raw.startsWith("Network error") -> "No internet connection. Please check your network and try again."
-        raw.matches(Regex("Error \\d+.*")) -> "Could not load results. Please try again."
-        else -> "Something went wrong. Please try again."
     }
 
     private fun calculateTotalPages(totalItems: Int, pageSize: Int): Int {

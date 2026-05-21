@@ -18,7 +18,6 @@ fun MainBookingsScreen(
         onDeleteBooking = { booking -> bookingsViewModel.onDeleteBooking(booking) },
         onEditBooking = { booking -> bookingsViewModel.onEditBooking(booking) },
         onSaveBooking = { request, oldId -> bookingsViewModel.onSaveBooking(request, oldId) },
-        onCancelEdit = { bookingsViewModel.onCancelEdit() },
-        onConsumeSyncMessage = { bookingsViewModel.consumeSyncMessage() }
+        onCancelEdit = { bookingsViewModel.onCancelEdit() }
     )
 }

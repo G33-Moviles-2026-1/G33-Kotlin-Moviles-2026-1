@@ -14,6 +14,7 @@ import com.example.andespace.model.db.booking.toEntity
 import com.example.andespace.data.network.ApiService
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.shared.ApiException
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.data.repository.shared.httpErrorMessage
 import com.example.andespace.data.sync.BookingSyncWorker
 import com.example.andespace.model.db.sync.PendingSyncAction
@@ -97,7 +98,7 @@ class BookingRepository(
             }
         } catch (e: Exception) {
             Log.e(TAG, "refreshBookings exception=${e.message}", e)
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
+            Result.failure(Exception(RepositoryMessages.NO_INTERNET))
         }
     }
 
@@ -110,7 +111,7 @@ class BookingRepository(
             val cached = bookingDao.getAllBookings().map { it.toDto() }
             if (cached.isNotEmpty()) return@withContext Result.success(cached)
         }
-        Result.failure(Exception("Failed to load bookings"))
+        Result.failure(Exception(RepositoryMessages.BOOKING_LOAD_FAILED))
     }
 
     suspend fun createBooking(request: CreateBookingRequest): Result<BookingDto> =
@@ -145,7 +146,7 @@ class BookingRepository(
                         bookingDao.insertAll(listOf(booking.toEntity()))
                         Result.success(booking)
                     } else {
-                        Result.failure(Exception("Error confirming booking"))
+                        Result.failure(Exception(RepositoryMessages.BOOKING_CONFIRM_FAILED))
                     }
                 } else {
                     enqueueBookingAction(ACTION_CREATE_BOOKING, gson.toJson(request))
@@ -185,7 +186,7 @@ class BookingRepository(
                 if (!NetworkMonitor.isOnline.value) {
                     enqueueBookingAction(ACTION_DELETE_BOOKING, bookingId)
                     scheduleSync()
-                    return@withContext Result.success(true)
+                    return@withContext Result.failure(Exception("OFFLINE_SYNC_PENDING"))
                 }
 
                 val response = apiService.deleteBooking(bookingId)
@@ -201,7 +202,7 @@ class BookingRepository(
                 Log.e(TAG, "deleteBooking exception=${e.message}", e)
                 enqueueBookingAction(ACTION_DELETE_BOOKING, bookingId)
                 scheduleSync()
-                Result.success(true)
+                Result.failure(Exception("OFFLINE_SYNC_PENDING"))
             }
         }
 

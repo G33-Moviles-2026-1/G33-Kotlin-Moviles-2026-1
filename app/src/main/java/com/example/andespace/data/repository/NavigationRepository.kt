@@ -3,6 +3,7 @@ package com.example.andespace.data.repository
 import android.content.Context
 import com.example.andespace.data.location.LocationSensor
 import com.example.andespace.data.network.ApiService
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.data.repository.shared.extractErrorMessage
 import com.example.andespace.model.cache.RouteMemoryCache
 import com.example.andespace.model.dto.NavigationNearestNodeResponse
@@ -94,7 +95,7 @@ class NavigationRepository(
                 )
             }
         } catch (e: Exception) {
-            Result.failure(Exception("No internet connection. Please check your network and try again."))
+            Result.failure(Exception(RepositoryMessages.NO_INTERNET))
         }
     }
 
@@ -132,7 +133,7 @@ class NavigationRepository(
         withContext(Dispatchers.IO) {
             try {
                 val location = locationSensor.getCurrentLocation()
-                    ?: return@withContext Result.failure(Exception("Could not get your current location."))
+                    ?: return@withContext Result.failure(Exception(RepositoryMessages.LOCATION_FAILED))
 
                 val response = apiService.getNearestNavigationNode(
                     latitude = location.latitude,
@@ -147,7 +148,7 @@ class NavigationRepository(
                 val nearestNode = response.body() ?: throw Exception("Empty response body")
                 Result.success(nearestNode.buildingCode)
             } catch (e: Exception) {
-                Result.failure(Exception(e.message ?: "Could not determine your nearest location"))
+                Result.failure(Exception(e.message ?: RepositoryMessages.LOCATION_RESOLVE_FAILED))
             }
         }
 

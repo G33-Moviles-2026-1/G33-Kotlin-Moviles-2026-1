@@ -2,6 +2,7 @@ package com.example.andespace.data.repository
 
 import android.util.Log
 import com.example.andespace.data.network.ApiService
+import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.data.repository.shared.extractErrorMessage
 import com.example.andespace.data.repository.shared.httpErrorMessage
 import com.example.andespace.model.HomeSearchParams
@@ -67,7 +68,7 @@ class RoomRepository(private val apiService: ApiService) {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "searchRooms exception=${e.message}", e)
-                Result.failure(Exception("No internet connection. Please check your network and try again."))
+                Result.failure(Exception(RepositoryMessages.NO_INTERNET))
             }
         }
 
@@ -81,12 +82,12 @@ class RoomRepository(private val apiService: ApiService) {
             if (room != null) {
                 Result.success(room)
             } else {
-                Result.failure(Exception("Could not load the room's availability. Please try again."))
+                Result.failure(Exception(RepositoryMessages.AVAILABILITY_LOAD_FAILED))
             }
         } else {
             Result.failure(Exception(httpErrorMessage(response.code())))
         }
     } catch (_: Exception) {
-        Result.failure(Exception("No internet connection. Please check your network and try again."))
+        Result.failure(Exception(RepositoryMessages.NO_INTERNET))
     }
 }
