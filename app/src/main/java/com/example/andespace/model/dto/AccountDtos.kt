@@ -5,9 +5,14 @@ data class ChangePasswordRequest(
     val new_password: String
 )
 
-data class ChangeEmailRequest(
-    val new_email: String,
-    val current_password: String
+data class ChangeUsernameRequest(
+    val username: String
+)
+
+data class MeProfileResponse(
+    val email: String,
+    val username: String,
+    val status: String
 )
 
 data class ChangeStatusRequest(
@@ -25,6 +30,6 @@ enum class UserStatus(val value: String) {
 
     companion object {
         fun fromValue(value: String): UserStatus =
-            entries.firstOrNull { it.value == value } ?: FREE
+            entries.firstOrNull { it.value == value } ?: INCOGNITO
     }
 }

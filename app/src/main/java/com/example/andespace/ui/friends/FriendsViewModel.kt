@@ -2,9 +2,14 @@ package com.example.andespace.ui.friends
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.network.NetworkMonitor
+import com.example.andespace.data.repository.AccountRepository
+import com.example.andespace.data.repository.FriendsLocalSnapshot
 import com.example.andespace.data.repository.FriendsRepository
 import com.example.andespace.model.dto.FriendItemOut
+import com.example.andespace.model.dto.UserStatus
 import com.example.andespace.ui.common.SnackbarManager
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,73 +21,241 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 
 class FriendsViewModel(
-    private val repository: FriendsRepository
+    private val repository: FriendsRepository,
+    private val accountRepository: AccountRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FriendsUiState())
     val uiState: StateFlow<FriendsUiState> = _uiState.asStateFlow()
 
     init {
-        loadFriends()
-        loadIncomingRequests()
+        viewModelScope.launch {
+            applyLocalSnapshot(repository.loadLocalSnapshot())
+        }
+        viewModelScope.launch {
+            accountRepository.observeStatus().collect { status ->
+                _uiState.update { it.copy(myStatus = status) }
+            }
+        }
+        viewModelScope.launch {
+            var wasOnline = NetworkMonitor.isOnline.value
+            NetworkMonitor.isOnline.collect { isOnline ->
+                if (isOnline && !wasOnline) {
+                    viewModelScope.launch {
+                        repository.syncPendingFriendActions()
+                        refreshAll()
+                    }
+                }
+                wasOnline = isOnline
+            }
+        }
+        refreshAll()
     }
 
-    fun loadFriends() {
+    fun refreshAll() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingFriends = true, friendsError = null) }
-            val result = repository.getMyFriends()
-
-            result.onSuccess { friends ->
-                _uiState.update { it.copy(isLoadingFriends = false, friendsList = friends) }
-            }.onFailure { error ->
-                _uiState.update { it.copy(isLoadingFriends = false, friendsError = error.message) }
-                SnackbarManager.showMessage(error.message ?: "Could not load friends")
+            applyLocalSnapshot(repository.loadLocalSnapshot())
+            _uiState.update {
+                it.copy(
+                    isLoadingFriends = true,
+                    isLoadingRequests = true,
+                    isLoadingSuggestions = true,
+                    friendsError = null
+                )
             }
+            repository.syncPendingFriendActions()
+            repository.refreshAllParallel()
+                .onSuccess { bundle ->
+                    repository.persistNetworkBundle(bundle)
+                    val local = repository.loadLocalSnapshot()
+                    _uiState.update {
+                        it.copy(
+                            friendsList = local.friends,
+                            incomingRequests = local.incoming,
+                            outgoingRequests = local.outgoing,
+                            suggestions = local.suggestions,
+                            isLoadingFriends = false,
+                            isLoadingRequests = false,
+                            isLoadingSuggestions = false,
+                            friendsError = null
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingFriends = false,
+                            isLoadingRequests = false,
+                            isLoadingSuggestions = false,
+                            friendsError = if (it.friendsList.isEmpty()) error.message else null
+                        )
+                    }
+                    if (_uiState.value.friendsList.isEmpty()) {
+                        showBackendError(error)
+                    }
+                }
         }
     }
 
-    fun loadIncomingRequests() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingRequests = true) }
-            val result = repository.getIncomingRequests()
+    fun openMyFriends() {
+        _uiState.update { it.copy(contentScreen = FriendsContentScreen.MY_FRIENDS) }
+    }
 
-            result.onSuccess { requests ->
-                _uiState.update { it.copy(isLoadingRequests = false, incomingRequests = requests) }
-            }.onFailure {
-                _uiState.update { it.copy(isLoadingRequests = false) }
+    fun openAddFriends() {
+        viewModelScope.launch {
+            val draft = repository.getSearchDraft()
+            _uiState.update {
+                it.copy(
+                    contentScreen = FriendsContentScreen.ADD_FRIENDS,
+                    searchQuery = draft
+                )
             }
+        }
+        refreshAll()
+    }
+
+    fun showStatusPicker() {
+        _uiState.update {
+            it.copy(
+                showStatusPicker = true,
+                statusPickerSelection = it.myStatus
+            )
         }
     }
 
-    fun onSearchEmailChange(email: String) {
-        _uiState.update { it.copy(searchEmail = email) }
+    fun dismissStatusPicker() {
+        val selection = _uiState.value.statusPickerSelection
+        val current = _uiState.value.myStatus
+        if (selection == current) {
+            _uiState.update { it.copy(showStatusPicker = false) }
+            return
+        }
+        applyMyStatus(selection, closePickerOnSuccess = true)
+    }
+
+    fun cycleStatusPickerPrevious() {
+        cycleStatusPicker(delta = -1)
+    }
+
+    fun cycleStatusPickerNext() {
+        cycleStatusPicker(delta = 1)
+    }
+
+    private fun cycleStatusPicker(delta: Int) {
+        val entries = UserStatus.entries
+        val current = _uiState.value.statusPickerSelection
+        val index = entries.indexOf(current).coerceAtLeast(0)
+        val nextIndex = (index + delta + entries.size) % entries.size
+        _uiState.update { it.copy(statusPickerSelection = entries[nextIndex]) }
+    }
+
+    private fun applyMyStatus(status: UserStatus, closePickerOnSuccess: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isApplyingStatus = true) }
+            repository.changeMyStatus(status).fold(
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(
+                            myStatus = status,
+                            isApplyingStatus = false,
+                            showStatusPicker = if (closePickerOnSuccess) false else it.showStatusPicker
+                        )
+                    }
+                    SnackbarManager.showMessage("Status updated")
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isApplyingStatus = false) }
+                    showBackendError(error)
+                }
+            )
+        }
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        viewModelScope.launch {
+            repository.saveSearchDraft(query)
+        }
     }
 
     fun sendFriendRequest() {
-        val email = _uiState.value.searchEmail.trim()
-        if (email.isEmpty()) return
+        val query = _uiState.value.searchQuery.trim()
+        if (query.isEmpty()) return
+        val email = if (query.contains("@")) query else "$query@uniandes.edu.co"
 
         viewModelScope.launch {
-            val result = repository.sendFriendRequest(email)
-            result.onSuccess {
-                SnackbarManager.showMessage("Friend request sent to $email")
-                _uiState.update { it.copy(searchEmail = "") }
-            }.onFailure { error ->
-                SnackbarManager.showMessage(error.message ?: "Failed to send request")
-            }
+            repository.sendFriendRequest(email)
+                .onSuccess {
+                    _uiState.update { it.copy(searchQuery = "") }
+                    SnackbarManager.showMessage("Friend request sent")
+                    applyLocalSnapshot(repository.loadLocalSnapshot())
+                    refreshAll()
+                }
+                .onFailure { showBackendError(it) }
+        }
+    }
+
+    fun sendSuggestionRequest(username: String) {
+        val email = if (username.contains("@")) username.trim() else "${username.trim()}@uniandes.edu.co"
+        viewModelScope.launch {
+            repository.sendFriendRequest(email)
+                .onSuccess {
+                    _uiState.update { state ->
+                        state.copy(
+                            suggestions = state.suggestions.filterNot { suggestion ->
+                                suggestion.equals(username, ignoreCase = true) ||
+                                    suggestion.equals(email.substringBefore("@"), ignoreCase = true)
+                            }
+                        )
+                    }
+                    SnackbarManager.showMessage("Friend request sent")
+                    applyLocalSnapshot(repository.loadLocalSnapshot())
+                }
+                .onFailure { showBackendError(it) }
         }
     }
 
     fun acceptFriendRequest(email: String) {
         viewModelScope.launch {
-            val result = repository.acceptFriendRequest(email)
-            result.onSuccess {
-                SnackbarManager.showMessage("Friend request accepted")
-                loadIncomingRequests()
-                loadFriends()
-            }.onFailure { error ->
-                SnackbarManager.showMessage(error.message ?: "Failed to accept request")
-            }
+            repository.acceptFriendRequest(email)
+                .onSuccess {
+                    SnackbarManager.showMessage("Friend request accepted")
+                    applyLocalSnapshot(repository.loadLocalSnapshot())
+                    refreshAll()
+                }
+                .onFailure { showBackendError(it) }
+        }
+    }
+
+    fun declineFriendRequest(email: String) {
+        viewModelScope.launch {
+            repository.deleteFriendship(email)
+                .onSuccess {
+                    applyLocalSnapshot(repository.loadLocalSnapshot())
+                    refreshAll()
+                }
+                .onFailure { showBackendError(it) }
+        }
+    }
+
+    fun cancelOutgoingRequest(email: String) {
+        viewModelScope.launch {
+            repository.deleteFriendship(email)
+                .onSuccess {
+                    applyLocalSnapshot(repository.loadLocalSnapshot())
+                }
+                .onFailure { showBackendError(it) }
+        }
+    }
+
+    fun removeFriend(email: String) {
+        viewModelScope.launch {
+            repository.deleteFriendship(email)
+                .onSuccess {
+                    applyLocalSnapshot(repository.loadLocalSnapshot())
+                    refreshAll()
+                }
+                .onFailure { showBackendError(it) }
         }
     }
 
@@ -98,32 +271,24 @@ class FriendsViewModel(
 
     fun clearSelectedFriend() {
         _uiState.update {
-            it.copy(
-                selectedFriend = null,
-                friendScheduleData = null,
-                scheduleError = null
-            )
+            it.copy(selectedFriend = null, friendScheduleData = null, scheduleError = null)
         }
     }
 
     private fun loadFriendSchedule() {
         val email = _uiState.value.selectedFriend?.email ?: return
-
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingSchedule = true, scheduleError = null, friendScheduleData = null) }
-
             val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-            val requestedDate = _uiState.value.currentWeekDate
-            val dateString = requestedDate.format(formatter)
-
-            val result = repository.getFriendWeeklySchedule(email, dateString)
-
-            result.onSuccess { schedule ->
-                _uiState.update { it.copy(isLoadingSchedule = false, friendScheduleData = schedule) }
-            }.onFailure { error ->
-                _uiState.update { it.copy(isLoadingSchedule = false, scheduleError = error.message) }
-                SnackbarManager.showMessage(error.message ?: "Could not load friend's schedule")
-            }
+            val dateString = _uiState.value.currentWeekDate.format(formatter)
+            repository.getFriendWeeklySchedule(email, dateString)
+                .onSuccess { schedule ->
+                    _uiState.update { it.copy(isLoadingSchedule = false, friendScheduleData = schedule) }
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isLoadingSchedule = false, scheduleError = error.message) }
+                    showBackendError(error)
+                }
         }
     }
 
@@ -135,5 +300,26 @@ class FriendsViewModel(
     fun loadPreviousWeek() {
         _uiState.update { it.copy(currentWeekDate = it.currentWeekDate.minusDays(7)) }
         loadFriendSchedule()
+    }
+
+    private fun applyLocalSnapshot(snapshot: FriendsLocalSnapshot) {
+        _uiState.update { state ->
+            state.copy(
+                friendsList = snapshot.friends,
+                incomingRequests = snapshot.incoming,
+                outgoingRequests = snapshot.outgoing,
+                suggestions = snapshot.suggestions,
+                myStatus = snapshot.myStatus,
+                searchQuery = if (state.contentScreen == FriendsContentScreen.ADD_FRIENDS) {
+                    snapshot.searchDraft
+                } else {
+                    state.searchQuery
+                }
+            )
+        }
+    }
+
+    private fun showBackendError(error: Throwable) {
+        SnackbarManager.showMessage(error.message ?: UserMessages.UNKNOWN_ERROR)
     }
 }

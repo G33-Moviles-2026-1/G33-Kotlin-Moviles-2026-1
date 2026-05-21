@@ -2,6 +2,7 @@
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.andespace.ui.main.ThemeMode
-import androidx.compose.foundation.layout.Row
 
 @Composable
 fun AccountSettingsScreen(
@@ -88,11 +89,35 @@ fun AccountSettingsScreen(
                 OutlinedTextField(
                     value = uiState.currentEmail.ifEmpty { "—" },
                     onValueChange = {},
-                    label = { Text("Current email") },
+                    label = { Text("Institutional email") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = false,
                     singleLine = true
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider(color = MaterialTheme.colorScheme.outline)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Username",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                if (uiState.isLoadingProfile && uiState.currentUsername.isEmpty()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                } else {
+                    OutlinedTextField(
+                        value = uiState.currentUsername.ifEmpty { "—" },
+                        onValueChange = {},
+                        label = { Text("Current username") },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false,
+                        singleLine = true
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
                 Divider(color = MaterialTheme.colorScheme.outline)
@@ -108,11 +133,10 @@ fun AccountSettingsScreen(
                 Divider(color = MaterialTheme.colorScheme.outline)
                 Spacer(modifier = Modifier.height(24.dp))
 
-                ChangeEmailForm(
-                    currentEmail = uiState.currentEmail,
-                    isLoading = uiState.isLoadingEmailChange,
-                    cooldownDaysLeft = uiState.emailCooldownDaysLeft,
-                    onSubmit = { newEmail, password -> viewModel.changeEmail(newEmail, password) }
+                ChangeUsernameForm(
+                    currentUsername = uiState.currentUsername,
+                    isLoading = uiState.isLoadingUsernameChange,
+                    onSubmit = { viewModel.changeUsername(it) }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))

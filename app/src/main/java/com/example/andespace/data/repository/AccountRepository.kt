@@ -8,37 +8,65 @@ import com.example.andespace.data.network.dataStore
 import com.example.andespace.data.repository.shared.ApiException
 import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.data.repository.shared.extractErrorMessage
-import com.example.andespace.model.dto.ChangeEmailRequest
 import com.example.andespace.model.dto.ChangePasswordRequest
 import com.example.andespace.model.dto.ChangeStatusRequest
+import com.example.andespace.model.dto.ChangeUsernameRequest
+import com.example.andespace.model.dto.MeProfileResponse
 import com.example.andespace.model.dto.UserStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
+
+data class CachedUserProfile(
+    val email: String,
+    val username: String,
+    val status: UserStatus
+)
 
 class AccountRepository(
     private val apiService: ApiService,
     private val context: Context
 ) {
     private val userEmailKey = stringPreferencesKey("account_user_email")
+    private val userUsernameKey = stringPreferencesKey("account_user_username")
     private val userStatusKey = stringPreferencesKey("account_user_status")
 
     fun observeStatus(): Flow<UserStatus> = context.dataStore.data.map { prefs ->
-        UserStatus.fromValue(prefs[userStatusKey] ?: UserStatus.FREE.value)
+        UserStatus.fromValue(prefs[userStatusKey] ?: UserStatus.INCOGNITO.value)
     }
 
-    suspend fun loadCachedProfile(): Pair<String, UserStatus> = withContext(Dispatchers.IO) {
+    suspend fun loadCachedProfile(): CachedUserProfile = withContext(Dispatchers.IO) {
         val prefs = context.dataStore.data.first()
-        val email = prefs[userEmailKey] ?: ""
-        val status = UserStatus.fromValue(prefs[userStatusKey] ?: UserStatus.FREE.value)
-        Pair(email, status)
+        CachedUserProfile(
+            email = prefs[userEmailKey] ?: "",
+            username = prefs[userUsernameKey] ?: "",
+            status = UserStatus.fromValue(prefs[userStatusKey] ?: UserStatus.INCOGNITO.value)
+        )
     }
 
-    suspend fun saveEmail(email: String) {
-        context.dataStore.edit { prefs -> prefs[userEmailKey] = email }
+    suspend fun saveStatusLocally(status: UserStatus) = withContext(Dispatchers.IO) {
+        context.dataStore.edit { prefs -> prefs[userStatusKey] = status.value }
+    }
+
+    suspend fun fetchProfile(): Result<MeProfileResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getMeProfile()
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    saveProfileLocally(body)
+                    Result.success(body)
+                } else {
+                    Result.failure(ApiException(extractErrorMessage(null, response.code())))
+                }
+            } else {
+                Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
+            }
+        } catch (_: Exception) {
+            Result.failure(Exception(RepositoryMessages.NO_INTERNET))
+        }
     }
 
     suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> =
@@ -52,30 +80,28 @@ class AccountRepository(
                 } else {
                     Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 Result.failure(Exception(RepositoryMessages.NO_INTERNET))
             }
         }
 
-    suspend fun changeEmail(newEmail: String, currentPassword: String): Result<Unit> =
+    suspend fun changeUsername(newUsername: String): Result<MeProfileResponse> =
         withContext(Dispatchers.IO) {
             try {
-                val response = apiService.changeEmail(
-                    ChangeEmailRequest(new_email = newEmail, current_password = currentPassword)
-                )
+                val normalized = newUsername.trim().lowercase()
+                val response = apiService.changeUsername(ChangeUsernameRequest(username = normalized))
                 if (response.isSuccessful) {
-                    context.dataStore.edit { prefs -> prefs[userEmailKey] = newEmail }
-                    Result.success(Unit)
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    val daysLeft = extractDaysLeft(errorBody)
-                    if (daysLeft != null) {
-                        Result.failure(CooldownException(daysLeft))
+                    val body = response.body()
+                    if (body != null) {
+                        saveProfileLocally(body)
+                        Result.success(body)
                     } else {
-                        Result.failure(ApiException(extractErrorMessage(errorBody, response.code())))
+                        Result.failure(ApiException(extractErrorMessage(null, response.code())))
                     }
+                } else {
+                    Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 Result.failure(Exception(RepositoryMessages.NO_INTERNET))
             }
         }
@@ -90,20 +116,16 @@ class AccountRepository(
                 } else {
                     Result.failure(ApiException(extractErrorMessage(response.errorBody()?.string(), response.code())))
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 Result.failure(Exception(RepositoryMessages.NO_INTERNET))
             }
         }
 
-    private fun extractDaysLeft(errorBody: String?): Int? {
-        if (errorBody.isNullOrEmpty()) return null
-        return try {
-            val json = JSONObject(errorBody)
-            if (json.has("days_left")) json.getInt("days_left") else null
-        } catch (_: Exception) {
-            null
+    private suspend fun saveProfileLocally(profile: MeProfileResponse) {
+        context.dataStore.edit { prefs ->
+            prefs[userEmailKey] = profile.email
+            prefs[userUsernameKey] = profile.username
+            prefs[userStatusKey] = profile.status
         }
     }
 }
-
-class CooldownException(val daysLeft: Int) : Exception("Podrás cambiar tu correo en $daysLeft días.")

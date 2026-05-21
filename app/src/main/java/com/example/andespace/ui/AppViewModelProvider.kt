@@ -39,6 +39,7 @@ object AppViewModelProvider {
         initializer {
             FriendsViewModel(
                 repository = andeSpaceApplication().container.friendsRepository,
+                accountRepository = andeSpaceApplication().container.accountRepository
             )
         }
 

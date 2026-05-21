@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AccountRepository
-import com.example.andespace.data.repository.CooldownException
 import com.example.andespace.model.dto.UserStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,14 +19,36 @@ class AccountViewModel(
     val uiState: StateFlow<AccountUiState> = _uiState.asStateFlow()
 
     init {
-        loadCachedProfile()
+        loadProfile()
         observeNetwork()
     }
 
-    private fun loadCachedProfile() {
+    fun loadProfile() {
         viewModelScope.launch {
-            val (email, status) = repository.loadCachedProfile()
-            _uiState.update { it.copy(currentEmail = email, currentStatus = status) }
+            val cached = repository.loadCachedProfile()
+            _uiState.update {
+                it.copy(
+                    currentEmail = cached.email,
+                    currentUsername = cached.username,
+                    currentStatus = cached.status
+                )
+            }
+            _uiState.update { it.copy(isLoadingProfile = true, errorMessage = null) }
+            repository.fetchProfile().fold(
+                onSuccess = { profile ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingProfile = false,
+                            currentEmail = profile.email,
+                            currentUsername = profile.username,
+                            currentStatus = UserStatus.fromValue(profile.status)
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isLoadingProfile = false, errorMessage = error.message) }
+                }
+            )
         }
     }
 
@@ -50,50 +71,50 @@ class AccountViewModel(
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingPasswordChange = true, errorMessage = null, successMessage = null) }
-            val result = repository.changePassword(currentPassword, newPassword)
-            result.onSuccess {
-                _uiState.update { it.copy(isLoadingPasswordChange = false, successMessage = "Password updated successfully.") }
-            }.onFailure { error ->
-                _uiState.update { it.copy(isLoadingPasswordChange = false, errorMessage = error.message ?: "Could not change password.") }
-            }
+            repository.changePassword(currentPassword, newPassword).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoadingPasswordChange = false, successMessage = "Password updated successfully.") }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isLoadingPasswordChange = false, errorMessage = error.message) }
+                }
+            )
         }
     }
 
-    fun changeEmail(newEmail: String, currentPassword: String) {
-        if (!newEmail.trim().lowercase().endsWith("@uniandes.edu.co")) {
-            _uiState.update { it.copy(errorMessage = "Email must end in @uniandes.edu.co.") }
-            return
-        }
+    fun changeUsername(newUsername: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingEmailChange = true, errorMessage = null, successMessage = null, emailCooldownDaysLeft = null) }
-            val result = repository.changeEmail(newEmail.trim().lowercase(), currentPassword)
-            result.onSuccess {
-                _uiState.update {
-                    it.copy(
-                        isLoadingEmailChange = false,
-                        currentEmail = newEmail.trim().lowercase(),
-                        successMessage = "Email updated successfully."
-                    )
+            _uiState.update { it.copy(isLoadingUsernameChange = true, errorMessage = null, successMessage = null) }
+            repository.changeUsername(newUsername).fold(
+                onSuccess = { profile ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingUsernameChange = false,
+                            currentEmail = profile.email,
+                            currentUsername = profile.username,
+                            currentStatus = UserStatus.fromValue(profile.status),
+                            successMessage = "Username updated successfully."
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isLoadingUsernameChange = false, errorMessage = error.message) }
                 }
-            }.onFailure { error ->
-                if (error is CooldownException) {
-                    _uiState.update { it.copy(isLoadingEmailChange = false, emailCooldownDaysLeft = error.daysLeft) }
-                } else {
-                    _uiState.update { it.copy(isLoadingEmailChange = false, errorMessage = error.message ?: "Could not change email.") }
-                }
-            }
+            )
         }
     }
 
     fun changeStatus(status: UserStatus) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingStatusChange = true, errorMessage = null, successMessage = null) }
-            val result = repository.changeStatus(status)
-            result.onSuccess {
-                _uiState.update { it.copy(isLoadingStatusChange = false, currentStatus = status, successMessage = "Status updated.") }
-            }.onFailure { error ->
-                _uiState.update { it.copy(isLoadingStatusChange = false, errorMessage = error.message ?: "Could not change status.") }
-            }
+            repository.changeStatus(status).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoadingStatusChange = false, currentStatus = status, successMessage = "Status updated.") }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isLoadingStatusChange = false, errorMessage = error.message) }
+                }
+            )
         }
     }
 

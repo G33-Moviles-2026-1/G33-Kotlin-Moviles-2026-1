@@ -255,8 +255,8 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
                 },
                 onFriendsClick = {
                     viewModel.onDestinationChanged(AppDestinations.FRIENDS)
-                    friendsViewModel.loadFriends()
-                    friendsViewModel.loadIncomingRequests()
+                    friendsViewModel.openMyFriends()
+                    friendsViewModel.refreshAll()
                 }
             )
         },
