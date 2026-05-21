@@ -10,6 +10,7 @@ import com.example.andespace.ui.auth.AuthViewModel
 import com.example.andespace.ui.bookings.BookingsViewModel
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
 import com.example.andespace.ui.favorites.FavoritesViewModel
+import com.example.andespace.ui.friends.FriendsViewModel
 import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.main.MainViewModel
 import com.example.andespace.ui.navigation.NavigationViewModel
@@ -34,6 +35,13 @@ object AppViewModelProvider {
                 repository = andeSpaceApplication().container.scheduleRepository,
             )
         }
+
+        initializer {
+            FriendsViewModel(
+                repository = andeSpaceApplication().container.friendsRepository,
+            )
+        }
+
         initializer {
             ResultsViewModel(
                 repository = andeSpaceApplication().container.roomRepository,

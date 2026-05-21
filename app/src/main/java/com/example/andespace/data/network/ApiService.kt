@@ -1,5 +1,6 @@
 package com.example.andespace.data.network
 
+import com.example.andespace.model.dto.AcceptFriendshipRequest
 import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.AutoSearchRequest
@@ -8,6 +9,7 @@ import com.example.andespace.model.dto.ChangeEmailRequest
 import com.example.andespace.model.dto.ChangePasswordRequest
 import com.example.andespace.model.dto.ChangeStatusRequest
 import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.model.dto.CreateFriendshipRequest
 import com.example.andespace.model.dto.GetFavoritesResponse
 import com.example.andespace.model.dto.MyBookingsResponse
 import com.example.andespace.model.dto.NotificationsResponse
@@ -17,11 +19,15 @@ import com.example.andespace.model.dto.RoomSearchResponse
 import com.example.andespace.model.dto.DayRoomRecommendationsOut
 import com.example.andespace.model.dto.InteractionPayload
 import com.example.andespace.model.dto.ManualScheduleIn
+import com.example.andespace.model.dto.MyFriendsResponse
 import com.example.andespace.model.dto.NavigationNearestNodeResponse
 import com.example.andespace.model.dto.NavigationPathResponse
 import com.example.andespace.model.dto.RoomDto
 import com.example.andespace.model.dto.RoomSearchItemOut
 import com.example.andespace.model.dto.ScheduleClassesOut
+import com.example.andespace.model.dto.UserShareScheduleOut
+import com.example.andespace.model.dto.UserShareScheduleUpdate
+import com.example.andespace.model.dto.WeeklyScheduleOut
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -53,6 +59,30 @@ interface ApiService {
 
     @POST("login/")
     suspend fun login(@Body request: LoginRequest): Response<Any>
+
+    @PUT("me/share-schedule")
+    suspend fun updateShareSchedule(@Body payload: UserShareScheduleUpdate): Response<Any>
+
+    @GET("me/share-schedule")
+    suspend fun getShareScheduleState(): Response<UserShareScheduleOut>
+
+    @GET("friendships/mine")
+    suspend fun getMyFriends(): Response<MyFriendsResponse>
+
+    @GET("schedule/{target_email}/week")
+    suspend fun getFriendWeeklySchedule(
+        @Path("target_email") targetEmail: String,
+        @Query("date") date: String? = null
+    ): Response<WeeklyScheduleOut>
+
+    @POST("friendships/")
+    suspend fun sendFriendRequest(@Body payload: CreateFriendshipRequest): Response<Any>
+
+    @GET("friendships/requests/incoming")
+    suspend fun getIncomingRequests(): Response<MyFriendsResponse>
+
+    @PUT("friendships/accept")
+    suspend fun acceptFriendRequest(@Body payload: AcceptFriendshipRequest): Response<Any>
 
     @GET("me/")
     suspend fun checkSession(): Response<MeResponse>

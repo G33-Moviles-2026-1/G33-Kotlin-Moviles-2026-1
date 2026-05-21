@@ -68,13 +68,15 @@ import com.example.andespace.ui.homepage.HomepageViewModel
 import com.example.andespace.ui.navigation.NavigationScreen
 import com.example.andespace.ui.navigation.NavigationViewModel
 import com.example.andespace.ui.homepage.HomePageScreen
-import com.example.andespace.ui.notifications.NotificationsViewModel
 import com.example.andespace.ui.results.ResultsViewModel
 import com.example.andespace.ui.schedule.MainScheduleScreen
 import com.example.andespace.ui.schedule.ScheduleViewModel
 import com.example.andespace.ui.settings.SettingsScreen
 import com.example.andespace.ui.theme.AndeSpaceTheme
 import androidx.compose.material3.Icon
+import com.example.andespace.ui.friends.FriendsMainScreen
+import com.example.andespace.ui.friends.FriendsViewModel
+import com.example.andespace.ui.recommendations.RecommendationsViewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -110,12 +112,12 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
     val detailRoomViewModel: DetailRoomViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val bookingsViewModel: BookingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val navigationViewModel: NavigationViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    val recommendationsViewModel: com.example.andespace.ui.recommendations.RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    val notificationsViewModel: NotificationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val recommendationsViewModel: RecommendationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val accountViewModel: AccountViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val navigateToNavByRoomId by homepageViewModel.onNavigateToNavigation.collectAsState()
+    val friendsViewModel: FriendsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 
     LaunchedEffect(Unit) {
         SnackbarManager.messages.collect { message ->
@@ -250,6 +252,11 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
                 },
                 onSettingsClick = {
                     viewModel.onDestinationChanged(AppDestinations.SETTINGS)
+                },
+                onFriendsClick = {
+                    viewModel.onDestinationChanged(AppDestinations.FRIENDS)
+                    friendsViewModel.loadFriends()
+                    friendsViewModel.loadIncomingRequests()
                 }
             )
         },
@@ -312,6 +319,7 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
                         viewModel.onLogin()
                         bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.checkScheduleStatus()
+                        scheduleViewModel.fetchShareScheduleState()
                         favoritesViewModel.refreshFromBackend(force = true)
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     }
@@ -322,6 +330,7 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
                         viewModel.onLogin()
                         bookingsViewModel.resetRequiresLogin()
                         scheduleViewModel.clearScheduleData()
+                        scheduleViewModel.fetchShareScheduleState()
                         favoritesViewModel.refreshFromBackend(force = true)
                         viewModel.onDestinationChanged(AppDestinations.CLASSROOMS)
                     }
@@ -385,6 +394,12 @@ fun AndeSpaceApp(viewModel: MainViewModel) {
                         themeMode = uiState.themeMode,
                         onThemeModeChange = { viewModel.setThemeMode(it) },
                         onNavigateBack = { viewModel.onDestinationChanged(AppDestinations.CLASSROOMS) }
+                    )
+                }
+
+                AppDestinations.FRIENDS -> {
+                    FriendsMainScreen(
+                        viewModel = friendsViewModel
                     )
                 }
             }

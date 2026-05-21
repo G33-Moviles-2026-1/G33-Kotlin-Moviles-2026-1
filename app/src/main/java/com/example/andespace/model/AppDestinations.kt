@@ -2,6 +2,7 @@
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
@@ -20,5 +21,6 @@ enum class AppDestinations(
     LOGIN("Log In", icon = Icons.Default.Lock),
     REGISTER("Register", icon = Icons.Default.PersonAdd),
     ACCOUNT_SETTINGS("Account Settings", icon = Icons.Default.Person),
-    SETTINGS("Settings", icon = Icons.Default.Settings)
+    SETTINGS("Settings", icon = Icons.Default.Settings),
+    FRIENDS("Friends", icon = Icons.Default.MonitorHeart)
 }

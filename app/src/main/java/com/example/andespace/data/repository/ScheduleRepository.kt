@@ -14,6 +14,7 @@ import com.example.andespace.model.dto.DayRoomRecommendationsOut
 import com.example.andespace.model.dto.ManualClassIn
 import com.example.andespace.model.dto.ManualScheduleIn
 import com.example.andespace.model.dto.ScheduleClassOccurrenceOut
+import com.example.andespace.model.dto.UserShareScheduleUpdate
 import com.example.andespace.model.dto.WeeklyScheduleOut
 import com.example.andespace.ui.common.SnackbarManager
 import com.google.gson.Gson
@@ -96,6 +97,32 @@ class ScheduleRepository(
             } catch (e: Exception) {
                 Log.d(TAG, "Silent background sync aborted (Offline or Unauthenticated).")
             }
+        }
+    }
+
+    suspend fun getShareScheduleState(): Result<Boolean> {
+        return try {
+            val response = apiService.getShareScheduleState()
+            if (response.isSuccessful) {
+                Result.success(response.body()?.share_schedule ?: true)
+            } else {
+                Result.failure(Exception("Failed to fetch schedule visibility."))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("No internet connection. Could not fetch visibility."))
+        }
+    }
+
+    suspend fun updateShareSchedule(isShared: Boolean): Result<Boolean> {
+        return try {
+            val response = apiService.updateShareSchedule(UserShareScheduleUpdate(isShared))
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Failed to update schedule visibility."))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("No internet connection. Could not update visibility."))
         }
     }
 

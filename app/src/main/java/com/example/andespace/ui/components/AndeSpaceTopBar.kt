@@ -65,6 +65,7 @@ fun AndeSpaceTopBar(
     onRegisterClick: () -> Unit,
     onLogOut: () -> Unit,
     onProfileClick: () -> Unit = {},
+    onFriendsClick: () -> Unit,
     onSettingsClick: () -> Unit = {}
 ) {
     Surface(
@@ -170,6 +171,7 @@ fun AndeSpaceTopBar(
                                     } else {
                                         CustomYellowButton("Profile", onProfileClick)
                                         CustomYellowButton("Settings", onSettingsClick)
+                                        CustomYellowButton("Friends", onFriendsClick)
                                         CustomYellowButton("Log out", onLogOut)
                                     }
                                 }

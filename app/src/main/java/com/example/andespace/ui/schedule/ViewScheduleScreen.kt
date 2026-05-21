@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -141,6 +143,21 @@ fun ViewScheduleScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(onClick = { viewModel.toggleShareSchedule() }) {
+                        Icon(
+                            imageVector = if (uiState.isScheduleShared) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = "Toggle Share Schedule",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = RoundedCornerShape(7.dp)
+                                )
+                                .padding(2.dp)
+                        )
+                    }
                     IconButton(onClick = onManuallyAddClick) {
                         Icon(
                             imageVector = Icons.Default.Add,
