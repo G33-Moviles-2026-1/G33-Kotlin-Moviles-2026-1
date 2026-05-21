@@ -18,6 +18,20 @@ val friendStatusLabelsEn: Map<UserStatus, String> = mapOf(
 fun friendStatusLabel(status: UserStatus): String =
     friendStatusLabelsEn[status] ?: status.value.replace('_', ' ').replaceFirstChar { it.uppercase() }
 
+/** Short labels for the status picker carousel (matches design mockup). */
+val myStatusPickerLabels: Map<UserStatus, String> = mapOf(
+    UserStatus.INCOGNITO to "Incognito",
+    UserStatus.BUSY to "Busy",
+    UserStatus.EXERCISING to "Exercising",
+    UserStatus.FREE to "Free",
+    UserStatus.HANGING_OUT to "Hanging out",
+    UserStatus.AT_HOME to "At home",
+    UserStatus.LUNCHING to "Lunching"
+)
+
+fun myStatusPickerLabel(status: UserStatus): String =
+    myStatusPickerLabels[status] ?: friendStatusLabel(status)
+
 fun friendStatusIconAssetPath(status: UserStatus): String = when (status) {
     UserStatus.INCOGNITO -> "icons/incognito.svg"
     UserStatus.BUSY -> "icons/busy.svg"

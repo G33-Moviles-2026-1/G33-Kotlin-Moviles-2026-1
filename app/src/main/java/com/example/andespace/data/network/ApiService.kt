@@ -5,7 +5,8 @@ import com.example.andespace.model.dto.AddFavoriteRequest
 import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.AutoSearchRequest
 import com.example.andespace.model.dto.BookingDto
-import com.example.andespace.model.dto.ChangeEmailRequest
+import com.example.andespace.model.dto.ChangeUsernameRequest
+import com.example.andespace.model.dto.MeProfileResponse
 import com.example.andespace.model.dto.ChangePasswordRequest
 import com.example.andespace.model.dto.ChangeStatusRequest
 import com.example.andespace.model.dto.CreateBookingRequest
@@ -187,8 +188,11 @@ interface ApiService {
     @PUT("me/password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
 
-    @PUT("me/email")
-    suspend fun changeEmail(@Body request: ChangeEmailRequest): Response<Unit>
+    @GET("me/profile")
+    suspend fun getMeProfile(): Response<MeProfileResponse>
+
+    @PUT("me/username")
+    suspend fun changeUsername(@Body request: ChangeUsernameRequest): Response<MeProfileResponse>
 
     @PUT("me/status")
     suspend fun changeStatus(@Body request: ChangeStatusRequest): Response<Unit>

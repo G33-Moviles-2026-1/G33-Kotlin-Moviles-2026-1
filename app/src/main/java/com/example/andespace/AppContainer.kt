@@ -105,7 +105,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val friendsRepository: FriendsRepository by lazy {
         FriendsRepository(
-            apiService = apiService
+            apiService = apiService,
+            friendsDao = syncDatabase.friendsDao(),
+            syncActionDao = syncDao,
+            context = context,
+            gson = gson,
+            accountRepository = accountRepository
         )
     }
 

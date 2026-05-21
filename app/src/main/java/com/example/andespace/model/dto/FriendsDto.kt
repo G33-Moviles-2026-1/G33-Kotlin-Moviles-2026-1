@@ -8,7 +8,7 @@ data class FriendItemOut(
     val status: String? = null
 ) {
     val activityStatus: UserStatus
-        get() = UserStatus.fromValue(status ?: UserStatus.FREE.value)
+        get() = UserStatus.fromValue(status ?: UserStatus.INCOGNITO.value)
 
     val displayName: String
         get() {

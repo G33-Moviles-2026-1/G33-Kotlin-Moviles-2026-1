@@ -92,7 +92,9 @@ class SyncManager(
                         "DELETE_SCHEDULE" -> {
                             scheduleRepository.syncDeleteScheduleWithBackend()
                         }
-                        "ADD_FAVORITE", "DELETE_FAVORITE" -> {
+                        "ADD_FAVORITE", "DELETE_FAVORITE",
+                        "SEND_FRIEND_REQUEST", "ACCEPT_FRIEND_REQUEST",
+                        "DELETE_FRIENDSHIP", "CHANGE_MY_STATUS" -> {
                             continue
                         }
                         "CREATE_BOOKING" -> {

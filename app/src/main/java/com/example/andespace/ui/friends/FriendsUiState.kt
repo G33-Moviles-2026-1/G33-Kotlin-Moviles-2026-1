@@ -19,8 +19,10 @@ data class OutgoingFriendRequest(
 
 data class FriendsUiState(
     val contentScreen: FriendsContentScreen = FriendsContentScreen.MY_FRIENDS,
-    val myStatus: UserStatus = UserStatus.FREE,
+    val myStatus: UserStatus = UserStatus.INCOGNITO,
     val showStatusPicker: Boolean = false,
+    val statusPickerSelection: UserStatus = UserStatus.INCOGNITO,
+    val isApplyingStatus: Boolean = false,
 
     val isLoadingFriends: Boolean = false,
     val friendsList: List<FriendItemOut> = emptyList(),

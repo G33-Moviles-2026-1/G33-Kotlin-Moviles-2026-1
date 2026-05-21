@@ -20,4 +20,14 @@ interface SyncActionDao {
 
     @Query("DELETE FROM pending_sync_actions WHERE actionType IN ('ADD_FAVORITE', 'DELETE_FAVORITE') AND localClassId = :mutationKey")
     suspend fun deleteFavoriteActionsByMutationKey(mutationKey: String): Int
+
+    @Query(
+        "SELECT * FROM pending_sync_actions WHERE actionType IN ('SEND_FRIEND_REQUEST', 'ACCEPT_FRIEND_REQUEST', 'DELETE_FRIENDSHIP', 'CHANGE_MY_STATUS') ORDER BY id ASC"
+    )
+    suspend fun getPendingFriendActions(): List<PendingSyncAction>
+
+    @Query(
+        "DELETE FROM pending_sync_actions WHERE localClassId = :mutationKey AND actionType IN ('SEND_FRIEND_REQUEST', 'ACCEPT_FRIEND_REQUEST', 'DELETE_FRIENDSHIP', 'CHANGE_MY_STATUS')"
+    )
+    suspend fun deleteFriendActionsByMutationKey(mutationKey: String): Int
 }
