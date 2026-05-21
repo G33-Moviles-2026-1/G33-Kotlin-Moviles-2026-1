@@ -117,7 +117,7 @@ class SyncManager(
             }
 
             if (!networkFailed) {
-                scheduleRepository.syncEntireScheduleFromBackend()
+                scheduleRepository.syncEntireScheduleFromBackend(showSuccessMessage = true)
                 bookingRepository.refreshBookings()
             }
         }

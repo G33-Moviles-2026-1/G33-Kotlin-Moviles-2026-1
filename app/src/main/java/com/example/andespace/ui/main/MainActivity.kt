@@ -23,6 +23,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -46,7 +48,6 @@ import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
-import com.example.andespace.BuildConfig
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.model.AppDestinations
 import com.example.andespace.model.dto.RoomDto
@@ -57,6 +58,7 @@ import com.example.andespace.ui.auth.LoginScreen
 import com.example.andespace.ui.auth.RegisterScreen
 import com.example.andespace.ui.bookings.BookingsViewModel
 import com.example.andespace.ui.bookings.MainBookingsScreen
+import com.example.andespace.ui.common.SnackbarManager
 import com.example.andespace.ui.components.AndeSpaceBottomBar
 import com.example.andespace.ui.components.AndeSpaceTopBar
 import com.example.andespace.ui.detailRoom.DetailRoomViewModel
@@ -78,7 +80,6 @@ import androidx.compose.material3.Icon
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        NetworkMonitor.register(applicationContext, BuildConfig.API_BASE_URL)
         enableEdgeToEdge()
         setContent {
             val mainViewModel: MainViewModel = viewModel(factory = AppViewModelProvider.Factory)
@@ -98,9 +99,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AndeSpaceApp(
-    viewModel: MainViewModel
-) {
+fun AndeSpaceApp(viewModel: MainViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -115,8 +114,18 @@ fun AndeSpaceApp(
     val notificationsViewModel: NotificationsViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val accountViewModel: AccountViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val isOnline by NetworkMonitor.isOnline.collectAsState()
-
+    val snackbarHostState = remember { SnackbarHostState() }
     val navigateToNavByRoomId by homepageViewModel.onNavigateToNavigation.collectAsState()
+
+    LaunchedEffect(Unit) {
+        SnackbarManager.messages.collect { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = "Got it",
+                duration = SnackbarDuration.Indefinite
+            )
+        }
+    }
 
     LaunchedEffect(navigateToNavByRoomId) {
         navigateToNavByRoomId?.let { roomId ->
@@ -211,6 +220,7 @@ fun AndeSpaceApp(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             AndeSpaceTopBar(
                 isLoggedIn = uiState.isLoggedIn,
@@ -432,14 +442,4 @@ fun AssetIcon(
         modifier = modifier,
         tint = MaterialTheme.colorScheme.onSurface
     )
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = name,
-            style = MaterialTheme.typography.headlineMedium
-        )
-    }
 }

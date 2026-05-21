@@ -23,7 +23,6 @@ object NetworkMonitor {
     val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
-    private var currentNetwork: Network? = null
     private val monitorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var pingUrl: String = ""
 
@@ -35,9 +34,9 @@ object NetworkMonitor {
 
         if (networkCallback != null) return
 
-        currentNetwork = connectivityManager.activeNetwork
+        val currentNetwork = connectivityManager.activeNetwork
         if (currentNetwork != null) {
-            checkHealthWithRetries(currentNetwork!!)
+            checkHealthWithRetries()
         } else {
             _isOnline.value = false
         }
@@ -46,18 +45,24 @@ object NetworkMonitor {
 
             override fun onAvailable(network: Network) {
                 Log.d(TAG, "onAvailable: OS found a new network. Verifying...")
-                currentNetwork = network
-                checkHealthWithRetries(network)
+                checkHealthWithRetries()
             }
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
                 val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 
-                if (hasInternet && !_isOnline.value && currentNetwork == network) {
+                if (hasInternet && !_isOnline.value) {
                     if (pingJob?.isActive != true) {
                         Log.d(TAG, "onCapabilitiesChanged: Internet capability restored. Verifying...")
-                        checkHealthWithRetries(network)
+                        checkHealthWithRetries()
                     }
+                }
+            }
+
+            override fun onLost(network: Network) {
+                Log.d(TAG, "onLost: OS lost network connection.")
+                if (connectivityManager.activeNetwork == null) {
+                    _isOnline.value = false
                 }
             }
         }
@@ -65,10 +70,8 @@ object NetworkMonitor {
         connectivityManager.registerDefaultNetworkCallback(networkCallback!!)
     }
 
-    private fun checkHealthWithRetries(networkToTest: Network) {
-        if (pingUrl.isEmpty()) return
-
-        pingJob?.cancel()
+    private fun checkHealthWithRetries() {
+        if (pingUrl.isEmpty() || pingJob?.isActive == true) return
 
         pingJob = monitorScope.launch {
             delay(500)
@@ -77,7 +80,7 @@ object NetworkMonitor {
             for (attempt in 1..3) {
                 try {
                     val url = URL(pingUrl)
-                    val connection = networkToTest.openConnection(url) as HttpURLConnection
+                    val connection = url.openConnection() as HttpURLConnection
 
                     connection.connectTimeout = 2000
                     connection.readTimeout = 2000
@@ -112,10 +115,8 @@ object NetworkMonitor {
     }
 
     fun forceRetryConnection() {
-        if (currentNetwork != null) {
-            checkHealthWithRetries(currentNetwork!!)
-        } else {
-            _isOnline.value = false
+        if (pingJob?.isActive != true) {
+            checkHealthWithRetries()
         }
     }
 
@@ -129,6 +130,7 @@ object NetworkMonitor {
         if (_isOnline.value) {
             _isOnline.value = false
             Log.e(TAG, "Interceptor caught network drop. App is now OFFLINE.")
+            forceRetryConnection()
         }
     }
 }
