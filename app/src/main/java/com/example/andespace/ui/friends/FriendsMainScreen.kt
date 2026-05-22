@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 fun FriendsMainScreen(viewModel: FriendsViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
-    if (uiState.friendScheduleData != null) {
+    if (uiState.selectedFriend != null) {
         FriendsScheduleScreen(
             viewModel = viewModel,
             onBackClick = { viewModel.clearSelectedFriend() }
