@@ -145,7 +145,7 @@ fun ResultsScreen(
                         state = listState,
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        itemsIndexed(rooms, key = { _, room -> room.id }) { index, room ->
+                        itemsIndexed(rooms) { index, room ->
                             RoomCard(
                                 room = room,
                                 cardIndex = index,
