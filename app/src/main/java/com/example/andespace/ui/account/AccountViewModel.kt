@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AccountRepository
-import com.example.andespace.model.dto.UserStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,8 +28,7 @@ class AccountViewModel(
             _uiState.update {
                 it.copy(
                     currentEmail = cached.email,
-                    currentUsername = cached.username,
-                    currentStatus = cached.status
+                    currentUsername = cached.username
                 )
             }
             _uiState.update { it.copy(isLoadingProfile = true, errorMessage = null) }
@@ -40,8 +38,7 @@ class AccountViewModel(
                         it.copy(
                             isLoadingProfile = false,
                             currentEmail = profile.email,
-                            currentUsername = profile.username,
-                            currentStatus = UserStatus.fromValue(profile.status)
+                            currentUsername = profile.username
                         )
                     }
                 },
@@ -92,27 +89,12 @@ class AccountViewModel(
                             isLoadingUsernameChange = false,
                             currentEmail = profile.email,
                             currentUsername = profile.username,
-                            currentStatus = UserStatus.fromValue(profile.status),
                             successMessage = "Username updated successfully."
                         )
                     }
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(isLoadingUsernameChange = false, errorMessage = error.message) }
-                }
-            )
-        }
-    }
-
-    fun changeStatus(status: UserStatus) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingStatusChange = true, errorMessage = null, successMessage = null) }
-            repository.changeStatus(status).fold(
-                onSuccess = {
-                    _uiState.update { it.copy(isLoadingStatusChange = false, currentStatus = status, successMessage = "Status updated.") }
-                },
-                onFailure = { error ->
-                    _uiState.update { it.copy(isLoadingStatusChange = false, errorMessage = error.message) }
                 }
             )
         }
