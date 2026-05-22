@@ -14,5 +14,6 @@ data class CachedFriendEntity(
     val email: String,
     val username: String,
     val status: String,
-    val role: String
+    val role: String,
+    val share_schedule: Boolean
 )

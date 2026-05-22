@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.NotificationsRepository
+import com.example.andespace.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +12,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class NotificationsViewModel(
-    private val repository: NotificationsRepository
+    private val repository: NotificationsRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NotificationsUiState())
@@ -19,7 +21,11 @@ class NotificationsViewModel(
 
     init {
         observeNotifications()
-        loadNotifications()
+        viewModelScope.launch {
+            if (authRepository.hasLocalSession()) {
+                loadNotifications()
+            }
+        }
         observeNetwork()
     }
 
@@ -36,7 +42,7 @@ class NotificationsViewModel(
     private fun observeNetwork() {
         viewModelScope.launch {
             NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline && _uiState.value.isOffline) {
+                if (isOnline && _uiState.value.isOffline && authRepository.hasLocalSession()) {
                     loadNotifications()
                 }
             }

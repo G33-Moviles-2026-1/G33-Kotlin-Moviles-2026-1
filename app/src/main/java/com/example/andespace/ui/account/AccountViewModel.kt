@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AccountRepository
+import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.model.dto.UserStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,14 +13,19 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AccountViewModel(
-    private val repository: AccountRepository
+    private val repository: AccountRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AccountUiState())
     val uiState: StateFlow<AccountUiState> = _uiState.asStateFlow()
 
     init {
-        loadProfile()
+        viewModelScope.launch {
+            if (authRepository.hasLocalSession()) {
+                loadProfile()
+            }
+        }
         observeNetwork()
     }
 

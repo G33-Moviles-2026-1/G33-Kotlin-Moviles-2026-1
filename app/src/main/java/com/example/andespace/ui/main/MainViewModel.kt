@@ -108,9 +108,12 @@ class MainViewModel(
     private fun checkExistingSession() {
         viewModelScope.launch {
             val hasSessionLocally = authRepository.hasLocalSession()
-            if (hasSessionLocally) {
-                _uiState.update { it.copy(isLoggedIn = true) }
+            if (!hasSessionLocally) {
+                _uiState.update { it.copy(isLoggedIn = false) }
+                return@launch
             }
+
+            _uiState.update { it.copy(isLoggedIn = true) }
 
             val result = authRepository.getMeData()
 

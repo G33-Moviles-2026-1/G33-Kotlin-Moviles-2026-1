@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AnalyticsRepository
+import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.FavoritesRepository
 import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.model.dto.RoomDto
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 
 class FavoritesViewModel(
     private val repository: FavoritesRepository,
-    private val analyticsRepository: AnalyticsRepository
+    private val analyticsRepository: AnalyticsRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     companion object {
@@ -42,7 +44,7 @@ class FavoritesViewModel(
         viewModelScope.launch {
             var wasOnline = NetworkMonitor.isOnline.value
             NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline && !wasOnline) {
+                if (isOnline && !wasOnline && authRepository.hasLocalSession()) {
                     repository.syncPendingFavoriteActions()
                     refreshFromBackend(force = true)
                 }

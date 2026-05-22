@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.data.repository.BookingRepository
+import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.ui.common.SnackbarManager
 import com.example.andespace.ui.common.UserMessages
@@ -14,13 +15,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class BookingsViewModel(private val repository: BookingRepository): ViewModel()  {
+class BookingsViewModel(
+    private val repository: BookingRepository,
+    private val authRepository: AuthRepository
+): ViewModel()  {
     private val _uiState = MutableStateFlow(BookingsUIState())
     val uiState: StateFlow<BookingsUIState> = _uiState.asStateFlow()
 
     init {
         observeBookings()
-        loadBookings()
+        viewModelScope.launch {
+            if (authRepository.hasLocalSession()) {
+                loadBookings()
+            }
+        }
         observeNetwork()
     }
 
@@ -35,7 +43,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
     private fun observeNetwork() {
         viewModelScope.launch {
             NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline) {
+                if (isOnline && authRepository.hasLocalSession()) {
                     refreshBookings()
                 }
             }
