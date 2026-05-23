@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.NotificationsRepository
-import kotlinx.coroutines.delay
 import com.example.andespace.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +27,6 @@ class NotificationsViewModel(
             }
         }
         observeNetwork()
-        startPeriodicRefresh()
     }
 
     private fun observeNotifications() {
@@ -47,15 +45,6 @@ class NotificationsViewModel(
                 if (isOnline && _uiState.value.isOffline && authRepository.hasLocalSession()) {
                     loadNotifications()
                 }
-            }
-        }
-    }
-
-    private fun startPeriodicRefresh() {
-        viewModelScope.launch {
-            while (true) {
-                delay(10000L)
-                loadNotifications()
             }
         }
     }

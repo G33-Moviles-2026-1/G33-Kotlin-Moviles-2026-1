@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -27,6 +28,7 @@ class MainViewModel(
         checkExistingSession()
         observeUnreadCount()
         observeNotifications()
+        startNotificationsRefresh()
         viewModelScope.launch {
             authRepository.observeSessionState().collect { hasValidCookie ->
                 if (!hasValidCookie && _uiState.value.isLoggedIn) {
@@ -64,6 +66,22 @@ class MainViewModel(
                 }
             }
         }
+    }
+
+    private fun startNotificationsRefresh() {
+        val repo = notificationsRepository ?: return
+        viewModelScope.launch {
+            while (true) {
+                if (authRepository.hasLocalSession()) {
+                    repo.refreshNotifications()
+                }
+                delay(NOTIFICATIONS_REFRESH_INTERVAL_MS)
+            }
+        }
+    }
+
+    companion object {
+        private const val NOTIFICATIONS_REFRESH_INTERVAL_MS = 10_000L
     }
 
     fun toggleNotificationsPopup() {
@@ -210,6 +228,9 @@ class MainViewModel(
 
     fun onLogin() {
         _uiState.update { it.copy(isLoggedIn = true) }
+        notificationsRepository?.let { repo ->
+            viewModelScope.launch { repo.refreshNotifications() }
+        }
     }
 
     fun setThemeMode(mode: ThemeMode) {

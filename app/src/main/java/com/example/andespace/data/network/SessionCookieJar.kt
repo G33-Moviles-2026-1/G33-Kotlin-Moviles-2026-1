@@ -24,10 +24,10 @@ class SessionCookieJar(private val context: Context) : CookieJar {
 
         if (!savedCookieString.isNullOrEmpty()) {
             savedCookieString.split(";").forEach { pair ->
-                val parts = pair.split("=")
-                if (parts.size == 2) {
-                    val name = parts[0].trim()
-                    val value = parts[1].trim()
+                val idx = pair.indexOf("=")
+                if (idx > 0) {
+                    val name = pair.substring(0, idx).trim()
+                    val value = pair.substring(idx + 1).trim()
                     memoryCookies[name] = Cookie.Builder()
                         .name(name)
                         .value(value)
