@@ -19,4 +19,6 @@ object UserMessages {
     const val RESULTS_MORE_PAGES_OFFLINE = "More results require an internet connection. Please check your connection and try again."
     const val RESULTS_LOAD_FAILED = "Could not load results. Please try again."
     const val UNKNOWN_ERROR = "An unknown error occurred."
+    const val FRIENDS_ACTION_PENDING_SYNC =
+        "No internet connection. Your change will sync once you're back online."
 }
