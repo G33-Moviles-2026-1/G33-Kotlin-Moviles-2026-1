@@ -246,6 +246,17 @@ private fun parseHourMinute(value: String?): Pair<Int, Int>? {
     return hour to minute
 }
 
+private fun isUntilAfterSince(
+    sinceHour: Int,
+    sinceMinute: Int,
+    untilHour: Int,
+    untilMinute: Int
+): Boolean {
+    val sinceTotalMinutes = sinceHour * 60 + sinceMinute
+    val untilTotalMinutes = untilHour * 60 + untilMinute
+    return untilTotalMinutes > sinceTotalMinutes
+}
+
 @Composable
 private fun SearchCard(
     selectedUtilities: Set<String>,
@@ -585,6 +596,11 @@ private fun SearchCard(
                 if (!isSearching) {
                     if (!sinceSet || !untilSet) {
                         missingTimeError = "You must select both times (Since and Until) to search."
+                        onShowMessage(missingTimeError!!)
+                        return@CustomYellowButton
+                    }
+                    if (!isUntilAfterSince(sinceHour, sinceMinute, untilHour, untilMinute)) {
+                        missingTimeError = "Until must be after Since."
                         onShowMessage(missingTimeError!!)
                         return@CustomYellowButton
                     }

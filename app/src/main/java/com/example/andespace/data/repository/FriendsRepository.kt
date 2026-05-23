@@ -337,7 +337,8 @@ class FriendsRepository(
                     email = usernameToEmail(username),
                     username = username.trim(),
                     status = UserStatus.INCOGNITO.value,
-                    role = FriendCacheRole.SUGGESTION
+                    role = FriendCacheRole.SUGGESTION,
+                    share_schedule = false
                 )
             }
         )
@@ -386,7 +387,8 @@ class FriendsRepository(
                     email = email,
                     username = username,
                     status = UserStatus.INCOGNITO.value,
-                    role = FriendCacheRole.OUTGOING
+                    role = FriendCacheRole.OUTGOING,
+                    share_schedule = false
                 )
             )
         )
@@ -442,11 +444,12 @@ class FriendsRepository(
             email = email,
             username = username,
             status = status ?: UserStatus.INCOGNITO.value,
-            role = role
+            role = role,
+            share_schedule = share_schedule
         )
 
     private fun CachedFriendEntity.toFriendItemOut(): FriendItemOut =
-        FriendItemOut(email = email, username = username, status = status)
+        FriendItemOut(email = email, username = username, status = status, share_schedule = share_schedule)
 
     private fun CachedFriendEntity.toOutgoingRequest(): OutgoingFriendRequest =
         OutgoingFriendRequest(email = email, username = username)

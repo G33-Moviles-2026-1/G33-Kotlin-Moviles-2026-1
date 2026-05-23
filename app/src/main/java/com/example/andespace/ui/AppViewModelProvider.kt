@@ -33,13 +33,15 @@ object AppViewModelProvider {
         initializer {
             ScheduleViewModel(
                 repository = andeSpaceApplication().container.scheduleRepository,
+                authRepository = andeSpaceApplication().container.authRepository
             )
         }
 
         initializer {
             FriendsViewModel(
                 repository = andeSpaceApplication().container.friendsRepository,
-                accountRepository = andeSpaceApplication().container.accountRepository
+                accountRepository = andeSpaceApplication().container.accountRepository,
+                authRepository = andeSpaceApplication().container.authRepository
             )
         }
 
@@ -58,6 +60,7 @@ object AppViewModelProvider {
         initializer {
             BookingsViewModel(
                 repository = andeSpaceApplication().container.bookingRepository,
+                authRepository = andeSpaceApplication().container.authRepository
             )
         }
         initializer {
@@ -73,7 +76,8 @@ object AppViewModelProvider {
         initializer{
             FavoritesViewModel(
                 repository = andeSpaceApplication().container.favoritesRepository,
-                analyticsRepository = andeSpaceApplication().container.analyticsRepository
+                analyticsRepository = andeSpaceApplication().container.analyticsRepository,
+                authRepository = andeSpaceApplication().container.authRepository
             )
         }
         initializer {
@@ -90,12 +94,14 @@ object AppViewModelProvider {
         }
         initializer {
             NotificationsViewModel(
-                repository = andeSpaceApplication().container.notificationsRepository
+                repository = andeSpaceApplication().container.notificationsRepository,
+                authRepository = andeSpaceApplication().container.authRepository
             )
         }
         initializer {
             AccountViewModel(
-                repository = andeSpaceApplication().container.accountRepository
+                repository = andeSpaceApplication().container.accountRepository,
+                authRepository = andeSpaceApplication().container.authRepository
             )
         }
 

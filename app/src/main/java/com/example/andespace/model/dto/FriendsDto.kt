@@ -1,11 +1,10 @@
 package com.example.andespace.model.dto
 
-import com.google.gson.annotations.SerializedName
-
 data class FriendItemOut(
     val email: String,
     val username: String,
-    val status: String? = null
+    val status: String? = null,
+    val share_schedule: Boolean
 ) {
     val activityStatus: UserStatus
         get() = UserStatus.fromValue(status ?: UserStatus.INCOGNITO.value)

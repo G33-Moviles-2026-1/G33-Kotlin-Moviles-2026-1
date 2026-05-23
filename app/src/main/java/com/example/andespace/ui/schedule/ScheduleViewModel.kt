@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.ScheduleNotFoundException
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.model.dto.ManualClassIn
@@ -21,6 +22,7 @@ import java.time.temporal.TemporalAdjusters
 
 class ScheduleViewModel(
     private val repository: ScheduleRepository,
+    private val authRepository: AuthRepository
 ): ViewModel(){
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
@@ -31,8 +33,12 @@ class ScheduleViewModel(
             val hasCached = repository.hasAnyCachedSchedule()
             _uiState.update { it.copy(hasSchedule = hasCached) }
         }
-        loadSchedule()
-        fetchShareScheduleState()
+        viewModelScope.launch {
+            if (authRepository.hasLocalSession()) {
+                loadSchedule()
+                fetchShareScheduleState()
+            }
+        }
     }
     fun loadRecommendations(dateString: String) {
         viewModelScope.launch {

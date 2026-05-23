@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.data.repository.AccountRepository
+import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.FriendsLocalSnapshot
 import com.example.andespace.data.repository.FriendsRepository
 import com.example.andespace.model.dto.FriendItemOut
@@ -22,7 +23,8 @@ import java.time.temporal.TemporalAdjusters
 
 class FriendsViewModel(
     private val repository: FriendsRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FriendsUiState())
@@ -40,7 +42,7 @@ class FriendsViewModel(
         viewModelScope.launch {
             var wasOnline = NetworkMonitor.isOnline.value
             NetworkMonitor.isOnline.collect { isOnline ->
-                if (isOnline && !wasOnline) {
+                if (isOnline && !wasOnline && authRepository.hasLocalSession()) {
                     viewModelScope.launch {
                         repository.syncPendingFriendActions()
                         refreshAll()
@@ -49,7 +51,11 @@ class FriendsViewModel(
                 wasOnline = isOnline
             }
         }
-        refreshAll()
+        viewModelScope.launch {
+            if (authRepository.hasLocalSession()) {
+                refreshAll()
+            }
+        }
     }
 
     fun refreshAll() {
@@ -111,7 +117,11 @@ class FriendsViewModel(
                 )
             }
         }
-        refreshAll()
+        viewModelScope.launch {
+            if (authRepository.hasLocalSession()) {
+                refreshAll()
+            }
+        }
     }
 
     fun showStatusPicker() {
@@ -286,8 +296,8 @@ class FriendsViewModel(
                     _uiState.update { it.copy(isLoadingSchedule = false, friendScheduleData = schedule) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoadingSchedule = false, scheduleError = error.message) }
-                    showBackendError(error)
+                    _uiState.update { it.copy(isLoadingSchedule = false, scheduleError = error.message, selectedFriend = null) }
+                    SnackbarManager.showMessage("Friend's Schedule is not available")
                 }
         }
     }

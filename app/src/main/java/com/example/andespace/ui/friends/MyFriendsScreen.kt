@@ -119,7 +119,9 @@ fun MyFriendsScreen(viewModel: FriendsViewModel) {
                     items(uiState.friendsList, key = { it.email }) { friend ->
                         FriendCard(
                             friend = friend,
-                            onDelete = { viewModel.removeFriend(friend.email) }
+                            onDelete = { viewModel.removeFriend(friend.email) },
+                            onViewSchedule = {
+                                viewModel.selectFriend(friend) }
                         )
                     }
                 }
