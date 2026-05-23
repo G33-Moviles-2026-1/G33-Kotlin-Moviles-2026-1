@@ -16,7 +16,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"http://10.92.16.42:8000/\"")
+        buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.12:8000/\"")
     }
 
     buildTypes {

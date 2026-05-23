@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,7 +74,11 @@ fun AccountSettingsScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
-            Divider(color = MaterialTheme.colorScheme.outline)
+            HorizontalDivider(
+                Modifier,
+                DividerDefaults.Thickness,
+                color = MaterialTheme.colorScheme.outline
+            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -123,15 +129,6 @@ fun AccountSettingsScreen(
                 Divider(color = MaterialTheme.colorScheme.outline)
                 Spacer(modifier = Modifier.height(24.dp))
 
-                StatusSelector(
-                    currentStatus = uiState.currentStatus,
-                    isLoading = uiState.isLoadingStatusChange,
-                    onStatusChange = { viewModel.changeStatus(it) }
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-                Divider(color = MaterialTheme.colorScheme.outline)
-                Spacer(modifier = Modifier.height(24.dp))
 
                 ChangeUsernameForm(
                     currentUsername = uiState.currentUsername,

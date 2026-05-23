@@ -38,11 +38,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import kotlinx.coroutines.isActive
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,13 +61,6 @@ fun NotificationsScreen(
         uiState.successMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        while (isActive) {
-            viewModel.loadNotifications()
-            delay(30_000)
         }
     }
 
