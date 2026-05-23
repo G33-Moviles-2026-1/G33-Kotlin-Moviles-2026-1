@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -29,8 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.andespace.data.network.NetworkMonitor
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.components.FriendPendingRequestRow
+import com.example.andespace.ui.components.NoConnectionPlaceholder
 import com.example.andespace.ui.components.FriendSuggestionRow
 import com.example.andespace.ui.components.FriendsSectionBox
 import com.example.andespace.ui.main.AssetIcon
@@ -38,12 +41,18 @@ import com.example.andespace.ui.main.AssetIcon
 @Composable
 fun AddFriendsScreen(viewModel: FriendsViewModel) {
     val uiState by viewModel.uiState.collectAsState()
+    val isOnline by NetworkMonitor.isOnline.collectAsState()
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(isOnline) {
+        if (isOnline && uiState.contentScreen == FriendsContentScreen.ADD_FRIENDS) {
+            viewModel.refreshAll()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp)
     ) {
         Row(
@@ -65,114 +74,125 @@ fun AddFriendsScreen(viewModel: FriendsViewModel) {
             Spacer(modifier = Modifier.size(48.dp))
         }
 
-        OutlinedTextField(
-            value = uiState.searchQuery,
-            onValueChange = { viewModel.onSearchQueryChange(it) },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search by username") },
-            leadingIcon = {
-                AssetIcon(
-                    assetPath = "icons/searchusername.svg",
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp)
-        )
+        if (!isOnline) {
+            NoConnectionPlaceholder(modifier = Modifier.fillMaxSize())
+            return@Column
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+        ) {
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = { viewModel.onSearchQueryChange(it) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search by username") },
+                leadingIcon = {
+                    AssetIcon(
+                        assetPath = "icons/searchusername.svg",
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
 
-        CustomYellowButton(
-            text = "Send friend request",
-            onClick = { viewModel.sendFriendRequest() },
-            enabled = uiState.searchQuery.isNotBlank()
-        )
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
+            CustomYellowButton(
+                text = "Send friend request",
+                onClick = { viewModel.sendFriendRequest() },
+                enabled = uiState.searchQuery.isNotBlank()
+            )
 
-        Text(
-            text = "Pending requests:",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+            Spacer(modifier = Modifier.height(24.dp))
 
-        FriendsSectionBox {
-            if (uiState.isLoadingRequests) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp))
-                }
-            } else if (uiState.incomingRequests.isEmpty() && uiState.outgoingRequests.isEmpty()) {
-                Text(
-                    text = "No pending requests",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(8.dp)
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    uiState.incomingRequests.forEach { request ->
-                        FriendPendingRequestRow(
-                            name = request.displayName,
-                            isOutgoing = false,
-                            onDecline = { viewModel.declineFriendRequest(request.email) },
-                            onAccept = { viewModel.acceptFriendRequest(request.email) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+            Text(
+                text = "Pending requests:",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            FriendsSectionBox {
+                if (uiState.isLoadingRequests) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
                     }
-                    uiState.outgoingRequests.forEach { request ->
-                        FriendPendingRequestRow(
-                            name = request.username.replaceFirstChar { it.titlecase() },
-                            isOutgoing = true,
-                            onCancel = { viewModel.cancelOutgoingRequest(request.email) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                } else if (uiState.incomingRequests.isEmpty() && uiState.outgoingRequests.isEmpty()) {
+                    Text(
+                        text = "No pending requests",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        uiState.incomingRequests.forEach { request ->
+                            FriendPendingRequestRow(
+                                name = request.displayName,
+                                isOutgoing = false,
+                                onDecline = { viewModel.declineFriendRequest(request.email) },
+                                onAccept = { viewModel.acceptFriendRequest(request.email) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        uiState.outgoingRequests.forEach { request ->
+                            FriendPendingRequestRow(
+                                name = request.username.replaceFirstChar { it.titlecase() },
+                                isOutgoing = true,
+                                onCancel = { viewModel.cancelOutgoingRequest(request.email) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = "People you might know:",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+            Text(
+                text = "People you might know:",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        FriendsSectionBox {
-            if (uiState.isLoadingSuggestions) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp))
-                }
-            } else if (uiState.suggestions.isEmpty()) {
-                Text(
-                    text = "No suggestions right now",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(8.dp)
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    uiState.suggestions.forEach { username ->
-                        FriendSuggestionRow(
-                            name = username.replaceFirstChar { it.titlecase() },
-                            onAdd = { viewModel.sendSuggestionRequest(username) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+            FriendsSectionBox {
+                if (uiState.isLoadingSuggestions) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                    }
+                } else if (uiState.suggestions.isEmpty()) {
+                    Text(
+                        text = "No suggestions right now",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        uiState.suggestions.forEach { username ->
+                            FriendSuggestionRow(
+                                name = username.replaceFirstChar { it.titlecase() },
+                                onAdd = { viewModel.sendSuggestionRequest(username) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
