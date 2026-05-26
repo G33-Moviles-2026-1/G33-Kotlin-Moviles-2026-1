@@ -6,7 +6,6 @@ import com.example.andespace.model.dto.BookingDto
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.data.repository.BookingRepository
 import com.example.andespace.data.network.NetworkMonitor
-import com.example.andespace.data.repository.shared.RepositoryMessages
 import com.example.andespace.ui.common.SnackbarManager
 import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +20,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
 
     init {
         observeBookings()
-        loadBookings()
+        loadBookings(showCacheMessage = false)
         observeNetwork()
     }
 
@@ -43,16 +42,17 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
         }
     }
 
-    fun loadBookings() {
+    fun loadBookings(showCacheMessage: Boolean = true) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, requiresLogin = false) }
             repository.getMyBookings()
                 .onSuccess { _ ->
+                    val isOffline = !NetworkMonitor.isOnline.value
                     _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isShowingCached = !NetworkMonitor.isOnline.value
-                        )
+                        it.copy(isLoading = false, isShowingCached = isOffline)
+                    }
+                    if (isOffline && showCacheMessage) {
+                        SnackbarManager.showMessage(UserMessages.BOOKINGS_CACHED)
                     }
                 }
                 .onFailure { error ->
@@ -62,7 +62,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                     }
                     if (!isSessionExpired) {
                         SnackbarManager.showMessage(
-                            error.message ?: RepositoryMessages.GENERIC_ERROR
+                            error.message ?: UserMessages.BOOKING_LOAD_FAILED
                         )
                     }
                 }
@@ -99,7 +99,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                         SnackbarManager.showMessage(UserMessages.BOOKING_PENDING_SYNC)
                     } else {
                         SnackbarManager.showMessage(
-                            error.message ?: RepositoryMessages.GENERIC_ERROR
+                            error.message ?: UserMessages.DELETE_BOOKING_FAILED
                         )
                     }
                 }
@@ -115,7 +115,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
             if (deleteResult.isFailure && !deletePendingSync) {
                 _uiState.update { it.copy(isSaving = false) }
                 SnackbarManager.showMessage(
-                    deleteResult.exceptionOrNull()?.message ?: RepositoryMessages.GENERIC_ERROR
+                    deleteResult.exceptionOrNull()?.message ?: UserMessages.DELETE_BOOKING_FAILED
                 )
                 return@launch
             }
@@ -144,7 +144,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                     } else {
                         _uiState.update { it.copy(isSaving = false) }
                         SnackbarManager.showMessage(
-                            error.message ?: RepositoryMessages.GENERIC_ERROR
+                            error.message ?: UserMessages.SAVE_BOOKING_FAILED
                         )
                     }
                 }
@@ -178,7 +178,7 @@ class BookingsViewModel(private val repository: BookingRepository): ViewModel() 
                     } else {
                         _uiState.update { it.copy(isCreating = false) }
                         SnackbarManager.showMessage(
-                            error.message ?: RepositoryMessages.GENERIC_ERROR
+                            error.message ?: UserMessages.SAVE_BOOKING_FAILED
                         )
                     }
                 }

@@ -9,8 +9,11 @@ import com.example.andespace.model.dto.AnalyticsEventRequest
 import com.example.andespace.model.dto.CreateBookingRequest
 import com.example.andespace.model.dto.ManualClassIn
 import com.example.andespace.model.dto.RoomGapSearchAnalyticsRequest
+import com.example.andespace.ui.common.SnackbarManager
+import com.example.andespace.ui.common.UserMessages
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
+import org.json.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -76,7 +79,10 @@ class SyncManager(
             val pendingActions = syncDao.getAllPendingActions()
             if (pendingActions.isEmpty()) return@withLock
 
-            Log.d("SyncManager", "Flushing ${pendingActions.size} Schedule actions...")
+            Log.d("SyncManager", "Flushing ${pendingActions.size} pending actions...")
+            val hasScheduleActions = pendingActions.any {
+                it.actionType in setOf("ADD_CLASS", "DELETE_CLASS", "DELETE_SCHEDULE")
+            }
             var networkFailed = false
 
             for (action in pendingActions) {
@@ -97,10 +103,32 @@ class SyncManager(
                         }
                         "CREATE_BOOKING" -> {
                             val request = gson.fromJson(action.payload, CreateBookingRequest::class.java)
-                            apiService.createBooking(request)
+                            val response = apiService.createBooking(request)
+                            if (response.isSuccessful) {
+                                syncDao.deleteAction(action.id)
+                                SnackbarManager.showMessage(UserMessages.BOOKING_CONFIRMED)
+                            } else if (response.code() in 400..499) {
+                                syncDao.deleteAction(action.id)
+                                bookingRepository.deletePendingBookingByRequest(request)
+                                val errorBody = response.errorBody()?.string()
+                                val errorMessage = try {
+                                    JSONObject(errorBody ?: "").getString("detail")
+                                } catch (e: Exception) {
+                                    UserMessages.BOOKING_SYNC_CONFLICT
+                                }
+                                SnackbarManager.showMessage(errorMessage)
+                            }
+                            continue
                         }
                         "DELETE_BOOKING" -> {
-                            apiService.deleteBooking(action.payload)
+                            val response = apiService.deleteBooking(action.payload)
+                            if (response.isSuccessful || response.code() == 204 || response.code() == 404) {
+                                syncDao.deleteAction(action.id)
+                                if (response.code() != 404) {
+                                    SnackbarManager.showMessage(UserMessages.BOOKING_DELETED)
+                                }
+                            }
+                            continue
                         }
                         else -> {
                             Log.w("SyncManager", "Unknown sync action type=${action.actionType}, keeping it in queue")
@@ -117,7 +145,7 @@ class SyncManager(
             }
 
             if (!networkFailed) {
-                scheduleRepository.syncEntireScheduleFromBackend(showSuccessMessage = true)
+                scheduleRepository.syncEntireScheduleFromBackend(showSuccessMessage = hasScheduleActions)
                 bookingRepository.refreshBookings()
             }
         }

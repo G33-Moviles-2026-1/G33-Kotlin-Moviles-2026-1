@@ -8,6 +8,9 @@ import com.example.andespace.AndeSpaceApplication
 import com.example.andespace.data.repository.BookingRepository
 import com.example.andespace.model.db.booking.SyncStatus
 import com.example.andespace.model.dto.CreateBookingRequest
+import com.example.andespace.ui.common.SnackbarManager
+import com.example.andespace.ui.common.UserMessages
+import org.json.JSONObject
 import java.io.IOException
 
 class BookingSyncWorker(
@@ -36,10 +39,9 @@ class BookingSyncWorker(
                         val response = apiService.createBooking(request)
                         if (response.isSuccessful) {
                             syncDao.deleteAction(action.id)
+                            SnackbarManager.showMessage(UserMessages.BOOKING_CONFIRMED)
                         } else {
                             if (response.code() in (400..499)) {
-                                // It's a client error (e.g. room already occupied), so it failed
-                                // We should remove the local pending booking that represents this failure
                                 val localBookings = application.container.bookingDao.getAllBookings()
                                 val match = localBookings.find { b ->
                                     b.syncStatus == SyncStatus.PENDING_CREATE &&
@@ -51,6 +53,13 @@ class BookingSyncWorker(
                                     application.container.bookingDao.deleteById(match.id)
                                 }
                                 syncDao.deleteAction(action.id)
+                                val errorBody = response.errorBody()?.string()
+                                val errorMessage = try {
+                                    JSONObject(errorBody ?: "").getString("detail")
+                                } catch (e: Exception) {
+                                    UserMessages.BOOKING_SYNC_CONFLICT
+                                }
+                                SnackbarManager.showMessage(errorMessage)
                             } else {
                                 hasFailure = true
                             }
@@ -61,6 +70,9 @@ class BookingSyncWorker(
                         val response = apiService.deleteBooking(bookingId)
                         if (response.isSuccessful || response.code() == 204 || response.code() == 404) {
                             syncDao.deleteAction(action.id)
+                            if (response.code() != 404) {
+                                SnackbarManager.showMessage(UserMessages.BOOKING_DELETED)
+                            }
                         } else {
                             hasFailure = true
                         }

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
+import com.example.andespace.ui.common.UserMessages
 
 class RecommendationsViewModel(
     private val repository: RecommendationsRepository,
@@ -176,7 +177,7 @@ class RecommendationsViewModel(
                     _uiState.update {
                         it.copy(
                             isBookingInProgress = false,
-                            bookingError = error.message ?: "The booking could not be confirmed."
+                            bookingError = error.message ?: UserMessages.BOOKING_CONFIRM_FAILED
                         )
                     }
                 }

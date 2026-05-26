@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.AuthRepository
 import com.example.andespace.data.repository.ScheduleRepository
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,7 +43,7 @@ class AuthViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Something went wrong. Please try again."
+                        errorMessage = error.message ?: UserMessages.GENERIC_ERROR
                     )
                 }
             }
@@ -65,7 +66,7 @@ class AuthViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Something went wrong. Please try again."
+                        errorMessage = error.message ?: UserMessages.GENERIC_ERROR
                     )
                 }
             }

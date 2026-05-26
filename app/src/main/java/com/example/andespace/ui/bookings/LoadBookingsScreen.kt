@@ -157,7 +157,7 @@ private fun MyBookingsScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Showing cached bookings",
+                    text = "Showing stored bookings",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.andespace.data.repository.ScheduleNotFoundException
 import com.example.andespace.data.repository.ScheduleRepository
 import com.example.andespace.model.dto.ManualClassIn
+import com.example.andespace.ui.common.UserMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -84,7 +85,7 @@ class ScheduleViewModel(
                 }
             }.onFailure { error ->
                 _uiState.update {
-                    it.copy(isLoading = false, errorMessage = error.message ?: "Something went wrong.")
+                    it.copy(isLoading = false, errorMessage = error.message ?: UserMessages.GENERIC_ERROR)
                 }
             }
         }
@@ -147,7 +148,7 @@ class ScheduleViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = e.message ?: "Unknown error loading schedule",
+                        errorMessage = e.message ?: UserMessages.UNKNOWN_ERROR,
                         scheduleData = null
                     )
                 }

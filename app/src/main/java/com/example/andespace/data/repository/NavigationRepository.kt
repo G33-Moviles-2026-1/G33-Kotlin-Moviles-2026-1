@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 class NavigationRepository(
     private val apiService: ApiService,
@@ -147,8 +148,10 @@ class NavigationRepository(
 
                 val nearestNode = response.body() ?: throw Exception("Empty response body")
                 Result.success(nearestNode.buildingCode)
+            } catch (e: IOException) {
+                Result.failure(Exception(RepositoryMessages.NO_INTERNET))
             } catch (e: Exception) {
-                Result.failure(Exception(e.message ?: RepositoryMessages.LOCATION_RESOLVE_FAILED))
+                Result.failure(Exception(RepositoryMessages.LOCATION_RESOLVE_FAILED))
             }
         }
 

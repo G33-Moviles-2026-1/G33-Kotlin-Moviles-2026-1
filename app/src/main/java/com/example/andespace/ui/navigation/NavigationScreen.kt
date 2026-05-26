@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,8 +28,6 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.outlined.WifiOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,12 +46,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.compose.ui.platform.LocalContext
 import com.example.andespace.data.location.FusedLocationSensor
 import com.example.andespace.ui.components.CustomYellowButton
 import com.example.andespace.ui.theme.PrimaryYellow
@@ -122,7 +119,7 @@ fun NavigationScreen(
         CustomNavigationTextField(value = fromClassroom, onValueChange = {
             fromClassroom = it
             navigationViewModel.onFromClassroomChange(it)
-        }, placeholder = "ML 340", trailingIcon = {
+        }, placeholder = "ej. ML 340", trailingIcon = {
             IconButton(
                 onClick = {
                     val alreadyGranted = ContextCompat.checkSelfPermission(
@@ -174,7 +171,7 @@ fun NavigationScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         CustomNavigationTextField(
-            value = toClassroom, onValueChange = { toClassroom = it }, placeholder = "C 404"
+            value = toClassroom, onValueChange = { toClassroom = it }, placeholder = "ej. C 404"
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -336,6 +333,7 @@ fun CustomNavigationTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
+    maxLength: Int = 15 ,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     Box(
@@ -359,7 +357,7 @@ fun CustomNavigationTextField(
                 }
                 BasicTextField(
                     value = value,
-                    onValueChange = onValueChange,
+                    onValueChange = { if (it.length <= maxLength) onValueChange(it) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(

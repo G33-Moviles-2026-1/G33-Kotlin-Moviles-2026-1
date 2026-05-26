@@ -148,14 +148,18 @@ class BookingRepository(
                         Result.failure(Exception(RepositoryMessages.BOOKING_CONFIRM_FAILED))
                     }
                 } else {
-                    enqueueBookingAction(ACTION_CREATE_BOOKING, gson.toJson(request))
-                    scheduleSync()
                     val errorString = response.errorBody()?.string()
                     val realErrorMessage = try {
                         val jsonObject = JSONObject(errorString ?: "")
                         jsonObject.getString("detail")
                     } catch (e: Exception) {
                         httpErrorMessage(response.code())
+                    }
+                    if (response.code() in 400..499) {
+                        bookingDao.deleteById(tempId)
+                    } else {
+                        enqueueBookingAction(ACTION_CREATE_BOOKING, gson.toJson(request))
+                        scheduleSync()
                     }
                     Result.failure(Exception(realErrorMessage))
                 }
@@ -200,6 +204,16 @@ class BookingRepository(
                 Result.failure(Exception("OFFLINE_SYNC_PENDING"))
             }
         }
+
+    suspend fun deletePendingBookingByRequest(request: CreateBookingRequest) = withContext(Dispatchers.IO) {
+        val match = bookingDao.getAllBookings().find { b ->
+            b.syncStatus == SyncStatus.PENDING_CREATE &&
+            b.roomId == request.roomId &&
+            b.date == request.date &&
+            b.startTime.take(5) == request.startTime.take(5)
+        }
+        match?.let { bookingDao.deleteById(it.id) }
+    }
 
     private suspend fun enqueueBookingAction(actionType: String, payload: String) {
         syncDao.insertAction(
