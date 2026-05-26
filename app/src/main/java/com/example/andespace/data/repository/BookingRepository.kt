@@ -64,12 +64,7 @@ class BookingRepository(
             if (response.isSuccessful) {
                 val remoteBookings = response.body()?.items.orEmpty()
 
-                // Get local bookings
                 val localBookings = bookingDao.getAllBookings()
-
-                // Strategy to avoid duplicates:
-                // 1. Identify pending creates that match a remote booking by content (Room, Date, Time)
-                // 2. Remove those local pending creates because the remote one is the "truth"
                 val pendingCreates = localBookings.filter { it.syncStatus == SyncStatus.PENDING_CREATE }.toMutableList()
 
                 val duplicatesToRemove = mutableListOf<BookingEntity>()
@@ -103,8 +98,6 @@ class BookingRepository(
     }
 
     suspend fun getMyBookings(): Result<List<BookingDto>> = withContext(Dispatchers.IO) {
-        // Cache-then-network: This method can be used for explicit refresh
-        // but the main data source is the 'bookings' Flow.
         var refreshError: Throwable? = null
         refreshBookings()
             .onSuccess {
@@ -123,7 +116,6 @@ class BookingRepository(
 
     suspend fun createBooking(request: CreateBookingRequest): Result<BookingDto> =
         withContext(Dispatchers.IO) {
-            // Optimistic insert
             val tempId = "pending_${UUID.randomUUID()}"
             val pendingBooking = BookingEntity(
                 id = tempId,
@@ -178,14 +170,10 @@ class BookingRepository(
     suspend fun deleteBooking(bookingId: String): Result<Boolean> =
         withContext(Dispatchers.IO) {
             try {
-                // Optimistic local update
                 val booking = bookingDao.getAllBookings().find { it.id == bookingId }
                 if (booking != null) {
                     if (booking.syncStatus == SyncStatus.PENDING_CREATE) {
-                        // If it's a pending create, just remove it from local and remove its action
                         bookingDao.deleteById(bookingId)
-                        // Need to find and delete the action from syncDao... complex.
-                        // For now, let's just mark it as PENDING_DELETE.
                     }
                     bookingDao.insertAll(listOf(booking.copy(syncStatus = SyncStatus.PENDING_DELETE)))
                 }
